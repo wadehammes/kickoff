@@ -2,68 +2,69 @@ import type { ProjectAnswers } from "../types.js";
 
 export function getPackageJson(a: ProjectAnswers): string {
   const deps: Record<string, string> = {
-    "@contentful/rich-text-react-renderer": "^16.2.1",
-    "@contentful/rich-text-types": "^17.2.7",
-    "@faker-js/faker": "^10.4.0",
-    "@jest/types": "^30.4.1",
-    "@next/third-parties": "^16.2.6",
-    "@svgr/webpack": "^8.1.0",
-    "@tanstack/react-query": "^5.100.10",
-    classnames: "^2.5.1",
-    contentful: "^11.12.2",
-    "html-react-parser": "^6.1.0",
-    "jest-mock": "^30.4.1",
-    next: "^16.2.6",
-    "postcss-flexbugs-fixes": "^5.0.2",
-    "postcss-preset-env": "^11.3.0",
-    react: "^19.2.6",
-    "react-aria": "^3.48.0",
-    "react-dom": "^19.2.6",
-    "react-hook-form": "^7.75.0",
-    "react-intersection-observer": "^10.0.3",
-    "safe-json-stringify": "^1.2.0",
-    "schema-dts": "^2.0.0",
-    sonner: "^2.0.7",
-    tslib: "^2.8.1",
+    "@contentful/rich-text-react-renderer": "latest",
+    "@contentful/rich-text-types": "latest",
+    "@faker-js/faker": "latest",
+    "@jest/types": "latest",
+    "@next/third-parties": "latest",
+    "@svgr/webpack": "latest",
+    "@tanstack/react-query": "latest",
+    classnames: "latest",
+    contentful: "latest",
+    "html-react-parser": "latest",
+    "jest-mock": "latest",
+    next: "latest",
+    "postcss-flexbugs-fixes": "latest",
+    "postcss-preset-env": "latest",
+    react: "latest",
+    "react-aria": "latest",
+    "react-dom": "latest",
+    "react-hook-form": "latest",
+    "react-intersection-observer": "latest",
+    "safe-json-stringify": "latest",
+    "schema-dts": "latest",
+    sonner: "latest",
+    tslib: "latest",
   };
 
   if (a.includeI18n) {
-    deps["next-intl"] = "^4.12.0";
+    deps["next-intl"] = "latest";
   }
   if (a.includeResend) {
-    deps.resend = "6.12.3";
+    deps.resend = "latest";
   }
   if (a.includeRecaptcha) {
-    deps["react-google-recaptcha"] = "^3.1.0";
+    deps["react-google-recaptcha"] = "latest";
   }
 
   const devDeps: Record<string, string> = {
+    // Pinned: biome.json schema and rule names change between releases
     "@biomejs/biome": "2.4.15",
-    "@testing-library/dom": "^10.4.1",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/jest": "^30.0.0",
-    "@types/node": "^25.8.0",
-    "@types/react": "^19.2.11",
-    "@types/safe-json-stringify": "^1.1.5",
-    "cf-content-types-generator": "^3.0.1",
-    csstype: "^3.1.3",
-    jest: "^30.4.2",
-    "jest-environment-jsdom": "^30.4.1",
-    "react-is": "^19.2.6",
-    stylelint: "^17.11.0",
-    "stylelint-config-css-modules": "^4.6.0",
-    "stylelint-config-standard": "^40.0.0",
-    "stylelint-value-no-unknown-custom-properties": "^6.1.1",
-    "ts-jest": "^29.4.9",
-    "ts-node": "^10.9.2",
-    typescript: "^6.0.3",
-    "typescript-plugin-css-modules": "^5.2.0",
+    "@testing-library/dom": "latest",
+    "@testing-library/jest-dom": "latest",
+    "@testing-library/react": "latest",
+    "@testing-library/user-event": "latest",
+    "@types/jest": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/safe-json-stringify": "latest",
+    "cf-content-types-generator": "latest",
+    csstype: "latest",
+    jest: "latest",
+    "jest-environment-jsdom": "latest",
+    "react-is": "latest",
+    stylelint: "latest",
+    "stylelint-config-css-modules": "latest",
+    "stylelint-config-standard": "latest",
+    "stylelint-value-no-unknown-custom-properties": "latest",
+    "ts-jest": "latest",
+    "ts-node": "latest",
+    typescript: "latest",
+    "typescript-plugin-css-modules": "latest",
   };
 
   if (a.includeRecaptcha) {
-    devDeps["@types/react-google-recaptcha"] = "^2.1.9";
+    devDeps["@types/react-google-recaptcha"] = "latest";
   }
 
   const scripts: Record<string, string> = {
@@ -310,8 +311,11 @@ not dead
 `;
 }
 
-export function getToolVersions(): string {
-  return "nodejs 24.15.0\npnpm 10.33.3\n";
+export function getToolVersions(
+  nodeVersion: string,
+  pnpmVersion: string,
+): string {
+  return `nodejs ${nodeVersion}\npnpm ${pnpmVersion}\n`;
 }
 
 export function getEditorConfig(): string {

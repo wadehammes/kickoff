@@ -1,4 +1,5 @@
 import path from "node:path";
+import process from "node:process";
 import fsExtra from "fs-extra";
 
 const { ensureDir, writeFile } = fsExtra;
@@ -140,7 +141,16 @@ export async function generateProject(a: ProjectAnswers): Promise<void> {
   await write(root, "biome.json", getBiomeConfig());
   await write(root, "stylelint.config.ts", getStylelintConfig());
   await write(root, "postcss.config.json", getPostcssConfig());
-  await write(root, ".tool-versions", getToolVersions());
+  // Detect running Node and pnpm versions to write into .tool-versions
+  const nodeVersion = process.version.replace(/^v/, "");
+  const pnpmVersion =
+    process.env.npm_config_user_agent?.match(/pnpm\/(\S+)/)?.[1] ?? "latest";
+
+  await write(
+    root,
+    ".tool-versions",
+    getToolVersions(nodeVersion, pnpmVersion),
+  );
   await write(root, ".editorconfig", getEditorConfig());
   await write(root, ".npmrc", getNpmrc());
   await write(root, ".browserslistrc", getBrowserslistrc());
