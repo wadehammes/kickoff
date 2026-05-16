@@ -27,17 +27,16 @@ export function getReadme(a: ProjectAnswers): string {
 ## Getting started
 
 \`\`\`sh
+# Copy and fill in environment variables
+cp .env.local.example .env.local
+
 # Install dependencies
 pnpm install
 
-# Copy environment variables
-cp .env.local.example .env.local
-# Fill in your Contentful credentials and other env vars
-
-# Generate Contentful TypeScript types
+# Generate Contentful TypeScript types (requires CONTENTFUL_SPACE_ID + CONTENTFUL_CMA_TOKEN in .env.local)
 pnpm types:contentful
 
-# Start dev server (port ${a.devPort})
+# Start dev server on port ${a.devPort}
 pnpm dev
 \`\`\`
 
@@ -46,44 +45,71 @@ pnpm dev
 | Command | Description |
 |---|---|
 | \`pnpm dev\` | Start Next.js dev server on port ${a.devPort} |
-| \`pnpm build\` | Production build |
+| \`pnpm dev:preview\` | Start dev server and auto-open Contentful draft mode |
+| \`pnpm build\` | Production build + generate sitemap |
 | \`pnpm start\` | Start production server |
-| \`pnpm tsc:ci\` | TypeScript type check |
+| \`pnpm tsc:ci\` | TypeScript strict check |
 | \`pnpm lint\` | Run Biome linter |
-| \`pnpm lint:fix\` | Auto-fix lint issues |
+| \`pnpm lint:fix\` | Auto-fix Biome lint issues |
 | \`pnpm lint:css\` | Run Stylelint |
+| \`pnpm lint:css:fix\` | Auto-fix Stylelint issues |
 | \`pnpm test:ci\` | Run Jest test suite |
-| \`pnpm types:contentful\` | Generate types from Contentful space |
-| \`pnpm scaffold MyComponent\` | Scaffold a new component |
+| \`pnpm types:contentful\` | Regenerate \`src/contentful/types/\` from Contentful space |
+| \`pnpm scaffold MyComponent\` | Scaffold a new component with all standard files |
 
 ## Contentful setup
 
-1. Create a Contentful space
-2. Add your \`CONTENTFUL_SPACE_ID\` and API keys to \`.env.local\`
+1. Create a Contentful space and add a \`Page\` content type
+2. Fill in \`CONTENTFUL_SPACE_ID\`, \`CONTENTFUL_CONTENT_DELIVERY_API_KEY\`, \`CONTENTFUL_PREVIEW_API_KEY\`, \`CONTENTFUL_PREVIEW_SECRET\`, and \`CONTENTFUL_CMA_TOKEN\` in \`.env.local\`
 3. Run \`pnpm types:contentful\` to generate TypeScript types in \`src/contentful/types/\`
-4. Create Contentful fetch helpers in \`src/contentful/\` (e.g. \`getPages.ts\`)
+4. Add getters in \`src/contentful/get*.ts\` and parsers in \`src/contentful/parse*.ts\`
+
+See \`docs/handbook/contentful.md\` for full guidance.
 
 ## Draft mode
 
 Visit \`/api/draft?previewSecret=YOUR_SECRET&redirect=/\` to enable draft mode.
-Visit \`/api/disable-draft\` to exit draft mode.
+Visit \`/api/disable-draft\` to exit.
+
+Or use \`pnpm dev:preview\` which auto-opens draft mode after the server starts.
+
+## Component scaffolding
+
+\`\`\`sh
+pnpm scaffold MyComponent
+\`\`\`
+
+Creates:
+- \`src/components/MyComponent/MyComponent.component.tsx\`
+- \`src/components/MyComponent/MyComponent.module.css\`
+- \`src/components/MyComponent/MyComponent.interfaces.ts\`
+- \`src/components/MyComponent/MyComponent.spec.tsx\`
+- \`src/components/MyComponent/MyComponent.po.tsx\`
+- \`src/tests/factories/MyComponent.factory.ts\`
+
+## Handbook
+
+Project conventions, architecture, and patterns are documented in \`docs/handbook/\`.
+See \`docs/handbook/README.md\` for the index or \`docs/handbook/llms.md\` for a task→chapter map.
 
 ## Deployment
 
 - Connect your repository to [Vercel](https://vercel.com)
-- Set the environment variables from \`.env.local.example\` in Vercel project settings
+- Add all env vars from \`.env.local.example\` to Vercel project settings
 - PRs to \`staging\` → preview deployments
 - Merge to \`main\` → production deployment at ${a.prodUrl}
 
-## CI/CD
-
-- PRs to \`staging\`: TypeScript check, Biome lint, Stylelint, Jest tests
-- Push a \`v*\` tag to create a GitHub Release and reset \`main\`
+## Releases
 
 \`\`\`sh
-# Create a release
 make release tag=v1.0.0
 \`\`\`
+
+Runs the Vercel membership check, pushes the tag → triggers the release workflow → creates a GitHub Release and resets \`main\`.
+
+## CI
+
+PRs to \`staging\` run: TypeScript strict check, Biome lint, Stylelint, Jest tests.
 `;
 }
 
