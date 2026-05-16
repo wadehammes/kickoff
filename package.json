@@ -1,0 +1,29 @@
+{
+  "name": "kickoff",
+  "version": "1.0.0",
+  "description": "CLI scaffolding tool for Next.js + Contentful + TypeScript projects",
+  "type": "module",
+  "bin": {
+    "kickoff": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "lint": "biome check",
+    "lint:ci": "biome ci --reporter=github",
+    "lint:fix": "biome check --fix"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "fs-extra": "^11.2.0",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.15",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^22.0.0",
+    "@types/prompts": "^2.4.9",
+    "typescript": "^5.5.0"
+  }
+}
