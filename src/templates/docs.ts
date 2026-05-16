@@ -297,20 +297,21 @@ If you are unsure, copy a nearby file that already does the right thing and run 
 
 ## TypeScript
 
-- **Blank line after declarations.** After \`const\` / \`let\` declarations in a function or block, leave one blank line before the next statement when that statement is control flow (\`if\`, \`for\`, \`while\`, \`switch\`, \`try\`) or a \`return\` (or other logic that is not another declaration). Do not insert a blank line between consecutive declarations that form one setup block.
+- **Blank line after declarations.** After \`const\` / \`let\` declarations in a function or block, leave one blank line before the next statement when that statement is control flow (\`if\`, \`for\`, \`while\`, \`switch\`, \`try\`) or a \`return\`. Do not insert a blank line between consecutive declarations that form one setup block.
 - **Use arrow functions always.** Prefer \`const fn = () => {}\` over \`function fn() {}\`.
 - **If blocks always use \`{}\`.** Same for \`else\`, \`for\`, \`while\`, and \`do\`—never omit braces for single-line bodies.
 - **Never use \`any\`.** Use proper types for all props, state, and function signatures.
-- **Components**: Use arrow functions for component definitions (e.g. \`export const MyComponent = (props: Props) => { ... }\`). Do not use \`React.FC\` or function declarations.
+- **Components**: Use arrow functions for component definitions (e.g. \`export const MyComponent = (props: Props) => { ... }\`). Do not use \`React.FC\` / \`FC\` or \`function\` declarations.
 - **Never use non-null assertion (\`!\`).** Use optional chaining, nullish coalescing (\`??\`), or explicit checks instead.
 - **Omit redundant return types.** Do not add an explicit return type annotation when the compiler can infer it. Add return types only when needed for public API clarity or when inference would be wrong or unclear.
 - **No nested ternaries.** Use \`if\`/\`else\` or extract to a variable or helper so each branch is clear. A single ternary is fine; nesting is not.
 - **No barrel files.** Do not add \`index.ts\` (or \`index.tsx\`) files that re-export from other modules. Import directly from the target module file.
 - **Absolute imports (\`src/…\`).** Import application TypeScript and JavaScript modules with paths rooted at \`src/\`. Do not use relative paths (\`./\`, \`../\`) to reach another module under \`src/\` unless an exception below applies.
-- **Exceptions to absolute imports:** (1) **CSS Modules** and other static assets co-located with the importing file. (2) **\`src/contentful/types/\`**—generated; do not hand-edit their import style.
-- **Do not re-export types (or values) from another module.** Import from the module that defines them.
+- **Exceptions to absolute imports:** (1) **CSS Modules** and other static assets co-located with the importing file (e.g. \`import styles from "./MyComponent.module.css"\`). (2) **\`src/contentful/types/\`**—generated; do not hand-edit their import style.
+- **Do not re-export types (or values) from another module.** Import from the module that defines them. Never re-export types from a component file so consumers can import from a single place — have them import from the defining module directly.
 - **Use a single params object for function parameters.** For any function that takes more than one argument or an optional argument, pass a single object parameter so call sites are self-documenting and order-independent.
-- **Contentful types**: Content types are generated into \`src/contentful/types/\` (run \`pnpm types:contentful\` with Contentful env vars set). Do not edit generated types by hand.
+- **Use semantic parameter and variable names.** Pick a name that describes what the value *is* — its domain meaning, format, or source — not its lifecycle state. Avoid generic placeholders like \`raw\`, \`data\`, \`val\`, \`tmp\`, \`result\`, \`thing\`. Prefer \`encodedValue\`, \`apiResponse\`, \`candidateSlug\`, \`trimmedDescription\`.
+- **Contentful types**: Content types are generated into \`src/contentful/types/\` (run \`pnpm types:contentful\` with Contentful env vars set). Do not edit generated types by hand — for any reason.
 - **Contentful ordering**: Do not sort or alphabetize Contentful data in the app. Order at fetch time via the Contentful API \`order\` parameter.
 - **App-level types**: Shared slugs, navigation IDs, and similar **constants** live in \`src/utils/constants.ts\`. Feature-scoped interfaces live under \`src/interfaces/\`. Prefer colocating types with a feature when they are not cross-cutting.
 - **API and forms**: When adding new API or form payloads, define interfaces in the relevant module, next to \`src/api/urls.ts\`, or alongside the route handler under \`src/app/api/\`.
@@ -321,9 +322,10 @@ If you are unsure, copy a nearby file that already does the right thing and run 
 We favor plain functions with typed props—no \`React.FC\`—and explicit conditionals so we never accidentally render a stray \`0\` or \`false\`.
 
 - **Component types**: Do not use \`FC\` or \`React.FC\`. Type props explicitly and let the return type be inferred.
-- **Conditional components**: Use a ternary (\`condition ? <Component /> : null\`) instead of short-circuit (\`condition && <Component />\`) so the render branch is explicit. Write conditionals as multi-line statement blocks.
-- **Multiple or conditional class names**: Use the \`classnames\` package (import as \`classNames\`) instead of template literals or string concatenation. Prefer **object notation** for conditionals: \`classNames(styles.a, { [styles.active]: isActive })\`. For static lists use multiple arguments. When accepting an optional \`className\` prop: \`classNames(styles.container, className)\`.
+- **Conditional components**: Use a ternary (\`condition ? <Component /> : null\`) instead of short-circuit (\`condition && <Component />\`) so the render branch is explicit and avoids accidentally rendering falsy values (e.g. \`0\`). Write conditionals as multi-line statement blocks.
+- **Multiple or conditional class names**: Use the \`classnames\` package (import as \`classNames\`) instead of template literals or string concatenation. For **conditional** classes, use **object notation**: \`classNames(styles.a, { [styles.active]: isActive })\` — avoid \`isActive && styles.active\` and avoid ternaries that return class strings. For static lists use multiple arguments: \`classNames(styles.a, styles.b)\`. When accepting an optional \`className\` prop: \`classNames(styles.container, className)\`.
 - **Raster images in UI**: Use **\`next/image\`** (\`import Image from "next/image"\`). Avoid bare \`<img>\` for content images unless you have a documented exception. Every \`Image\` needs an \`alt\`.
+- **Links**: Use **\`next/link\`**'s **\`Link\`** for all navigational links—internal paths, external URLs, \`mailto:\`, \`tel:\`, and the like—not a bare \`<a>\` unless you have a rare, documented exception. For new tabs, set \`target\` and \`rel="noopener noreferrer"\`.
 
 ### Large components and state
 
@@ -331,15 +333,17 @@ We favor plain functions with typed props—no \`React.FC\`—and explicit condi
 
 ## Formatting and linting
 
-We standardize on **Biome** for both lint and format.
+We standardize on **Biome** for both lint and format of TS/JS/CSS, plus **Stylelint** for CSS-specific rules.
 
-- **Braces**: Always use curly braces \`{}\` for control flow, even for single-line bodies.
+- **Braces**: Always use curly braces \`{}\` for control flow, even for single-line bodies. Use statement blocks for all conditionals and early returns—no single-line \`if\` bodies (e.g. \`if (!x) { return null; }\` not \`if (!x) return null\`).
 - **Commands**:
-  - \`pnpm lint\` – check only
+  - \`pnpm lint\` – Biome check only
   - \`pnpm lint:fix\` – run \`biome check --write\` (fix what can be fixed)
-- **Config**: \`biome.json\`. CSS is included (formatter and linter).
-- **Notable rules**: no unused imports/variables, no inferrable types, use \`as const\` where appropriate.
-- Run lint before committing so CI passes.
+  - \`pnpm lint:css\` – Stylelint check only
+  - \`pnpm lint:css:fix\` – Stylelint with \`--fix\`
+- **Config**: \`biome.json\` for Biome (CSS formatter and linter included); \`stylelint.config.ts\` for Stylelint.
+- **Notable rules**: no unused imports/variables, no inferrable types, use \`as const\` where appropriate, \`noDangerouslySetInnerHtml\` is a warning.
+- Run lint/format before committing so CI passes.
 
 ## CSS and styling
 
@@ -354,8 +358,8 @@ Place the CSS module next to the component, e.g. \`MyComponent.component.tsx\` a
 ### Modern CSS
 
 - **Nesting**: Use nesting for scoped styles and for nested media queries.
-- **Custom properties**: Prefer variables from the global design system. All design tokens live in \`src/styles/variables.css\`, imported by \`globals.css\`.
-- **Runtime font variables**: Next.js \`localFont\` injects font variables via a class on \`<html>\` at runtime. Do not declare them in CSS. They are registered in \`src/styles/runtime-variables.json\` for Stylelint.
+- **Custom properties**: Prefer variables from the global design system. All design tokens live in \`src/styles/variables.css\`, imported by \`globals.css\`. If you need to inject a custom property at render time (inline \`style={{ "--foo": value }}\`), declare it in the same file as \`--foo: initial;\` so Stylelint recognizes it.
+- **Runtime font variables**: Next.js \`localFont\` injects font variables via a class on \`<html>\` at runtime. Do not declare them in CSS. Register them in \`src/styles/runtime-variables.json\` for Stylelint.
 - **Modern features**: Use \`color-mix()\`, \`clamp()\` where they simplify code. Keep styles DRY.
 
 ### Mobile-first
@@ -368,31 +372,44 @@ Write base styles for mobile; override for larger viewports.
 ### Style rules
 
 - **Alphabetize** CSS properties within each rule block.
-- **Nest** selectors where it makes sense, but **avoid deep nesting**. Keep nesting to one level.
-- **Spacing**: Do not use \`margin-top\`. Prefer flexbox with \`gap\`.
-- Do not add redundant comments in CSS.
+- **Nest** selectors where it makes sense, but **avoid deep nesting**. If a block has many nested rules, break it into separate top-level rules. Keep nesting to one level for structure; use flat rules for clarity.
+- **Spacing**: Do not use \`margin-top\`. Prefer flexbox with \`gap\` for vertical and horizontal spacing between siblings.
+- Do not add redundant comments in CSS; class names and structure should be self-explanatory.
 
 ## Testing
 
-Tests use Jest, **page objects** for setup, and **\`screen\` / \`userEvent\`** in the spec for queries and clicks.
+Tests use Jest, **page objects** for **render setup, mocks, and shared test data only**. **Do not call \`screen\` / \`queryBy*\`** from page objects—put all DOM queries in **\`<Name>.spec.tsx\`** via **\`screen\`**, **\`userEvent\`**, and **\`within\`** as needed.
 
 ### Page object pattern
 
 - **Base class**: \`src/tests/basePageObject.po.ts\` (optional \`debug\`, \`raiseOnFind\`).
-- **Per-component page object**: In \`<Name>.po.tsx\`, define a class that extends \`BasePageObject\`, sets \`testId = "rh<ComponentName>"\`, implements \`render<Name>()\` using the custom \`render\` from test-utils, and exposes setup/actions only. Do not add getter functions that wrap \`screen.getBy*\` / \`screen.queryBy*\`; queries belong in the spec.
-- **Tests**: In \`<Name>.spec.tsx\`, instantiate the page object in \`beforeEach\`, then use **\`screen\` and \`userEvent\` directly** for all queries and interactions.
+- **Per-component page object**: In \`<Name>.po.tsx\`, define a class that extends \`BasePageObject\`, sets \`testId = "rh<ComponentName>"\`, implements \`render<Name>()\` using the custom \`render\` from test-utils, and holds test data and setup (factories, \`jest.resetAllMocks()\`, mock implementations). No \`screen\` queries in the PO.
+- **Tests**: In \`<Name>.spec.tsx\`, import **\`describe\`**, **\`it\`**, **\`expect\`**, **\`beforeEach\`** from **\`@jest/globals\`**. Instantiate the page object in \`beforeEach\`, then query the DOM with **\`screen\`** / **\`userEvent\`** (e.g. \`expect(screen.getByTestId(po.testId)).toBeInTheDocument()\`).
 - **Custom render**: Always use the \`render\` from \`src/tests/test-utils.tsx\`. It wraps the tree with the same providers as the app.
 
 ### Test data
 
-- **\`BaseFactory\`** (\`src/tests/factories/BaseFactory.ts\`) is the base class for all test factories. Extend it for each type that needs test data.
-- **Factory files** live in \`src/tests/factories/<Name>.factory.ts\`. Define a factory class that extends \`BaseFactory\` and provides typed \`build()\` with sensible defaults and optional overrides.
-- **Use \`@faker-js/faker\`** for dynamic values (ids, strings, numbers, dates). Keep only true constants as static defaults (e.g. fixed strings from \`as const\` objects, empty strings, null). Tests that need specific values override with \`new MyFactory().build({ field: value })\`.
-- **Use factories for structured test data.** When a factory exists for a type, use it with overrides instead of inline objects. Override only the fields that matter for the test.
+- **\`BaseFactory\`** (\`src/tests/factories/BaseFactory.ts\`) is the base class for all test factories. Subclass it and export a singleton instance. **All factories live in \`src/tests/factories/\`** — never next to the component.
+- **Factory shape**: Each factory declares its own \`<Name>FactoryOptions\` type (use \`Record<string, never>\` when no options are needed) and implements \`build(attributes?, _options?)\`. Inside \`build\`, construct an \`instance\` literal with \`satisfies <Type>\`, then return \`{ ...instance, ...(attributes ?? {}) }\`. Include the \`KeysMatch\` guard (\`const _allKeysMustBeInTheInstance: KeysMatch<Type, typeof instance> = undefined;\`) so missing keys break the build instead of silently shipping \`undefined\`.
+- **Every key gets random Faker data — no exceptions.** Required, optional, nullable — every property in the \`instance\` literal must be a \`faker.*\` call. Never use hard-coded strings, numbers, \`null\`, or \`undefined\` as defaults. Tests that specifically need a fixed value must override with \`.build({ field: value })\`.
+- **For nullable fields (\`T | null\`), use \`nullish\`** from \`src/utils/factory.helpers.ts\`. \`nullish([value])\` randomly returns \`null\` or the provided value, so both branches are exercised across builds. Tests that need a non-null value must override at the call site.
+- **One factory per file.** Each \`<Name>.factory.ts\` exports exactly one factory singleton. The filename matches the singleton.
+- **Use nested factories for compound shapes.** If a type contains a \`Document\` (rich text), a \`ContentfulAsset\`, etc., use the existing factory (e.g. \`richTextDocumentFactory.build()\`, \`contentfulAssetFactory.build()\`) instead of inlining a literal.
+- **No function wrappers.** Each call to \`.build()\` runs the body fresh, so write \`id: faker.string.uuid()\` directly — no \`() => faker.string.uuid()\` wrappers.
+- **Explicitly set any field the test queries or asserts on.** If a spec finds an element by a factory-driven string, pass that value to \`.build({ field: "My Label" })\` and use the **literal string** in the query/assertion. Do not read it back via \`po.metadata.field\`.
+- **Repeat the literal in the PO and the spec; do not share via a constant.** Two identical literals separated by file is the desired state — the duplication is the point.
+- **Use factories for structured test data.** When a factory exists for a type, use it with overrides instead of inline objects.
+
+### What to mock (and what not to)
+
+Default to running **in-repo utilities** for real in component tests — URL builders, string helpers, and other pure helpers in \`src/utils/\`. Stubbing them hides what the component actually produces.
+
+- **Don't mock**: anything under \`src/utils/\` — URL builders, string helpers, etc. Let them run.
+- **Do mock**: external dependencies — \`src/api/*\` calls, \`src/lib/analytics\`, \`next/navigation\`, \`next/script\`, \`IntersectionObserver\`, and similar.
 
 ### Jest and \`next/script\`
 
-Unit tests that assert on DOM from **\`next/script\`** (e.g. JSON-LD \`<script id="schema-structured-data">\`) should **mock** \`next/script\` so injection is synchronous.
+Unit tests that assert on DOM from **\`next/script\`** (e.g. JSON-LD \`<script id="schema-structured-data">\`) should **mock** \`next/script\` so injection is synchronous; the real component loads \`afterInteractive\` and can miss timing in JSDOM.
 
 - **Wiring**: Mocks under \`src/tests/mocks/\` need an explicit factory:
 
@@ -406,17 +423,17 @@ jest.mock("next/script", () => ({
 ## Test IDs
 
 - Every component that is tested (or likely to be) should have a **root element** with \`data-testid="rh<ComponentName>"\` (e.g. \`rhNavigation\`, \`rhFooter\`). Use PascalCase to match the component name.
-- The page object's \`testId\` property must match.
+- The page object's **\`testId\`** must match the component root \`data-testid\` so specs can use \`screen.getByTestId(po.testId)\`.
 - Do not use generic or non-standard test IDs for the component root.
 
 ## Accessibility
 
 Ship UI that works with a keyboard and a screen reader whenever the design allows.
 
-- Use **semantic HTML** first: correct heading levels, \`<button>\` for actions, \`<a>\` / \`Link\` for navigation, lists for list content.
+- Use **semantic HTML** first: correct heading levels, \`<button>\` for actions, \`Link\` from \`next/link\` for navigation, lists for list content.
 - **Forms**: Associate every input with a label (\`htmlFor\` / \`id\`) or an accessible name via \`aria-label\` / \`aria-labelledby\`.
 - **Images**: \`alt\` is required on every \`Image\`—accurate text when the image conveys information; \`alt=""\` when purely decorative. If you introduce a new external image hostname, add it to \`images.remotePatterns\` in \`next.config.ts\`.
-- **Keyboard**: Interactive controls must be focusable and operable without a pointer.
+- **Keyboard**: Interactive controls must be focusable and operable without a pointer; overlays and menus should not leave focus in a hidden layer.
 - **Motion**: Prefer honoring \`prefers-reduced-motion\` for large or looping animations.
 
 ## Comments
@@ -432,8 +449,8 @@ The repo uses \`.editorconfig\`: indent 2 spaces, UTF-8, insert final newline, t
 Keep data-fetching hooks in their own files under \`src/hooks/queries/\` and \`src/hooks/mutations/\`. Components should call a named hook and react to \`data\`, \`isLoading\`, and \`isError\`—not own the \`useQuery\` wiring inline.
 
 - **Always create a dedicated query hook file.** Do not inline \`useQuery\` (or \`useMutation\`) in components. Add hooks under \`src/hooks/queries/\` and \`src/hooks/mutations/\`.
-- **Hook params must be a single object.**
-- **Keep query hooks dumb.** Query files should only call \`useQuery\` / \`useMutation\` with the standard options. Do not add side effects or callbacks in the query file.
+- **Hook params must be a single object.** Pass one argument object to the hook instead of multiple positional arguments.
+- **Keep query hooks dumb.** Query files should only call \`useQuery\` / \`useMutation\` with standard options. Do not add side effects or callbacks in the query file.
 - **Handle errors and side effects at the call site.**
 `;
 }
@@ -449,10 +466,17 @@ Most pages are driven by Contentful. This guide explains how **generated types**
 
 ## Content types (generated)
 
-All Contentful content type TypeScript definitions live under \`src/contentful/types/\`. They are **generated** from the CMS and must not be edited by hand.
+All Contentful content type TypeScript definitions live under \`src/contentful/types/\`. They are **generated** from the CMS and **must never be edited by hand — for any reason**.
 
 - **Regenerate**: Run \`pnpm types:contentful\` (requires \`CONTENTFUL_SPACE_ID\` and \`CONTENTFUL_CMA_TOKEN\` in env). The script runs Biome format on the generated types.
 - When the CMS schema changes, regenerate and fix any parser or component that breaks.
+
+**Source of truth rule (important):** If you see a type mismatch between app code and a generated Contentful type, **do not fix it by editing \`src/contentful/types/*\`**. Those files are overwritten by codegen.
+
+- If the CMS schema is correct: **update app code** (parsers/components/factories/tests) to match the generated types.
+- If the app behavior is correct and the CMS schema is wrong: **update the CMS model** and re-run \`pnpm types:contentful\`.
+
+Common rationalizations that are still wrong: "I'm just renaming a field to match a rename the editor is about to do." "I need to unblock myself since I don't have CMS access." In all cases: do the CMS edit first, then run codegen, then update consumers.
 
 ## Getters
 
@@ -468,7 +492,10 @@ For every section or content block we render, a **parser** in \`src/contentful/p
 
 - **Input**: Raw Contentful entry types from generated \`src/contentful/types/\`.
 - **Output**: Normalized app types (plain objects with \`id\` and typed fields).
-- **Helpers**: \`src/contentful/helpers.ts\` includes patterns such as \`ContentfulTypeCheck\` and \`ContentfulParseShape\` where parsers need them.
+- **Helpers in \`src/contentful/helpers.ts\`**:
+  - \`ExtractSymbolType\` — string union from a Contentful Symbol field.
+  - \`ContentfulTypeCheck\` — compile-time check that the parsed **type** matches the Contentful fields.
+  - \`ContentfulParseShape\` — compile-time check that the parsed **return literal** sets every key on the type, including optionals. Apply via \`satisfies\` on the terminal return: \`return { ...fields } satisfies ContentfulParseShape<MyType>;\`. Catches silently dropped fields that would otherwise be \`undefined\` at runtime.
 - **Assets**: \`src/contentful/parseContentfulAsset.ts\` normalizes assets across parsers.
 
 ## Sections vs content blocks
@@ -477,7 +504,7 @@ For every section or content block we render, a **parser** in \`src/contentful/p
 
 Sections are the top-level building blocks attached to a page in Contentful.
 
-- Parsed in a top-level \`parseSections.ts\` (or equivalent) and related parser types.
+- Parsed in a top-level \`parseSections.ts\` and related parser types.
 - Rendered by a \`SectionRenderer\` component that switches on section type.
 
 ### Content blocks
@@ -490,7 +517,7 @@ Modules (content cards, copy blocks, slides, etc.) **live inside** sections.
 ## Adding a new Contentful-driven block (checklist)
 
 1. **Types**: Confirm the content type exists in Contentful, then run \`pnpm types:contentful\`.
-2. **Parser**: Add or extend \`src/contentful/parse<Name>.ts\` with a normalized type and \`parseContentful…\` function; use \`ContentfulTypeCheck\` / \`ContentfulParseShape\` when helpful.
+2. **Parser**: Add or extend \`src/contentful/parse<Name>.ts\` with a normalized type and \`parseContentful…\` function. Append \`satisfies ContentfulParseShape<MyType>\` to the terminal return literal so every key must be set explicitly. Use \`ContentfulTypeCheck\` and \`ExtractSymbolType\` where appropriate.
 3. **ContentRenderer**: Handle the new content type: parse the entry and render the component with typed props.
 4. **Section parser**: If the block appears inside a section's content array, ensure the sections parser includes the new type in its content union and parsing logic.
 5. **Component**: Implement the UI with CSS Modules per [conventions.md](conventions.md).
@@ -499,6 +526,8 @@ Modules (content cards, copy blocks, slides, etc.) **live inside** sections.
 
 Rich Text is rendered with \`@contentful/rich-text-react-renderer\`. Reuse shared options and typography patterns from nearby components so links and marks stay consistent.
 
+The \`RichText\` component in \`src/contentful/richText.tsx\` is the standard wrapper. For components that need custom rendering options, pass an \`options\` object to \`documentToReactComponents\` directly.
+
 ## Client and environment
 
 - **Client**: \`src/contentful/client.ts\` is the one place we construct Contentful clients for delivery and preview.
@@ -506,8 +535,8 @@ Rich Text is rendered with \`@contentful/rich-text-react-renderer\`. Reuse share
 
 ## Cache
 
-- **\`src/contentful/cacheConfig.ts\`**: \`unstable_cache\` wrappers with Vercel cache tags. Wrap getter calls here to enable on-demand revalidation.
-- **\`src/contentful/cacheKeys.ts\`**: Typed cache key constants so tags are consistent across getters and revalidation routes.
+- **\`src/contentful/cacheConfig.ts\`**: \`sanitizeForCache\` and the revalidation seconds constant. Wrap getter calls with \`unstable_cache\` here to enable on-demand revalidation.
+- **\`src/contentful/cacheKeys.ts\`**: Typed cache key constants and Vercel cache tags so keys are consistent across getters and revalidation routes.
 
 ## Pagination
 
@@ -522,7 +551,7 @@ Use \`CONTENTFUL_BATCH_LIMIT\` (defined in \`src/contentful/contentfulPagination
 export function getHandbookComponents(_a: ProjectAnswers): string {
   return `# Components
 
-New UI lives under \`src/components/<Name>/\`. This page describes the files we expect in that folder and how tests and dynamic imports fit in.
+New UI lives under \`src/components/<Name>/\`. This page describes the files we expect in that folder, how the **scaffold** works, and how tests and dynamic imports fit in.
 
 ## Folder layout
 
@@ -532,27 +561,29 @@ One directory per component under \`src/components/<ComponentName>/\`. Use **Pas
 
 | File | Purpose |
 |------|---------|
-| **\`<Name>.component.tsx\`** | Main React component. Keep it focused on composition and minimal logic. Use CSS Modules and apply class names. |
-| **\`<Name>.po.tsx\`** | Page object for tests. Extends \`BasePageObject\`, sets \`testId = "rh<Name>"\`, implements \`render<Name>(...)\` with \`render()\` from \`src/tests/test-utils.tsx\`, and holds **setup and test data** only—queries belong in the spec via \`screen\`. |
-| **\`<Name>.spec.tsx\`** | Jest tests: page object in \`beforeEach\`, then **\`screen\` and \`userEvent\`** for assertions and interactions. |
-| **\`<Name>.interfaces.ts\`** | Use when the component has **public** props or data types not already defined by a Contentful parser. |
-| **\`src/tests/factories/<Name>.factory.ts\`** | Factory class extending \`BaseFactory\` for test data when props are complex (see [conventions.md](conventions.md)). |
-| **\`<Name>.module.css\`** | Layout, spacing, typography, responsive rules. Use nesting and design tokens from \`src/styles/globals.css\`. |
-| **\`use<Something>.ts\`** | Optional. Colocate a hook used only by this component in the same folder. |
+| **\`<Name>.component.tsx\`** | Main React component. Keep it focused on composition and minimal logic. Use CSS Modules (import \`styles\` from \`./<Name>.module.css\`) and apply class names. |
+| **\`<Name>.po.tsx\`** | Page object for tests. Extends \`BasePageObject\`, sets \`testId = "rh<Name>"\`, implements \`render<Name>(...)\` with \`render()\` from \`src/tests/test-utils.tsx\`, and holds setup, mocks, and test data. **No \`screen\` queries in the PO** — queries belong in the spec. |
+| **\`<Name>.spec.tsx\`** | Jest tests. Import \`describe\`, \`it\`, \`expect\`, \`beforeEach\` from \`@jest/globals\`. After the PO renders, use \`screen\` and \`userEvent\` for all queries and interactions. |
+| **\`<Name>.interfaces.ts\`** | Use when the component has **public** props or data types not already defined by a Contentful parser. If the component is driven by Contentful, the "interface" is usually the parsed type from \`src/contentful/parse<Name>.ts\`, so you may not need a separate interfaces file. |
+| **\`src/tests/factories/<Name>.factory.ts\`** | Subclass of \`BaseFactory\` for test data when tests need complex or repeated props. **Lives in \`src/tests/factories/\`, not in the component folder** — factories are shared test infrastructure. See the factory rules in [conventions.md](conventions.md). |
+| **\`<Name>.module.css\`** | Layout, spacing, typography, responsive rules. Use nesting and \`var(--...)\` from the design system. |
+| **\`use<Something>.hook.ts\`** | Optional. When the component has a custom hook used only by that component, place it in the same folder. |
 
 ## Scaffold
 
-Run **\`pnpm scaffold <ComponentName>\`** when you want a head start—it creates the usual filenames and stubs (component, CSS module, interfaces, page object, spec) under \`src/components/<ComponentName>/\`.
+Run **\`pnpm scaffold <ComponentName>\`** when you want a head start — it drops in the usual filenames and stubs (component, CSS module, interfaces, page object, spec) under \`src/components/<Name>/\`, plus a factory at \`src/tests/factories/<Name>.factory.ts\`.
 
-**Heads-up:** For Contentful-backed components, treat the scaffold as a starting point only—the default **interfaces** are generic stubs, not CMS parsers:
+After scaffolding, follow **[conventions.md \u2192 Testing](conventions.md#testing)** for page object vs spec responsibilities.
+
+**Heads-up:** For Contentful-backed components, treat the scaffold as a starting point only — the default **interfaces** / **factory** are generic stubs, not CMS parsers:
 
 1. Drop or replace the default **interfaces** when your props come from a parser type in \`src/contentful/\`.
 2. Wire types and parsers from \`src/contentful/\` as in [contentful.md](contentful.md).
-3. Take props typed as the parser output (for example \`metadata: MyBlockType\`) when the block is CMS-driven.
+3. Take a prop typed as the parser output (e.g. \`metadata: MyBlockType\`) when the block is CMS-driven.
 
 ## Test ID
 
-The root DOM element of a tested component should have **\`data-testid="rh<ComponentName>"\`**. The page object should set \`testId\` to the same value. See [conventions.md](conventions.md).
+The root DOM element of a tested component should have **\`data-testid="rh<ComponentName>"\`** (e.g. \`rhNavigation\`). The page object should set **\`testId = "rh<ComponentName>"\`** to match; specs assert with \`screen.getByTestId(po.testId)\`.
 
 ## Exports
 
@@ -564,8 +595,7 @@ Use **\`next/dynamic\`** when a component is heavy or client-only (\`ssr: false\
 
 ## Links
 
-- **Internal navigation**: Use \`next/link\`'s \`Link\` with stable \`href\` values.
-- **External links**: Use \`<a>\` with \`target="_blank"\` and \`rel="noopener noreferrer"\` when opening in a new tab.
+Use **\`next/link\`**'s **\`Link\`** for all navigational links — internal paths, external URLs, \`mailto:\`, \`tel:\`, and the like. For new tabs, set \`target\` and \`rel="noopener noreferrer"\` on \`Link\`. See [conventions.md](conventions.md#react--jsx).
 `;
 }
 
@@ -770,12 +800,18 @@ Feature-scoped TypeScript contracts (e.g. \`src/interfaces/common.interfaces.ts\
 
 Helpers are **split by topic**—there is no barrel \`utils/index.ts\`. Import the module you need directly (see [conventions.md](conventions.md) on barrel files).
 
-| Area | Files (examples) |
-|------|------------------|
-| **Constants** | \`constants.ts\` — slugs, navigation IDs, build exclusions |
-| **General helpers** | \`helpers.ts\` — \`envUrl\`, guards, string utilities |
+| File | What's in it |
+|------|-------------|
+| \`constants.ts\` | Slugs, navigation IDs, build exclusions |
+| \`environment.helpers.ts\` | \`isBrowser\`, \`isNonNullable\`, \`envUrl\` |
+| \`array.helpers.ts\` | \`compact\`, \`alphabetize\` |
+| \`string.helpers.ts\` | \`capitalizeWords\`, \`truncate\`, \`replaceNbsp\` |
+| \`url.helpers.ts\` | \`convertRelativeUrl\`, \`ensureLeadingSlash\`, \`tryParseUrl\` |
+| \`contentful.helpers.ts\` | \`createImageUrl\`, \`isVideo\`, \`getContentfulEntryWebUrl\` |
+| \`style.helpers.ts\` | \`cssStyleTag\` tagged template |
+| \`factory.helpers.ts\` | \`nullish\` — random null/value for factory optional fields |
 
-Specs: \`*.spec.ts\` next to modules.
+Specs: \`*.spec.ts\` next to each module (e.g. \`environment.helpers.spec.ts\`).
 
 ## \`src/lib/\`
 

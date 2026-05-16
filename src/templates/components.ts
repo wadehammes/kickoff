@@ -7,16 +7,13 @@ import type { ProjectAnswers } from "../types.js";
 export function getNavigationComponent(a: ProjectAnswers): string {
   return `"use client";
 
+import classNames from "classnames";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import styles from "./Navigation.module.css";
 
 export const Navigation = () => {
   const [scrolled, setScrolled] = useState(false);
-  const pathname = usePathname();
-
-  void pathname;
 
   const listenScrollEvent = useCallback(() => {
     setScrolled(window.scrollY >= 50);
@@ -32,7 +29,7 @@ export const Navigation = () => {
   return (
     <nav
       id="top"
-      className={scrolled ? \`\${styles.navigation} \${styles.scrolled}\` : styles.navigation}
+      className={classNames(styles.navigation, { [styles.scrolled]: scrolled })}
     >
       <div className="container">
         <Link href="/" className={styles.logo} title="${a.siteName}" aria-label="${a.siteName}">
@@ -45,6 +42,8 @@ export const Navigation = () => {
     </nav>
   );
 };
+
+export default Navigation;
 `;
 }
 
@@ -96,17 +95,17 @@ export function getNavigationCSS(): string {
 export function getFooterComponent(a: ProjectAnswers): string {
   return `import styles from "./Footer.module.css";
 
-export const Footer = () => {
-  return (
-    <footer className={styles.footer}>
-      <div className="container">
-        <span className={styles.copyright}>
-          &copy; {new Date().getFullYear()} ${a.siteName}
-        </span>
-      </div>
-    </footer>
-  );
-};
+export const Footer = () => (
+  <footer className={styles.footer}>
+    <div className="container">
+      <span className={styles.copyright}>
+        &copy; {new Date().getFullYear()} ${a.siteName}
+      </span>
+    </div>
+  </footer>
+);
+
+export default Footer;
 `;
 }
 
@@ -145,6 +144,7 @@ export function getFooterCSS(): string {
 
 export function getExitDraftModeLink(): string {
   return `"use client";
+
 import { usePathname } from "next/navigation";
 import type { HTMLProps } from "react";
 
@@ -157,6 +157,8 @@ export const ExitDraftModeLink = (props: HTMLProps<HTMLAnchorElement>) => {
     </a>
   );
 };
+
+export default ExitDraftModeLink;
 `;
 }
 
@@ -168,19 +170,19 @@ export function getNotFoundPageComponent(): string {
   return `import Link from "next/link";
 import styles from "./NotFoundPage.module.css";
 
-export const NotFoundPage = () => {
-  return (
-    <div className={styles.container}>
-      <h1 className={styles.heading}>404</h1>
-      <p className={styles.message}>
-        Sorry, we couldn&apos;t find the page you were looking for.
-      </p>
-      <Link href="/" className={styles.link}>
-        Go back home
-      </Link>
-    </div>
-  );
-};
+export const NotFoundPage = () => (
+  <div className={styles.container}>
+    <h1 className={styles.heading}>404</h1>
+    <p className={styles.message}>
+      Sorry, we couldn&apos;t find the page you were looking for.
+    </p>
+    <Link href="/" className={styles.link}>
+      Go back home
+    </Link>
+  </div>
+);
+
+export default NotFoundPage;
 `;
 }
 
