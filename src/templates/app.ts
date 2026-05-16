@@ -23,9 +23,9 @@ import { Footer } from "src/components/Footer/Footer.component";
 import { Navigation } from "src/components/Navigation/Navigation.component";
 import "src/styles/globals.css";
 import type { Metadata } from "next";
-import { envUrl } from "src/utils/helpers";
+import { envUrl } from "src/utils/environment.helpers";
 
-export function generateMetadata(): Metadata {
+export const generateMetadata = (): Metadata => {
   return {
     metadataBase: new URL(\`\${envUrl()}/\`),
     applicationName: "${a.siteName}",
@@ -40,11 +40,11 @@ export function generateMetadata(): Metadata {
   };
 }
 
-export default async function RootLayout({
+const RootLayout = async ({
   children,
 }: {
   children: React.ReactNode;
-}) {
+}) => {
   const draft = await draftMode();
 
   return (
@@ -77,7 +77,9 @@ export default async function RootLayout({
       </body>
 ${gaElement ? `      ${gaElement}\n` : ""}    </html>
   );
-}
+};
+
+export default RootLayout;
 `;
 }
 
@@ -95,11 +97,11 @@ import {
   createSchemaGraph,
   createWebPageSchema,
 } from "src/lib/schema";
-import { envUrl } from "src/utils/helpers";
+import { envUrl } from "src/utils/environment.helpers";
 
 export const revalidate = 2592000;
 
-export async function generateMetadata(): Promise<Metadata> {
+export const generateMetadata = async (): Promise<Metadata> => {
   const url = envUrl();
 
   return {
@@ -167,7 +169,7 @@ interface ProvidersProps {
   children: ReactNode;
 }
 
-export default function Providers(props: ProvidersProps) {
+const Providers = (props: ProvidersProps) => {
   const { children } = props;
 
   const [queryClient] = useState(() => new QueryClient());
@@ -175,7 +177,9 @@ export default function Providers(props: ProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
-}
+};
+
+export default Providers;
 `;
 }
 
@@ -208,7 +212,7 @@ export function getAppError(): string {
 
 import styles from "./error.module.css";
 
-export default function ErrorBoundary({
+const ErrorBoundary = ({
   error: _error,
   reset,
 }: {
@@ -223,7 +227,9 @@ export default function ErrorBoundary({
       </button>
     </div>
   );
-}
+};
+
+export default ErrorBoundary;
 `;
 }
 
@@ -264,13 +270,13 @@ export function getAppErrorCSS(): string {
 // ---------------------------------------------------------------------------
 
 export function getAppLoading(): string {
-  return `export default function Loading() {
-  return (
-    <div className="loading-container">
-      <div className="loading-spinner" />
-    </div>
-  );
-}
+  return `const Loading = () => (
+  <div className="loading-container">
+    <div className="loading-spinner" />
+  </div>
+);
+
+export default Loading;
 `;
 }
 
@@ -281,9 +287,9 @@ export function getAppLoading(): string {
 export function getAppNotFound(): string {
   return `import { NotFoundPage } from "src/components/NotFoundPage/NotFoundPage.component";
 
-export default function NotFound() {
-  return <NotFoundPage />;
-}
+const NotFound = () => <NotFoundPage />;
+
+export default NotFound;
 `;
 }
 

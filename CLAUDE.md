@@ -1,0 +1,80 @@
+# Agent instructions
+
+## What this repo is
+
+`kickoff` is a CLI scaffolding tool that generates new Next.js + Contentful + TypeScript projects. It asks a series of prompts and writes a full project structure to disk.
+
+## Source layout
+
+```
+src/
+├── index.ts          ← CLI entry point (prompts → generateProject)
+├── types.ts          ← ProjectAnswers interface
+├── generator.ts      ← Orchestrates all write() calls
+└── templates/
+    ├── index.ts      ← Barrel re-export
+    ├── api.ts        ← src/api/ helpers and urls
+    ├── app.ts        ← src/app/ layout, pages, routes, error, manifest
+    ├── components.ts ← Navigation, Footer, ExitDraftModeLink, NotFoundPage
+    ├── config.ts     ← package.json, tsconfig, biome, jest, postcss, env...
+    ├── contentful.ts ← client, helpers, cache, parsers, richText
+    ├── docs.ts       ← CLAUDE.md, README, all 11 handbook pages
+    ├── github.ts     ← CI, release, dependabot, labeler workflows
+    ├── i18n.ts       ← routing, request, locale layout/pages
+    ├── lib.ts        ← schema.ts, generateSitemap.ts
+    ├── next.ts       ← next.config.ts
+    ├── public.ts     ← sitemap-index.xml
+    ├── scripts.ts    ← scaffold.sh, make_sitemap.js, verify-vercel...
+    ├── styles.ts     ← globals.css, variables.css, runtime-variables
+    ├── testing.ts    ← BasePageObject, BaseFactory, mocks, setupTests, RichTextDocument factory
+    ├── types.ts      ← KeysMatch, PropsWithChildrenOnly
+    └── utils.ts      ← array/string/url/environment/contentful/style/factory helpers, constants, interfaces
+```
+
+## The most important rule
+
+**Templates and handbook must stay in sync.**
+
+The handbook (`src/templates/docs.ts`) documents the conventions, patterns, and structure that the scaffolded files (`src/templates/*.ts`) implement. If you change one, you must update the other in the same change.
+
+Examples:
+- Add a new util file → update `getHandbookSourceLayout` in `docs.ts`
+- Change the factory pattern → update `getHandbookConventions` and `getHandbookComponents`
+- Add a new feature file to the scaffold → update the relevant handbook chapter and `getHandbookArchitecture`
+- Change import paths (e.g. `src/utils/helpers` → `src/utils/environment.helpers`) → update any handbook chapter that references it
+- Add a new prompt/option → update `getHandbookPlatform` scripts table and `getReadme`
+
+## Conventions the scaffolded code must follow
+
+The generated code must follow the same conventions documented in the handbook. Before writing or changing any template, verify it against these rules:
+
+- **Arrow functions only** — no `function` declarations for components, pages, or helpers. Use `const Foo = () => {}` and `export default Foo`.
+- **Named + default exports** — every component must have both a named export (`export const Foo`) and a default export (`export default Foo`).
+- **`classnames` for conditional classes** — never use template literals or ternaries to combine CSS module class names. Use `classNames(styles.a, { [styles.b]: condition })`.
+- **Absolute imports** — all `src/` imports use `src/...` paths, not relative `../` paths. Exception: co-located CSS modules use `./`.
+- **No barrel files** — do not add `index.ts` re-exports inside `src/` of the scaffolded project.
+- **No `React.FC`** — type props explicitly; let return type be inferred.
+- **No `any`** — use proper types throughout.
+- **`as const` not enums** — use `as const` objects with derived union types, never TypeScript enums.
+- **Factory pattern** — factories extend `BaseFactory`, live in `src/tests/factories/`, and use `KeysMatch` to enforce exhaustive instance coverage.
+- **Test IDs** — root elements use `data-testid="rh<ComponentName>"`.
+- **CSS alphabetized** — properties within each rule block are alphabetized.
+- **No `margin-top`** — use flexbox `gap` for spacing between siblings.
+
+## Scripts
+
+```sh
+pnpm build      # tsc compile to dist/
+pnpm dev        # tsc --watch
+pnpm lint       # biome check
+pnpm lint:fix   # biome check --fix
+node dist/index.js  # run the CLI
+```
+
+## Releasing
+
+```sh
+make release tag=v1.0.0
+```
+
+Pushes the tag → triggers `.github/workflows/release.yml` → creates a GitHub release.
