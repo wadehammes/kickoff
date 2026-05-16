@@ -16,6 +16,8 @@ import {
   getAppPage,
   getAppProviders,
   getAppRobots,
+  getArrayHelpers,
+  getArrayHelpersSpec,
   getBaseFactory,
   getBasePageObject,
   getBiomeConfig,
@@ -29,6 +31,7 @@ import {
   getContentfulClient,
   getContentfulHelpers,
   getContentfulPagination,
+  getContentfulUtilHelpers,
   getCopyGlobal,
   getCssPropsDeclaration,
   getDependabotConfig,
@@ -36,8 +39,11 @@ import {
   getDisableDraftRoute,
   getDraftRoute,
   getEditorConfig,
+  getEnvironmentHelpers,
+  getEnvironmentHelpersSpec,
   getEnvLocalExample,
   getExitDraftModeLink,
+  getFactoryHelpers,
   getFooterComponent,
   getFooterCSS,
   getGenerateSitemap,
@@ -55,7 +61,6 @@ import {
   getHandbookPlatform,
   getHandbookReadme,
   getHandbookSourceLayout,
-  getHelpers,
   getI18nRequest,
   getI18nRouting,
   getJestConfig,
@@ -88,6 +93,7 @@ import {
   getRefreshContentPage,
   getReleaseWorkflow,
   getRichText,
+  getRichTextDocumentFactory,
   getRuntimeVariablesJson,
   getScaffoldSh,
   getSchema,
@@ -95,10 +101,15 @@ import {
   getSetEnvVars,
   getSetupTests,
   getSitemapIndex,
+  getStringHelpers,
+  getStringHelpersSpec,
+  getStyleHelpers,
   getStylelintConfig,
   getToolVersions,
   getTsConfig,
   getTypesReactDts,
+  getUrlHelpers,
+  getUrlHelpersSpec,
   getUseIsBrowser,
   getVariablesCSS,
   getVerifyVercelForReleaseSh,
@@ -345,10 +356,37 @@ export async function generateProject(a: ProjectAnswers): Promise<void> {
 
   // ── src/tests/factories/ ───────────────────────────────────────────────────
   await write(root, "src/tests/factories/BaseFactory.ts", getBaseFactory());
+  await write(
+    root,
+    "src/tests/factories/RichTextDocument.factory.ts",
+    getRichTextDocumentFactory(),
+  );
 
   // ── src/utils/ ─────────────────────────────────────────────────────────────
   await write(root, "src/utils/constants.ts", getConstants());
-  await write(root, "src/utils/helpers.ts", getHelpers(a));
+  await write(root, "src/utils/array.helpers.ts", getArrayHelpers());
+  await write(root, "src/utils/array.helpers.spec.ts", getArrayHelpersSpec());
+  await write(root, "src/utils/string.helpers.ts", getStringHelpers());
+  await write(root, "src/utils/string.helpers.spec.ts", getStringHelpersSpec());
+  await write(root, "src/utils/url.helpers.ts", getUrlHelpers());
+  await write(root, "src/utils/url.helpers.spec.ts", getUrlHelpersSpec());
+  await write(
+    root,
+    "src/utils/environment.helpers.ts",
+    getEnvironmentHelpers(a),
+  );
+  await write(
+    root,
+    "src/utils/environment.helpers.spec.ts",
+    getEnvironmentHelpersSpec(a),
+  );
+  await write(
+    root,
+    "src/utils/contentful.helpers.ts",
+    getContentfulUtilHelpers(),
+  );
+  await write(root, "src/utils/style.helpers.ts", getStyleHelpers());
+  await write(root, "src/utils/factory.helpers.ts", getFactoryHelpers());
 
   // ── src/proxy.ts ───────────────────────────────────────────────────────────────
   await write(root, "src/proxy.ts", getProxyTs());

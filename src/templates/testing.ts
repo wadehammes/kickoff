@@ -1,4 +1,59 @@
 // ---------------------------------------------------------------------------
+// src/tests/factories/RichTextDocument.factory.ts
+// ---------------------------------------------------------------------------
+
+export function getRichTextDocumentFactory(): string {
+  return `import {
+  BLOCKS,
+  type Document,
+  type TopLevelBlock,
+} from "@contentful/rich-text-types";
+import { faker } from "@faker-js/faker";
+import { BaseFactory } from "src/tests/factories/BaseFactory";
+import type { KeysMatch } from "src/types/KeysMatch";
+
+type RichTextDocumentFactoryOptions = Record<string, never>;
+
+const paragraphWithText = (text: string): TopLevelBlock => ({
+  content: [{ data: {}, marks: [], nodeType: "text", value: text }],
+  data: {},
+  nodeType: BLOCKS.PARAGRAPH,
+});
+
+class RichTextDocumentFactory extends BaseFactory<
+  Document,
+  RichTextDocumentFactoryOptions
+> {
+  build(
+    attributes?: Partial<Document>,
+    _options?: RichTextDocumentFactoryOptions,
+  ) {
+    const instance = {
+      content: [
+        paragraphWithText(faker.lorem.sentence()),
+        paragraphWithText(faker.lorem.sentence()),
+      ],
+      data: {},
+      nodeType: BLOCKS.DOCUMENT,
+    } satisfies Document;
+
+    const factoryBuilt: Document = {
+      ...instance,
+      ...(attributes ?? {}),
+    };
+
+    const _allKeysMustBeInTheInstance: KeysMatch<Document, typeof instance> =
+      undefined;
+
+    return factoryBuilt;
+  }
+}
+
+export const richTextDocumentFactory = new RichTextDocumentFactory();
+`;
+}
+
+// ---------------------------------------------------------------------------
 // src/tests/basePageObject.po.ts
 // ---------------------------------------------------------------------------
 
