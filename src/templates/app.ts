@@ -15,10 +15,34 @@ export function getAppLayout(a: ProjectAnswers): string {
       ) : null}`
     : "";
 
-  return `${gaImport}import { draftMode } from "next/headers";
-import { Toaster } from "sonner";
+  const draftImport = a.includeContentful
+    ? `import { draftMode } from "next/headers";\nimport { ExitDraftModeLink } from "src/components/ExitDraftModeLink/ExitDraftModeLink.component";\n`
+    : "";
+
+  const preconnectCtf = a.includeContentful
+    ? `        <link rel="preconnect" href="https://images.ctfassets.net" />
+        <link rel="preconnect" href="https://assets.ctfassets.net" />
+`
+    : "";
+
+  const draftBanner = a.includeContentful
+    ? `  const draft = await draftMode();
+
+`
+    : "";
+
+  const draftUi = a.includeContentful
+    ? `        {draft.isEnabled ? (
+          <div className="draftMode">
+            You are previewing in draft mode!{" "}
+            <ExitDraftModeLink style={{ textDecoration: "underline" }} />
+          </div>
+        ) : null}
+`
+    : "";
+
+  return `${gaImport}${draftImport}import { Toaster } from "sonner";
 import Providers from "src/app/providers";
-import { ExitDraftModeLink } from "src/components/ExitDraftModeLink/ExitDraftModeLink.component";
 import { Footer } from "src/components/Footer/Footer.component";
 import { Navigation } from "src/components/Navigation/Navigation.component";
 import "src/styles/globals.css";
@@ -45,14 +69,10 @@ const RootLayout = async ({
 }: {
   children: React.ReactNode;
 }) => {
-  const draft = await draftMode();
-
-  return (
+${draftBanner}  return (
     <html lang="en">
       <head>
-        <link rel="preconnect" href="https://images.ctfassets.net" />
-        <link rel="preconnect" href="https://assets.ctfassets.net" />
-        <link
+${preconnectCtf}        <link
           rel="sitemap"
           type="application/xml"
           title="Sitemap"
@@ -60,13 +80,7 @@ const RootLayout = async ({
         />
       </head>
       <body>
-        {draft.isEnabled ? (
-          <div className="draftMode">
-            You are previewing in draft mode!{" "}
-            <ExitDraftModeLink style={{ textDecoration: "underline" }} />
-          </div>
-        ) : null}
-        <Providers>
+${draftUi}        <Providers>
           <Toaster />
           <div className="page">
             <Navigation />

@@ -2,7 +2,54 @@
 // src/tests/factories/RichTextDocument.factory.ts
 // ---------------------------------------------------------------------------
 
-export function getRichTextDocumentFactory(): string {
+import type { ProjectAnswers } from "../types.js";
+
+export function getRichTextDocumentFactory(a: ProjectAnswers): string {
+  if (!a.includeContentful) {
+    return `import type { KeysMatch } from "src/types/KeysMatch";
+import { BaseFactory } from "src/tests/factories/BaseFactory";
+
+/** Minimal rich-text document stub for tests when Contentful is not scaffolded. */
+export type RichTextDocumentStub = {
+  content: unknown[];
+  data: Record<string, never>;
+  nodeType: string;
+};
+
+type RichTextDocumentFactoryOptions = Record<string, never>;
+
+class RichTextDocumentFactory extends BaseFactory<
+  RichTextDocumentStub,
+  RichTextDocumentFactoryOptions
+> {
+  build(
+    attributes?: Partial<RichTextDocumentStub>,
+    _options?: RichTextDocumentFactoryOptions,
+  ) {
+    const instance = {
+      content: [],
+      data: {},
+      nodeType: "document",
+    } satisfies RichTextDocumentStub;
+
+    const factoryBuilt: RichTextDocumentStub = {
+      ...instance,
+      ...(attributes ?? {}),
+    };
+
+    const _allKeysMustBeInTheInstance: KeysMatch<
+      RichTextDocumentStub,
+      typeof instance
+    > = undefined;
+
+    return factoryBuilt;
+  }
+}
+
+export const richTextDocumentFactory = new RichTextDocumentFactory();
+`;
+  }
+
   return `import {
   BLOCKS,
   type Document,

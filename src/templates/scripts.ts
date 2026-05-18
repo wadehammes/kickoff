@@ -486,6 +486,38 @@ export const openBrowser = (targetUrl: string): void => {
 // ---------------------------------------------------------------------------
 
 export function getDevWithPreview(a: ProjectAnswers): string {
+  if (!a.includeContentful) {
+    return `/**
+ * Starts Next.js dev (${a.devPort}). Draft preview URL logic is omitted when
+ * the scaffold was generated without Contentful.
+ */
+
+import { spawn } from "node:child_process";
+import path from "node:path";
+import process from "node:process";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.join(__dirname, "..");
+const nextBin = path.join(repoRoot, "node_modules", "next", "dist", "bin", "next");
+
+const child = spawn(process.execPath, [nextBin, "dev", "-p", "${a.devPort}", "--webpack"], {
+  cwd: repoRoot,
+  env: process.env,
+  stdio: "inherit",
+});
+
+child.on("error", (err) => {
+  console.error("[dev:preview] Failed to start Next.js:", err);
+  process.exit(1);
+});
+
+process.on("SIGINT", () => child.pid && child.kill("SIGINT"));
+process.on("SIGTERM", () => child.pid && child.kill("SIGTERM"));
+child.on("exit", (code, signal) => process.exit(signal ? 1 : (code ?? 0)));
+`;
+  }
+
   return `/**
  * Runs \`next dev\` and, when CONTENTFUL_PREVIEW_SECRET is set, waits until
  * the dev server answers then opens /api/draft so draft mode is on.

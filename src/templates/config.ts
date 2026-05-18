@@ -2,15 +2,12 @@ import type { ProjectAnswers } from "../types.js";
 
 export function getPackageJson(a: ProjectAnswers): string {
   const deps: Record<string, string> = {
-    "@contentful/rich-text-react-renderer": "latest",
-    "@contentful/rich-text-types": "latest",
     "@faker-js/faker": "latest",
     "@jest/types": "latest",
     "@next/third-parties": "latest",
     "@svgr/webpack": "latest",
     "@tanstack/react-query": "latest",
     classnames: "latest",
-    contentful: "latest",
     "html-react-parser": "latest",
     "jest-mock": "latest",
     next: "latest",
@@ -26,6 +23,12 @@ export function getPackageJson(a: ProjectAnswers): string {
     sonner: "latest",
     tslib: "latest",
   };
+
+  if (a.includeContentful) {
+    deps["@contentful/rich-text-react-renderer"] = "latest";
+    deps["@contentful/rich-text-types"] = "latest";
+    deps.contentful = "latest";
+  }
 
   if (a.includeI18n) {
     deps["next-intl"] = "latest";
@@ -48,7 +51,6 @@ export function getPackageJson(a: ProjectAnswers): string {
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/safe-json-stringify": "latest",
-    "cf-content-types-generator": "latest",
     csstype: "latest",
     jest: "latest",
     "jest-environment-jsdom": "latest",
@@ -67,6 +69,10 @@ export function getPackageJson(a: ProjectAnswers): string {
     devDeps["@types/react-google-recaptcha"] = "latest";
   }
 
+  if (a.includeContentful) {
+    devDeps["cf-content-types-generator"] = "latest";
+  }
+
   const scripts: Record<string, string> = {
     build: "next build && make sitemap",
     dev: `NODE_OPTIONS='--inspect' next dev -p ${a.devPort} --webpack`,
@@ -80,9 +86,12 @@ export function getPackageJson(a: ProjectAnswers): string {
     start: `next start -p ${a.devPort}`,
     "test:ci": "jest --passWithNoTests",
     "tsc:ci": "tsc --strict",
-    "types:contentful":
-      "export $(cat .env.local | sed '/^#/d; s/[$\"]//g'); cf-content-types-generator -s $CONTENTFUL_SPACE_ID -t $CONTENTFUL_CMA_TOKEN -o src/contentful/types -r -g && biome format --write src/contentful/types",
   };
+
+  if (a.includeContentful) {
+    scripts["types:contentful"] =
+      "export $(cat .env.local | sed '/^#/d; s/[$\"]//g'); cf-content-types-generator -s $CONTENTFUL_SPACE_ID -t $CONTENTFUL_CMA_TOKEN -o src/contentful/types -r -g && biome format --write src/contentful/types";
+  }
 
   const pkg = {
     dependencies: Object.fromEntries(Object.entries(deps).sort()),
@@ -446,16 +455,19 @@ export default async () => {
 `;
 }
 
-export function getKnipConfig(): string {
+export function getKnipConfig(a: ProjectAnswers): string {
+  const ignoreFiles = [
+    "scripts/make_sitemap.js",
+    "test-utils.tsx",
+    "src/tests/**",
+  ];
+  if (a.includeContentful) {
+    ignoreFiles.unshift("src/contentful/types/**");
+  }
   return `${JSON.stringify(
     {
       $schema: "https://unpkg.com/knip@5/schema.json",
-      ignoreFiles: [
-        "src/contentful/types/**",
-        "scripts/make_sitemap.js",
-        "test-utils.tsx",
-        "src/tests/**",
-      ],
+      ignoreFiles,
     },
     null,
     2,
@@ -480,32 +492,39 @@ export function getNextEnvDeclaration(): string {
 }
 
 export function getEnvLocalExample(a: ProjectAnswers): string {
-  const lines: string[] = [
-    "# ── Contentful ──────────────────────────────────────────────────────────────",
-    "# Your Contentful Space ID (find it in Settings > API keys)",
-    "CONTENTFUL_SPACE_ID=",
-    "",
-    "# Content Delivery API token (public, read-only)",
-    "CONTENTFUL_CONTENT_DELIVERY_API_KEY=",
-    "",
-    "# Content Preview API token (for draft mode)",
-    "CONTENTFUL_PREVIEW_API_KEY=",
-    "",
-    "# Secret used to authenticate draft mode requests",
-    "CONTENTFUL_PREVIEW_SECRET=",
-    "",
-    "# Content Management API token (used for type generation only)",
-    "CONTENTFUL_CMA_TOKEN=",
-    "",
+  const lines: string[] = [];
+
+  if (a.includeContentful) {
+    lines.push(
+      "# ── Contentful ──────────────────────────────────────────────────────────────",
+      "# Your Contentful Space ID (find it in Settings > API keys)",
+      "CONTENTFUL_SPACE_ID=",
+      "",
+      "# Content Delivery API token (public, read-only)",
+      "CONTENTFUL_CONTENT_DELIVERY_API_KEY=",
+      "",
+      "# Content Preview API token (for draft mode)",
+      "CONTENTFUL_PREVIEW_API_KEY=",
+      "",
+      "# Secret used to authenticate draft mode requests",
+      "CONTENTFUL_PREVIEW_SECRET=",
+      "",
+      "# Content Management API token (used for type generation only)",
+      "CONTENTFUL_CMA_TOKEN=",
+      "",
+    );
+  }
+
+  lines.push(
     "# ── App environment ─────────────────────────────────────────────────────────",
     "# One of: staging | production",
     "ENVIRONMENT=staging",
     "# ENVIRONMENT=production",
     "# ENVIRONMENT=local  # Not used — configure next.config.ts as needed",
-    "# See src/utils/helpers.ts → envUrl() for URL resolution logic",
+    "# See src/utils/environment.helpers.ts → envUrl() for URL resolution logic",
     "",
     "",
-  ];
+  );
 
   if (a.includeGA) {
     lines.push(
@@ -542,6 +561,10 @@ export function getEnvLocalExample(a: ProjectAnswers): string {
 
   lines.push(
     "# ── Vercel ──────────────────────────────────────────────────────────────────",
+    "# Ensures Vercel installs dependencies with the same package manager version as",
+    "# package.json's packageManager field (Corepack). Vercel: Settings → Environment Variables.",
+    "ENABLE_EXPERIMENTAL_COREPACK=1",
+    "",
     "# Vercel API token (for programmatic deploy/cache purge)",
     "VERCEL_API_TOKEN=",
     "",

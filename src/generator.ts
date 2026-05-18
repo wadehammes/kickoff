@@ -30,6 +30,7 @@ import {
   getContentfulCacheConfig,
   getContentfulCacheKeys,
   getContentfulClient,
+  getContentfulGetPages,
   getContentfulHelpers,
   getContentfulPagination,
   getContentfulUtilHelpers,
@@ -158,7 +159,7 @@ export async function generateProject(a: ProjectAnswers): Promise<void> {
   await write(root, "pnpm-workspace.yaml", getPnpmWorkspace());
   await write(root, "Makefile", getMakefile(a));
   await write(root, "jest.config.ts", getJestConfig());
-  await write(root, "knip.json", getKnipConfig());
+  await write(root, "knip.json", getKnipConfig(a));
   await write(root, "cssprops.d.ts", getCssPropsDeclaration());
   await write(root, "next-env.d.ts", getNextEnvDeclaration());
   await write(root, "next.config.ts", getNextConfig(a));
@@ -251,15 +252,21 @@ export async function generateProject(a: ProjectAnswers): Promise<void> {
   );
 
   // ── src/app/[slug]/ ──────────────────────────────────────────────────────────
-  await write(root, "src/app/[slug]/page.tsx", getSlugPage());
-
-  // ── src/app/api/ ───────────────────────────────────────────────────────────
-  await write(root, "src/app/api/draft/route.ts", getDraftRoute());
   await write(
     root,
-    "src/app/api/disable-draft/route.ts",
-    getDisableDraftRoute(),
+    "src/app/[slug]/page.tsx",
+    a.includeContentful ? getSlugPage() : getSlugPageWithoutContentful(),
   );
+
+  // ── src/app/api/ ───────────────────────────────────────────────────────────
+  if (a.includeContentful) {
+    await write(root, "src/app/api/draft/route.ts", getDraftRoute());
+    await write(
+      root,
+      "src/app/api/disable-draft/route.ts",
+      getDisableDraftRoute(),
+    );
+  }
 
   // ── src/components/ ────────────────────────────────────────────────────────
   await write(
@@ -295,26 +302,29 @@ export async function generateProject(a: ProjectAnswers): Promise<void> {
   );
 
   // ── src/contentful/ ────────────────────────────────────────────────────────
-  await write(root, "src/contentful/client.ts", getContentfulClient());
-  await write(root, "src/contentful/helpers.ts", getContentfulHelpers());
-  await write(
-    root,
-    "src/contentful/cacheConfig.ts",
-    getContentfulCacheConfig(),
-  );
-  await write(
-    root,
-    "src/contentful/parseContentfulAsset.ts",
-    getParseContentfulAsset(),
-  );
-  await write(root, "src/contentful/richText.tsx", getRichText());
-  await write(root, "src/contentful/types/.gitkeep", "");
-  await write(root, "src/contentful/cacheKeys.ts", getContentfulCacheKeys());
-  await write(
-    root,
-    "src/contentful/contentfulPagination.ts",
-    getContentfulPagination(),
-  );
+  if (a.includeContentful) {
+    await write(root, "src/contentful/getPages.ts", getContentfulGetPages());
+    await write(root, "src/contentful/client.ts", getContentfulClient());
+    await write(root, "src/contentful/helpers.ts", getContentfulHelpers());
+    await write(
+      root,
+      "src/contentful/cacheConfig.ts",
+      getContentfulCacheConfig(),
+    );
+    await write(
+      root,
+      "src/contentful/parseContentfulAsset.ts",
+      getParseContentfulAsset(),
+    );
+    await write(root, "src/contentful/richText.tsx", getRichText());
+    await write(root, "src/contentful/types/.gitkeep", "");
+    await write(root, "src/contentful/cacheKeys.ts", getContentfulCacheKeys());
+    await write(
+      root,
+      "src/contentful/contentfulPagination.ts",
+      getContentfulPagination(),
+    );
+  }
 
   // ── src/types/ ───────────────────────────────────────────────────────────────
   await write(root, "src/types/KeysMatch.ts", getKeysMatch());
@@ -369,7 +379,7 @@ export async function generateProject(a: ProjectAnswers): Promise<void> {
   await write(
     root,
     "src/tests/factories/RichTextDocument.factory.ts",
-    getRichTextDocumentFactory(),
+    getRichTextDocumentFactory(a),
   );
 
   // ── src/utils/ ─────────────────────────────────────────────────────────────
@@ -390,11 +400,13 @@ export async function generateProject(a: ProjectAnswers): Promise<void> {
     "src/utils/environment.helpers.spec.ts",
     getEnvironmentHelpersSpec(a),
   );
-  await write(
-    root,
-    "src/utils/contentful.helpers.ts",
-    getContentfulUtilHelpers(),
-  );
+  if (a.includeContentful) {
+    await write(
+      root,
+      "src/utils/contentful.helpers.ts",
+      getContentfulUtilHelpers(),
+    );
+  }
   await write(root, "src/utils/style.helpers.ts", getStyleHelpers());
   await write(root, "src/utils/factory.helpers.ts", getFactoryHelpers());
 
@@ -413,6 +425,82 @@ export async function generateProject(a: ProjectAnswers): Promise<void> {
 }
 
 // Re-export for use in generator
+function getSlugPageWithoutContentful(): string {
+  return `import type { Metadata } from "next";
+import { draftMode } from "next/headers";
+import {
+  createBreadcrumbSchema,
+  createOrganizationSchema,
+  createSchemaGraph,
+  createWebPageSchema,
+} from "src/lib/schema";
+import { envUrl } from "src/utils/environment.helpers";
+
+export const revalidate = 2592000;
+export const dynamicParams = false;
+
+interface PageParams {
+  slug: string;
+}
+
+interface PageProps {
+  params: Promise<PageParams>;
+}
+
+export async function generateStaticParams(): Promise<PageParams[]> {
+  return [];
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  void slug;
+
+  return {
+    title: slug,
+    robots:
+      process.env.ENVIRONMENT === "production"
+        ? "index, follow"
+        : "noindex, nofollow",
+  };
+}
+
+const Page = async ({ params }: PageProps) => {
+  const { slug } = await params;
+  const draft = await draftMode();
+  void draft;
+
+  const pageUrl = \`\${envUrl()}/\${slug}\`;
+  const publisher = createOrganizationSchema();
+  const breadcrumb = createBreadcrumbSchema([
+    { name: "Home", url: envUrl() },
+    { name: slug, url: pageUrl },
+  ]);
+  const webPage = createWebPageSchema({
+    url: pageUrl,
+    name: slug,
+    breadcrumb,
+    publisher,
+  });
+  const schemaGraph = createSchemaGraph([webPage]);
+
+  return (
+    <>
+      <pre style={{ display: "none" }}>{JSON.stringify(schemaGraph)}</pre>
+      <div className="page-container">
+        <h1>{slug}</h1>
+        <p>
+          This project was scaffolded without Contentful. Add routes in{" "}
+          <code>generateStaticParams</code> or enable Contentful in kickoff.
+        </p>
+      </div>
+    </>
+  );
+};
+
+export default Page;
+`;
+}
+
 function getSlugPage(): string {
   return `import type { Metadata } from "next";
 import { draftMode } from "next/headers";
@@ -430,7 +518,7 @@ import {
   EXCLUDED_PAGE_SLUGS_FROM_BUILD,
   HOME_PAGE_SLUG,
 } from "src/utils/constants";
-import { envUrl } from "src/utils/helpers";
+import { envUrl } from "src/utils/environment.helpers";
 
 export const revalidate = 2592000;
 export const dynamicParams = false;

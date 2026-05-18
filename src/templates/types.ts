@@ -4,8 +4,7 @@
 
 export function getTypesReactDts(): string {
   return `export type PropsWithChildrenOnly = React.PropsWithChildren<unknown>;
-export type FCWithChildren<T> = React.FC<React.PropsWithChildren<T>>;
-`;
+  `;
 }
 
 // ---------------------------------------------------------------------------

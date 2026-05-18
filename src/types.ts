@@ -9,6 +9,8 @@ export interface ProjectAnswers {
   bgColor: string;
   textColor: string;
   includeI18n: boolean;
+  /** When false, omits Contentful client, getters, draft routes, and CMS handbook. */
+  includeContentful: boolean;
   includeGA: boolean;
   includeResend: boolean;
   includeRecaptcha: boolean;
