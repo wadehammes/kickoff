@@ -2,7 +2,7 @@
 
 ## What this repo is
 
-`kickoff` is a CLI scaffolding tool that generates new Next.js + Contentful + TypeScript projects. It asks a series of prompts and writes a full project structure to disk.
+`kickoff` is a CLI scaffolding tool that generates new Next.js + TypeScript projects, with optional Contentful CMS. It asks a series of prompts and writes a full project structure to disk.
 
 ## Source layout
 

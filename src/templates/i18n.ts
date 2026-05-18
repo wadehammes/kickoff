@@ -55,17 +55,36 @@ export function getLocaleLayout(a: ProjectAnswers): string {
     ? "      {process.env.GA_MEASUREMENT_ID ? (\n        <GoogleAnalytics gaId={process.env.GA_MEASUREMENT_ID} />\n      ) : null}"
     : "";
 
-  return `${gaImport}import { draftMode } from "next/headers";
-import { NextIntlClientProvider } from "next-intl";
+  const draftHeader = a.includeContentful
+    ? `import { draftMode } from "next/headers";
+import { ExitDraftModeLink } from "src/components/ExitDraftModeLink/ExitDraftModeLink.component";
+`
+    : "";
+
+  const draftBlock = a.includeContentful
+    ? `  const draft = await draftMode();
+`
+    : "";
+
+  const draftUi = a.includeContentful
+    ? `      {draft.isEnabled ? (
+        <div className="draftMode">
+          You are previewing in draft mode!{" "}
+          <ExitDraftModeLink style={{ textDecoration: "underline" }} />
+        </div>
+      ) : null}
+`
+    : "";
+
+  return `${gaImport}${draftHeader}import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import Providers from "src/app/providers";
-import { ExitDraftModeLink } from "src/components/ExitDraftModeLink/ExitDraftModeLink.component";
 import { Footer } from "src/components/Footer/Footer.component";
 import { Navigation } from "src/components/Navigation/Navigation.component";
 import { routing } from "src/i18n/routing";
 import "src/styles/globals.css";
 import type { Metadata } from "next";
-import { envUrl } from "src/utils/helpers";
+import { envUrl } from "src/utils/environment.helpers";
 
 interface LocaleLayoutProps {
   children: React.ReactNode;
@@ -86,21 +105,14 @@ export function generateStaticParams() {
 
 export default async function LocaleLayout({ children, params }: LocaleLayoutProps) {
   const { locale } = await params;
-  const draft = await draftMode();
-  const messages = await getMessages();
+${draftBlock}  const messages = await getMessages();
 
   return (
     <>
-      {draft.isEnabled ? (
-        <div className="draftMode">
-          You are previewing in draft mode!{" "}
-          <ExitDraftModeLink style={{ textDecoration: "underline" }} />
-        </div>
-      ) : null}
-      <NextIntlClientProvider locale={locale} messages={messages}>
+${draftUi}      <NextIntlClientProvider locale={locale} messages={messages}>
         <Providers>
           <div className="page">
-            <Navigation navigationItems={[]} />
+            <Navigation />
             <main className="page-content">{children}</main>
             <Footer />
           </div>

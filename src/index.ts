@@ -5,7 +5,7 @@ import { generateProject } from "./generator.js";
 import type { ProjectAnswers } from "./types.js";
 
 const banner = `
-${chalk.cyan("🚀 kickoff")} ${chalk.white("—")} ${chalk.gray("Next.js + Contentful + TypeScript project scaffolder")}
+${chalk.cyan("🚀 kickoff")} ${chalk.white("—")} ${chalk.gray("Next.js + TypeScript project scaffolder")}
 `;
 
 async function main() {
@@ -107,6 +107,12 @@ async function main() {
             : "Must be a valid hex color (e.g. #000000)",
       },
       {
+        initial: true,
+        message: `Include ${chalk.cyan("Contentful")} CMS? ${chalk.dim("(no = static / API-only; skips CMS layer, draft routes, types codegen)")}`,
+        name: "includeContentful",
+        type: "confirm",
+      },
+      {
         initial: false,
         message: "Include i18n (next-intl)?",
         name: "includeI18n",
@@ -174,13 +180,21 @@ async function main() {
     console.log(
       `  ${chalk.cyan(`${step++}.`)} ${chalk.white("cp .env.local.example .env.local")}`,
     );
-    console.log(
-      `  ${chalk.cyan(`${step++}.`)} ${chalk.white("Fill in your Contentful API keys and other env vars in .env.local")}`,
-    );
+    if (projectAnswers.includeContentful) {
+      console.log(
+        `  ${chalk.cyan(`${step++}.`)} ${chalk.white("Fill in your Contentful API keys and other env vars in .env.local")}`,
+      );
+    } else {
+      console.log(
+        `  ${chalk.cyan(`${step++}.`)} ${chalk.white("Fill in .env.local (see .env.local.example)")}`,
+      );
+    }
     console.log(`  ${chalk.cyan(`${step++}.`)} ${chalk.white("pnpm install")}`);
-    console.log(
-      `  ${chalk.cyan(`${step++}.`)} ${chalk.white("pnpm types:contentful")}  ${chalk.gray("# generate Contentful TypeScript types")}`,
-    );
+    if (projectAnswers.includeContentful) {
+      console.log(
+        `  ${chalk.cyan(`${step++}.`)} ${chalk.white("pnpm types:contentful")}  ${chalk.gray("# generate Contentful TypeScript types")}`,
+      );
+    }
     console.log(
       `  ${chalk.cyan(`${step++}.`)} ${chalk.white("pnpm dev  ")}${chalk.gray(`# starts on port ${projectAnswers.devPort}`)}`,
     );

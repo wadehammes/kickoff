@@ -284,3 +284,35 @@ export const RichText = (props: RichTextProps) => {
 };
 `;
 }
+
+// ---------------------------------------------------------------------------
+// src/contentful/getPages.ts  (stub until getters are implemented)
+// ---------------------------------------------------------------------------
+
+export function getContentfulGetPages(): string {
+  return `/**
+ * Replace with real Contentful queries as you add content types and parsers.
+ * \`pnpm types:contentful\` generates models under \`src/contentful/types/\`.
+ */
+
+export const fetchPages = async (_opts: { preview: boolean }) => {
+  return [];
+};
+
+export type ParsedPage = {
+  enableIndexing: boolean;
+  pageDescription: string;
+  pageSlug: string;
+  pageTitle: string;
+  publishDate?: string;
+  updatedAt: string;
+};
+
+export const fetchPage = async (_opts: {
+  preview: boolean;
+  slug: string;
+}): Promise<ParsedPage | null> => {
+  return null;
+};
+`;
+}

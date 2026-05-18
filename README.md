@@ -70,12 +70,27 @@ Add to your `~/.zshrc` or `~/.bashrc`:
 alias kickoff="node /path/to/kickoff/dist/index.js"
 ```
 
+## Greenfield prerequisites (outside the codebase)
+
+When you spin up a **new** client project—not day-to-day work inside an existing repo—do these in order so GitHub Actions, releases, Vercel, and Contentful line up with the scaffold expectations:
+
+1. **GitHub repository** — Create an empty repo for the new site (no conflicting default branch/commit if you plan to overwrite history with the scaffold).
+2. **`staging` as default branch** — Create `staging`, set it as the **default branch** under repository settings so PRs target it (CI runs on PRs into `staging`).
+3. **Branch protection** — For `staging` and `main`, add rules appropriate to your team: require pull requests before merge, required status checks (include the CI workflow once it exists), block force-push, restrict who can dismiss reviews, etc.
+4. **Initial GitHub Release** — Manually create a **`v0.0.0`** (or earliest) **Release** once the repo exists. The generated **`create-release`** workflow builds on tagged releases/changelog tooling; seeding avoids first-tag quirks.
+5. **Run kickoff and update the repo** — Run `kickoff` locally, then commit and push the scaffold to `staging` (and ensure `main` exists if your flow expects it—you can align `main` with your branching policy).
+6. **Contentful** — Create a space/environment, add content types, and gather tokens so you can fill **Contentful** entries in **`.env.local.example`** (see **After generation** and the generated project README).
+7. **Vercel project and env** — Create a Vercel project linked to this GitHub repo. Map preview vs production (PRs/`staging` → preview, **`main`** → production). In **Settings → Environment Variables**, add **every** variable named in **`.env.local.example`**, for each scope you use (Preview / Development / Production), using the same names as the example file.
+8. **Pull env into the repo** — From the project directory, run **`npx vercel link`** once so the CLI is tied to that Vercel project, then **`npx vercel env pull .env.local`** to download values into **`.env.local`** (gitignored). Run **pull** again whenever Vercel env changes.
+
+After the repo exists, operators and collaborators use the **generated** project `README.md` for the full host-by-host checklist wording.
+
 ## Usage
 
 Running `kickoff` starts an interactive prompt:
 
 ```
-🚀 kickoff — Next.js + Contentful + TypeScript project scaffolder
+🚀 kickoff — Next.js + TypeScript project scaffolder
 
 ? Project name (kebab-case): my-new-site
 ? Scaffold into the current directory instead of a new subfolder? No
@@ -86,6 +101,7 @@ Running `kickoff` starts an interactive prompt:
 ? Primary color hex: #000000
 ? Background color hex: #ffffff
 ? Text color hex: #000000
+? Include Contentful CMS? (no = static / API-only; skips CMS layer, draft routes, types codegen) Yes
 ? Include i18n (next-intl)? No
 ? Include Google Analytics? Yes
 ? Include Resend email? No
@@ -99,8 +115,12 @@ After answering, the scaffold is written to `./<project-name>/` (or the current 
 ```sh
 cd <project-name>
 
-# Copy and fill in environment variables
+# Env: copy the example, then either fill by hand or sync from Vercel (after link + env pull)
 cp .env.local.example .env.local
+
+# Optional — if vars live in Vercel already:
+# npx vercel link
+# npx vercel env pull .env.local
 
 # Install dependencies
 pnpm install
@@ -244,7 +264,8 @@ This creates:
 
 ## Environment variables
 
-See `.env.local.example` in the generated project for the full list. Key variables:
+See `.env.local.example` in the generated project for the full list. For deployments and local parity, add **every** name from that file in the Vercel project’s **Environment Variables**, then run **`npx vercel link`** and **`npx vercel env pull .env.local`** in the repo (see **Greenfield prerequisites** above). Key variables:
+
 
 | Variable | Description |
 |---|---|
@@ -254,12 +275,13 @@ See `.env.local.example` in the generated project for the full list. Key variabl
 | `CONTENTFUL_PREVIEW_SECRET` | Secret for draft mode |
 | `CONTENTFUL_CMA_TOKEN` | CMA token for type generation |
 | `ENVIRONMENT` | `staging` \| `production` |
+| `ENABLE_EXPERIMENTAL_COREPACK` | Set to `1` in Vercel so installs use Corepack and the `packageManager` version in `package.json` ([Vercel Corepack](https://vercel.com/changelog/corepack-experimental-is-now-available)) |
 
 ## CI / CD
 
 - **CI**: GitHub Actions runs TSC, Biome, Stylelint, and Jest on every PR targeting `staging`.
 - **Release**: Push a `v*` tag to trigger a GitHub Release and reset the `main` branch.
-- **Deployment**: Configure Vercel to deploy from `staging` (preview) and `main` (production).
+- **Deployment**: Configure Vercel to deploy from `staging` (preview) and `main` (production); keep env in sync with **`vercel env pull`** when you change Vercel settings.
 
 ## Releasing kickoff itself
 

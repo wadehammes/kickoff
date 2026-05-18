@@ -4,10 +4,11 @@ import type { ProjectAnswers } from "../types.js";
 // CLAUDE.md
 // ---------------------------------------------------------------------------
 
-export function getClaude(_a: ProjectAnswers): string {
+export function getClaude(a: ProjectAnswers): string {
+  const cmsClause = a.includeContentful ? "Contentful/CMS changes, " : "";
   return `# Agent instructions
 
-Before **substantive** work in this repo—features, refactors, Contentful/CMS changes, patterns that touch the App Router or API routes, CI or env, analytics—read **\`docs/handbook/README.md\`** and the handbook **chapter** that matches the task. Use **\`docs/handbook/llms.md\`** for a compact task→chapter map (helpful for routing or for pasting into other tools).
+Before **substantive** work in this repo—features, refactors, ${cmsClause}patterns that touch the App Router or API routes, CI or env, analytics—read **\`docs/handbook/README.md\`** and the handbook **chapter** that matches the task. Use **\`docs/handbook/llms.md\`** for a compact task→chapter map (helpful for routing or for pasting into other tools).
 
 Follow documented patterns.
 
@@ -22,42 +23,30 @@ You can skip a full handbook pass for **narrow** edits (typos, single obvious li
 // ---------------------------------------------------------------------------
 
 export function getReadme(a: ProjectAnswers): string {
-  return `# ${a.siteName}
+  const prereqBlock = a.includeContentful
+    ? `6. **Contentful space** — Provision the space/environment, create or import content types (\`Page\`, etc.), and collect the tokens you need for the **Contentful** variables in **\`.env.local.example\`** (then see **[Contentful setup](#contentful-setup)**).
+7. **Vercel project and env** — Create a Vercel project linked to this repository. Map **preview** deployments to PRs /\`staging\` and **production** to **\`main\`** (see [Deployment](#deployment)). In the Vercel dashboard, add **every** variable listed in **\`.env.local.example\`** under **Environment Variables**, for each scope you rely on (Preview / Development / Production), matching the example file names.
+8. **Pull env into this repo** — In your local clone, run **\`npx vercel link\`** once so the CLI targets the right project, then **\`npx vercel env pull .env.local\`** to sync secrets into **\`.env.local\`**. Re-run **pull** when values change in Vercel; keep **\`.env.local\`** out of version control.`
+    : `6. **Vercel project and env** — Create a Vercel project linked to this repository. Map **preview** deployments to PRs /\`staging\` and **production** to **\`main\`** (see [Deployment](#deployment)). In the Vercel dashboard, add **every** variable listed in **\`.env.local.example\`** under **Environment Variables**, for each scope you rely on (Preview / Development / Production), matching the example file names.
+7. **Pull env into this repo** — In your local clone, run **\`npx vercel link\`** once so the CLI targets the right project, then **\`npx vercel env pull .env.local\`** to sync secrets into **\`.env.local\`**. Re-run **pull** when values change in Vercel; keep **\`.env.local\`** out of version control.`;
 
-## Getting started
-
-\`\`\`sh
-# Copy and fill in environment variables
-cp .env.local.example .env.local
-
-# Install dependencies
-pnpm install
-
+  const gettingStartedExtra = a.includeContentful
+    ? `
 # Generate Contentful TypeScript types (requires CONTENTFUL_SPACE_ID + CONTENTFUL_CMA_TOKEN in .env.local)
 pnpm types:contentful
+`
+    : "";
 
-# Start dev server on port ${a.devPort}
-pnpm dev
-\`\`\`
+  const scriptsTypesRow = a.includeContentful
+    ? "| `pnpm types:contentful` | Regenerate `src/contentful/types/` from Contentful space |\n"
+    : "";
 
-## Scripts
+  const devPreviewDesc = a.includeContentful
+    ? "Start dev server and auto-open Contentful draft mode"
+    : "Start dev server (starts Next only—no CMS draft URL)";
 
-| Command | Description |
-|---|---|
-| \`pnpm dev\` | Start Next.js dev server on port ${a.devPort} |
-| \`pnpm dev:preview\` | Start dev server and auto-open Contentful draft mode |
-| \`pnpm build\` | Production build + generate sitemap |
-| \`pnpm start\` | Start production server |
-| \`pnpm tsc:ci\` | TypeScript strict check |
-| \`pnpm lint\` | Run Biome linter |
-| \`pnpm lint:fix\` | Auto-fix Biome lint issues |
-| \`pnpm lint:css\` | Run Stylelint |
-| \`pnpm lint:css:fix\` | Auto-fix Stylelint issues |
-| \`pnpm test:ci\` | Run Jest test suite |
-| \`pnpm types:contentful\` | Regenerate \`src/contentful/types/\` from Contentful space |
-| \`pnpm scaffold MyComponent\` | Scaffold a new component with all standard files |
-
-## Contentful setup
+  const contentfulSection = a.includeContentful
+    ? `## Contentful setup
 
 1. Create a Contentful space and add a \`Page\` content type
 2. Fill in \`CONTENTFUL_SPACE_ID\`, \`CONTENTFUL_CONTENT_DELIVERY_API_KEY\`, \`CONTENTFUL_PREVIEW_API_KEY\`, \`CONTENTFUL_PREVIEW_SECRET\`, and \`CONTENTFUL_CMA_TOKEN\` in \`.env.local\`
@@ -66,14 +55,68 @@ pnpm dev
 
 See \`docs/handbook/contentful.md\` for full guidance.
 
-## Draft mode
+`
+    : "";
+
+  const draftSection = a.includeContentful
+    ? `## Draft mode
 
 Visit \`/api/draft?previewSecret=YOUR_SECRET&redirect=/\` to enable draft mode.
 Visit \`/api/disable-draft\` to exit.
 
 Or use \`pnpm dev:preview\` which auto-opens draft mode after the server starts.
 
-## Component scaffolding
+`
+    : "";
+
+  return `# ${a.siteName}
+
+## Prerequisites (greenfield bootstrap)
+
+These steps happen **outside application code**: GitHub repository settings, the **kickoff** scaffolding CLI on your machine,${a.includeContentful ? " Vercel, and Contentful." : " and Vercel."} Work through them once when standing up this repo—not for every contributor clone.
+
+If you joined an existing project, skip ahead to **[Getting started](#getting-started)**.
+
+1. **GitHub repository** — Create the repo your team will use for this site.
+2. **\`staging\` as default branch** — Create a \`staging\` branch and set it as the **default** branch (\`Settings\` → \`General\`). CI runs on pull requests targeting \`staging\`.
+3. **Branch protection** — Protect \`staging\` and \`main\` with rules your org requires—for example require PRs before merge, **required status checks** (once \`.github/workflows/ci.yml\` exists, require that workflow), block force-push, and approver counts as needed.
+4. **Initial GitHub Release** — In **Releases**, manually publish **\`v0.0.0\`** (or similar first tag). The \`create-release\` workflow (triggered when you push \`v*\` tags) and changelog generation assume there is existing release/tag history so the first prod release behaves predictably.
+5. **Scaffold with kickoff and push** — From your machine, run the **kickoff** CLI that generated this scaffold, compare or regenerate if needed, then commit and push the tree to **\`staging\`** (\`git push origin staging\`) following your branching rules.
+${prereqBlock}
+
+## Getting started
+
+\`\`\`sh
+# Environment variables: start from the example, then edit by hand and/or sync from Vercel
+cp .env.local.example .env.local
+
+# After Vercel stores the same keys (see Prerequisites), you can pull instead of pasting:
+# npx vercel link
+# npx vercel env pull .env.local
+
+# Install dependencies
+pnpm install
+${gettingStartedExtra}# Start dev server on port ${a.devPort}
+pnpm dev
+\`\`\`
+
+## Scripts
+
+| Command | Description |
+|---|---|
+| \`pnpm dev\` | Start Next.js dev server on port ${a.devPort} |
+| \`pnpm dev:preview\` | ${devPreviewDesc} |
+| \`pnpm build\` | Production build + generate sitemap |
+| \`pnpm start\` | Start production server |
+| \`pnpm tsc:ci\` | TypeScript strict check |
+| \`pnpm lint\` | Run Biome linter |
+| \`pnpm lint:fix\` | Auto-fix Biome lint issues |
+| \`pnpm lint:css\` | Run Stylelint |
+| \`pnpm lint:css:fix\` | Auto-fix Stylelint issues |
+| \`pnpm test:ci\` | Run Jest test suite |
+${scriptsTypesRow}| \`pnpm scaffold MyComponent\` | Scaffold a new component with all standard files |
+
+${contentfulSection}${draftSection}## Component scaffolding
 
 \`\`\`sh
 pnpm scaffold MyComponent
@@ -95,7 +138,8 @@ See \`docs/handbook/README.md\` for the index or \`docs/handbook/llms.md\` for a
 ## Deployment
 
 - Connect your repository to [Vercel](https://vercel.com)
-- Add all env vars from \`.env.local.example\` to Vercel project settings
+- Add **all** env vars from \`.env.local.example\` to Vercel (**Settings** → **Environment Variables**) for the Preview / Development / Production scopes you use
+- Locally, use **\`npx vercel link\`** and **\`npx vercel env pull .env.local\`** to mirror those values into \`.env.local\` (see **[Prerequisites (greenfield bootstrap)](#prerequisites-greenfield-bootstrap)**)
 - PRs to \`staging\` → preview deployments
 - Merge to \`main\` → production deployment at ${a.prodUrl}
 
@@ -119,9 +163,57 @@ PRs to \`staging\` run: TypeScript strict check, Biome lint, Stylelint, Jest tes
 
 export function getHandbookReadme(a: ProjectAnswers): string {
   const s = a.siteName;
+  const introSecond = a.includeContentful
+    ? "how Contentful feeds the UI"
+    : "how the app is structured";
+
+  const howToRead = a.includeContentful
+    ? `1. **Orientation** — [architecture.md](architecture.md): stack, folders, App Router, and how data gets from Contentful to the screen.
+2. **Day-to-day coding** — [conventions.md](conventions.md): TypeScript, React, CSS, tests, accessibility.
+3. **CMS work** — [contentful.md](contentful.md): types, getters, parsers, sections and content blocks.
+4. **UI structure** — [components.md](components.md): folders, files, tests.
+5. **App patterns** — [patterns.md](patterns.md): App Router data loading, React Query, API routes, forms, SEO.
+6. **Operations & tooling** — [platform.md](platform.md): CI, env, and \`proxy.ts\`.
+7. **Analytics & tags** — [integrations.md](integrations.md): GA, data layer, third parties.
+8. **Sitemaps** — [distribution.md](distribution.md): sitemap generation and public output.
+9. **Where things live** — [source-layout.md](source-layout.md): interfaces, \`src/utils\`, \`src/lib\`.`
+    : `1. **Orientation** — [architecture.md](architecture.md): stack, folders, App Router.
+2. **Day-to-day coding** — [conventions.md](conventions.md): TypeScript, React, CSS, tests, accessibility.
+3. **UI structure** — [components.md](components.md): folders, files, tests.
+4. **App patterns** — [patterns.md](patterns.md): App Router data loading, React Query, API routes, forms, SEO.
+5. **Operations & tooling** — [platform.md](platform.md): CI, env, and \`proxy.ts\`.
+6. **Analytics & tags** — [integrations.md](integrations.md): GA, data layer, third parties.
+7. **Sitemaps** — [distribution.md](distribution.md): sitemap generation and public output.
+8. **Where things live** — [source-layout.md](source-layout.md): interfaces, \`src/utils\`, \`src/lib\`.`;
+
+  const indexTable = a.includeContentful
+    ? `| [architecture.md](architecture.md) | Tech stack, directory map, \`src/app\`, data flow, key config. Start here. |
+| [conventions.md](conventions.md) | TypeScript, Biome, CSS Modules, testing, test IDs, accessibility, comments, editor, React Query hook rules. |
+| [contentful.md](contentful.md) | Generated types, getters, parsers, sections vs modules, Rich Text, client. |
+| [components.md](components.md) | Component folder layout, \`pnpm scaffold\`, test IDs, exports, dynamic imports, links. |
+| [patterns.md](patterns.md) | Server components, serialization, React Query, \`src/api\`, forms, layout, metadata, JSON-LD. |
+| [platform.md](platform.md) | GitHub CI, common \`pnpm\` scripts, \`next.config\` (env, redirects), draft mode APIs, \`src/proxy.ts\`. |
+| [integrations.md](integrations.md) | Google Analytics, data layer, related env. |
+| [distribution.md](distribution.md) | Sitemap generation and \`public/\` output. |
+| [source-layout.md](source-layout.md) | \`src/interfaces\`, \`src/utils\` map, \`src/lib\`. |
+| [llms.md](llms.md) | Task-to-chapter routing for tools; copy-paste blurb for non-Cursor agents. |`
+    : `| [architecture.md](architecture.md) | Tech stack, \`src/app\`, key config. Start here. |
+| [conventions.md](conventions.md) | TypeScript, Biome, CSS Modules, testing, test IDs, accessibility, comments, editor, React Query hook rules. |
+| [components.md](components.md) | Component folder layout, \`pnpm scaffold\`, test IDs, exports, dynamic imports, links. |
+| [patterns.md](patterns.md) | Server components, serialization, React Query, \`src/api\`, forms, layout, metadata, JSON-LD. |
+| [platform.md](platform.md) | GitHub CI, common \`pnpm\` scripts, \`next.config\` (env, redirects), \`src/proxy.ts\`. |
+| [integrations.md](integrations.md) | Google Analytics, data layer, related env. |
+| [distribution.md](distribution.md) | Sitemap generation and \`public/\` output. |
+| [source-layout.md](source-layout.md) | \`src/interfaces\`, \`src/utils\` map, \`src/lib\`. |
+| [llms.md](llms.md) | Task-to-chapter routing for tools; copy-paste blurb for non-Cursor agents. |`;
+
+  const devSetupPrereq = a.includeContentful
+    ? "GitHub, Vercel, Contentful"
+    : "GitHub, Vercel";
+
   return `# ${s} handbook
 
-This is the **${s} handbook**: how the site is put together, how we write code, how Contentful feeds the UI, and where to look when you are debugging or adding a feature.
+This is the **${s} handbook**: how the site is put together, how we write code, ${introSecond}, and where to look when you are debugging or adding a feature.
 
 You do not have to read everything in one sitting. Skim the index, bookmark what you need, and come back when you touch that area. **Do keep these docs honest**—when behavior in the repo changes, update the matching page here so the next person (or tool) is not led astray.
 
@@ -131,34 +223,17 @@ You do not have to read everything in one sitting. Skim the index, bookmark what
 
 The order below is the path we recommend for a full onboarding. If you are in a hurry, read **[architecture.md](architecture.md)** first, then jump to the chapter that matches your task.
 
-1. **Orientation** — [architecture.md](architecture.md): stack, folders, App Router, and how data gets from Contentful to the screen.
-2. **Day-to-day coding** — [conventions.md](conventions.md): TypeScript, React, CSS, tests, accessibility.
-3. **CMS work** — [contentful.md](contentful.md): types, getters, parsers, sections and content blocks.
-4. **UI structure** — [components.md](components.md): folders, files, tests.
-5. **App patterns** — [patterns.md](patterns.md): App Router data loading, React Query, API routes, forms, SEO.
-6. **Operations & tooling** — [platform.md](platform.md): CI, env, and \`proxy.ts\`.
-7. **Analytics & tags** — [integrations.md](integrations.md): GA, data layer, third parties.
-8. **Sitemaps** — [distribution.md](distribution.md): sitemap generation and public output.
-9. **Where things live** — [source-layout.md](source-layout.md): interfaces, \`src/utils\`, \`src/lib\`.
+${howToRead}
 
 ## Index of docs
 
 | File | What it covers |
 |------|----------------|
-| [architecture.md](architecture.md) | Tech stack, directory map, \`src/app\`, data flow, key config. Start here. |
-| [conventions.md](conventions.md) | TypeScript, Biome, CSS Modules, testing, test IDs, accessibility, comments, editor, React Query hook rules. |
-| [contentful.md](contentful.md) | Generated types, getters, parsers, sections vs modules, Rich Text, client. |
-| [components.md](components.md) | Component folder layout, \`pnpm scaffold\`, test IDs, exports, dynamic imports, links. |
-| [patterns.md](patterns.md) | Server components, serialization, React Query, \`src/api\`, forms, layout, metadata, JSON-LD. |
-| [platform.md](platform.md) | GitHub CI, common \`pnpm\` scripts, \`next.config\` (env, redirects), draft mode APIs, \`src/proxy.ts\`. |
-| [integrations.md](integrations.md) | Google Analytics, data layer, related env. |
-| [distribution.md](distribution.md) | Sitemap generation and \`public/\` output. |
-| [source-layout.md](source-layout.md) | \`src/interfaces\`, \`src/utils\` map, \`src/lib\`. |
-| [llms.md](llms.md) | Task-to-chapter routing for tools; copy-paste blurb for non-Cursor agents. |
+${indexTable}
 
 ## Development setup
 
-Machine setup (ASDF, pnpm, Vercel env, first \`pnpm dev\`) lives in the root **[README.md](../../README.md)**.
+Ordered **greenfield prerequisites** (${devSetupPrereq}) and everyday machine setup (ASDF, pnpm, env pull, first \`pnpm dev\`) live in the root **[README.md](../../README.md)**.
 `;
 }
 
@@ -168,6 +243,30 @@ Machine setup (ASDF, pnpm, Vercel env, first \`pnpm dev\`) lives in the root **[
 
 export function getHandbookLlms(a: ProjectAnswers): string {
   const s = a.siteName;
+
+  const taskRows = a.includeContentful
+    ? `| Stack, folders, App Router layout, Contentful → page render flow | [architecture.md](architecture.md) |
+| TypeScript / React style, Biome, CSS Modules, tests, test IDs, a11y, \`next/image\`, React Query hooks | [conventions.md](conventions.md) |
+| Contentful types/codegen, getters, parsers, sections vs content blocks, ContentRenderer, Rich Text | [contentful.md](contentful.md) |
+| Component folder layout, \`pnpm scaffold\`, exports, dynamic imports, internal/external links | [components.md](components.md) |
+| Server components, caching, React Query, \`src/api\`, forms, metadata / JSON-LD | [patterns.md](patterns.md) |
+| CI, \`pnpm\` scripts, \`next.config\` (env, redirects), draft APIs, \`src/proxy.ts\` | [platform.md](platform.md) |
+| Google Analytics, \`dataLayer\`, client analytics | [integrations.md](integrations.md) |
+| Sitemaps, \`public/\` XML output | [distribution.md](distribution.md) |
+| \`src/interfaces\`, \`src/utils\` map, \`src/lib\` | [source-layout.md](source-layout.md) |`
+    : `| Stack, folders, App Router layout | [architecture.md](architecture.md) |
+| TypeScript / React style, Biome, CSS Modules, tests, test IDs, a11y, \`next/image\`, React Query hooks | [conventions.md](conventions.md) |
+| Component folder layout, \`pnpm scaffold\`, exports, dynamic imports, internal/external links | [components.md](components.md) |
+| Server components, caching, React Query, \`src/api\`, forms, metadata / JSON-LD | [patterns.md](patterns.md) |
+| CI, \`pnpm\` scripts, \`next.config\` (env, redirects), \`src/proxy.ts\` | [platform.md](platform.md) |
+| Google Analytics, \`dataLayer\`, client analytics | [integrations.md](integrations.md) |
+| Sitemaps, \`public/\` XML output | [distribution.md](distribution.md) |
+| \`src/interfaces\`, \`src/utils\` map, \`src/lib\` | [source-layout.md](source-layout.md) |`;
+
+  const prereqOutside = a.includeContentful
+    ? "Greenfield prerequisites (GitHub, Vercel, Contentful bootstrap order); local install, env, first run"
+    : "Greenfield prerequisites (GitHub, Vercel bootstrap order); local install, env, first run";
+
   return `# Handbook routing (for tools and LLMs)
 
 Use this page to choose **which markdown file to read first**. It mirrors the full handbook index in **[README.md](README.md)**—paste the relevant paths (or this whole file) into custom GPT instructions, other agents, or docs that do not load Cursor rules.
@@ -180,21 +279,13 @@ Use this page to choose **which markdown file to read first**. It mirrors the fu
 
 | Task or question | Read first |
 |------------------|------------|
-| Stack, folders, App Router layout, Contentful → page render flow | [architecture.md](architecture.md) |
-| TypeScript / React style, Biome, CSS Modules, tests, test IDs, a11y, \`next/image\`, React Query hooks | [conventions.md](conventions.md) |
-| Contentful types/codegen, getters, parsers, sections vs content blocks, ContentRenderer, Rich Text | [contentful.md](contentful.md) |
-| Component folder layout, \`pnpm scaffold\`, exports, dynamic imports, internal/external links | [components.md](components.md) |
-| Server components, caching, React Query, \`src/api\`, forms, metadata / JSON-LD | [patterns.md](patterns.md) |
-| CI, \`pnpm\` scripts, \`next.config\` (env, redirects), draft APIs, \`src/proxy.ts\` | [platform.md](platform.md) |
-| Google Analytics, \`dataLayer\`, client analytics | [integrations.md](integrations.md) |
-| Sitemaps, \`public/\` XML output | [distribution.md](distribution.md) |
-| \`src/interfaces\`, \`src/utils\` map, \`src/lib\` | [source-layout.md](source-layout.md) |
+${taskRows}
 
 ## Outside this folder
 
 | Task | Location |
 |------|----------|
-| Install ASDF/pnpm, Vercel env, first run | Repo root **[README.md](../../README.md)** |
+| ${prereqOutside} | Repo root **[README.md](../../README.md)** |
 | Agent defaults (read handbook, keep it updated) | Repo root **[CLAUDE.md](../../CLAUDE.md)** |
 
 ## Suggested instruction blurb (copy-paste)
@@ -211,6 +302,30 @@ Before substantive edits, read docs/handbook/README.md and the chapter that matc
 
 export function getHandbookArchitecture(a: ProjectAnswers): string {
   const s = a.siteName;
+  if (!a.includeContentful) {
+    return `# Architecture
+
+If you are new here, this page is your map. It explains how the site is structured, which technologies we rely on, and how the App Router renders UI.
+
+<!-- site: ${s} -->
+
+## Tech stack
+
+- **Framework**: Next.js 16 with the **App Router**. Routes live under \`src/app/\`.
+- **UI**: React 19, TypeScript.
+- **Data**: Server Components for request/build-time data; **React Query** for client mutations. This scaffold was generated **without** Contentful.
+- **Styling**: **CSS Modules** with tokens in \`src/styles/globals.css\`.
+- **Tooling**: pnpm, Biome, Stylelint, Jest.
+
+## Config and deployment
+
+- **\`next.config.ts\`** — env exposure, images, Turbopack/SVG rules, security headers, redirects.
+- **\`biome.json\`** — lint and format. Run \`pnpm lint\`, \`pnpm lint:fix\`.
+- **Branching**: Default branch is \`staging\`. Releases use \`make release tag=vX.X.X\`.
+- **Provisioning**: Greenfield steps (GitHub, Vercel) live in the repo root **README** under **Prerequisites (greenfield bootstrap)**.
+`;
+  }
+
   return `# Architecture
 
 If you are new here, this page is your map. It explains how the site is structured, which technologies we rely on, and how a request goes from the App Router through Contentful data to UI.
@@ -307,6 +422,7 @@ flowchart LR
 - **\`next.config.ts\`** — env exposure, images, Turbopack/SVG rules, security headers, redirects.
 - **\`biome.json\`** — lint and format (includes CSS). Run \`pnpm lint\`, \`pnpm lint:fix\`.
 - **Branching**: Default branch is \`staging\`. Releases use \`make release tag=vX.X.X\`.
+- **Provisioning**: Hosting bootstrap (GitHub, Vercel, Contentful) is documented under **Prerequisites (greenfield bootstrap)** in the repo root README.
 `;
 }
 
@@ -485,7 +601,16 @@ Keep data-fetching hooks in their own files under \`src/hooks/queries/\` and \`s
 // docs/handbook/contentful.md
 // ---------------------------------------------------------------------------
 
-export function getHandbookContentful(_a: ProjectAnswers): string {
+export function getHandbookContentful(a: ProjectAnswers): string {
+  if (!a.includeContentful) {
+    return `# Contentful integration
+
+This project was scaffolded **without** Contentful—there is no \`src/contentful/\` tree and no \`pnpm types:contentful\` script.
+
+To adopt Contentful later, add the SDK and codegen dependencies, restore env keys in \`next.config.ts\`, copy the \`src/contentful/\` patterns from a Contentful-enabled kickoff run (or another project handbook), and run type generation against your space.
+`;
+  }
+
   return `# Contentful integration
 
 Most pages are driven by Contentful. This guide explains how **generated types**, **getters** (fetch), and **parsers** (normalize) fit together, and how sections and content blocks reach the UI.
@@ -629,7 +754,16 @@ Use **\`next/link\`**'s **\`Link\`** for all navigational links — internal pat
 // docs/handbook/patterns.md
 // ---------------------------------------------------------------------------
 
-export function getHandbookPatterns(_a: ProjectAnswers): string {
+export function getHandbookPatterns(a: ProjectAnswers): string {
+  const cmsBullets = a.includeContentful
+    ? `- **Contentful**: Call getters from \`src/contentful/\` with \`{ preview }\` derived from \`draftMode()\` when you need draft content.
+- **Serialization**: Next.js must receive serializable props when passing data from Server to Client Components. Replace \`undefined\` with \`null\` where needed.
+- **Not found**: Use \`notFound()\` from \`next/navigation\` when Contentful returns no page for a slug.
+`
+    : `- **Serialization**: Next.js must receive serializable props when passing data from Server to Client Components. Replace \`undefined\` with \`null\` where needed.
+- **Not found**: Use \`notFound()\` from \`next/navigation\` when a route has no data.
+`;
+
   return `# Patterns
 
 This chapter collects **cross-cutting patterns**: how App Router pages load data, how client hooks call Route Handlers, forms, and where SEO metadata lives.
@@ -638,9 +772,7 @@ This chapter collects **cross-cutting patterns**: how App Router pages load data
 
 \`page.tsx\` files under \`src/app/\` are **Server Components** by default unless marked with \`"use client"\`.
 
-- **Contentful**: Call getters from \`src/contentful/\` with \`{ preview }\` derived from \`draftMode()\` when you need draft content.
-- **Serialization**: Next.js must receive serializable props when passing data from Server to Client Components. Replace \`undefined\` with \`null\` where needed.
-- **Not found**: Use \`notFound()\` from \`next/navigation\` when Contentful returns no page for a slug.
+${cmsBullets}
 
 ## React Query — mutations
 
@@ -685,9 +817,47 @@ Use **\`next/dynamic\`** for code-splitting when a component is heavy or must be
 
 export function getHandbookPlatform(a: ProjectAnswers): string {
   const port = a.devPort;
+  const intro = a.includeContentful
+    ? "This page covers **CI**, **env vars**, **draft preview**, and **`src/proxy.ts`**."
+    : "This page covers **CI**, **env vars**, and **`src/proxy.ts`**. (No CMS draft routes—this scaffold was generated without Contentful.)";
+
+  const greenfield = a.includeContentful
+    ? "GitHub, Vercel, and Contentful setup that happens **outside** this repo—including default branch (`staging`), branch protections, seeding **`v0.0.0`**, importing the scaffold from kickoff, adding **all** env vars from **`.env.local.example`** in Vercel, and **`npx vercel env pull .env.local`** in the clone—is captured in root **[README.md](../../README.md)** — **Prerequisites (greenfield bootstrap)**."
+    : "GitHub and Vercel setup that happens **outside** this repo—including default branch (`staging`), branch protections, seeding **`v0.0.0`**, importing the scaffold from kickoff, adding env vars from **`.env.local.example`** in Vercel, and **`npx vercel env pull .env.local`** in the clone—is captured in root **[README.md](../../README.md)** — **Prerequisites (greenfield bootstrap)**.";
+
+  const scriptRowsExtra = a.includeContentful
+    ? `| \`pnpm types:contentful\` | Regenerate \`src/contentful/types\` (needs CMA env vars). |
+| \`pnpm dev:preview\` | Dev server with Contentful preview mode enabled. |
+`
+    : `| \`pnpm dev:preview\` | Starts Next dev only (no \`/api/draft\` auto-open when Contentful is omitted). |
+`;
+
+  const notableContentful = a.includeContentful
+    ? `- **Contentful** — space, delivery/preview tokens, preview secret, CMA token for codegen.
+`
+    : "";
+
+  const draftSection = a.includeContentful
+    ? `## Preview and draft mode
+
+Draft mode uses App Router APIs:
+
+- **Enable draft**: \`src/app/api/draft/route.ts\` checks \`previewSecret\` against **\`CONTENTFUL_PREVIEW_SECRET\`**, enables draft mode, then redirects.
+- **Disable draft**: \`src/app/api/disable-draft/route.ts\`.
+- **Preview content**: Getters accept \`preview: true\` and use the preview client from \`src/contentful/client.ts\`.
+`
+    : `## Preview and draft mode
+
+This scaffold was generated **without** Contentful, so **\`/api/draft\`** and **\`/api/disable-draft\`** are not present. Enable **Contentful** in kickoff or add your own preview workflow.
+`;
+
   return `# Platform, CI, and environment
 
-This page covers **CI**, **env vars**, **draft preview**, and **\`src/proxy.ts\`**.
+${intro}
+
+## Greenfield prerequisites
+
+${greenfield}
 
 ## Continuous integration
 
@@ -712,9 +882,7 @@ Run **\`pnpm tsc:ci\`**, **\`pnpm lint:ci\`**, and **\`pnpm test:ci\`** locally 
 | \`pnpm lint:css\` / \`pnpm lint:css:fix\` | Stylelint. |
 | \`pnpm test:ci\` | Jest (CI-style). |
 | \`pnpm scaffold\` | New component folder under \`src/components/\` (see [components.md](components.md)). |
-| \`pnpm types:contentful\` | Regenerate \`src/contentful/types\` (needs CMA env vars). |
-| \`pnpm dev:preview\` | Dev server with Contentful preview mode enabled. |
-
+${scriptRowsExtra}
 The full list lives in **\`package.json\`**.
 
 ## Environment variables and \`next.config\`
@@ -725,18 +893,11 @@ Configure values in **Vercel** (or your host) and mirror locally via \`npx verce
 
 Notable groups:
 
-- **Contentful** — space, delivery/preview tokens, preview secret, CMA token for codegen.
-- **ENVIRONMENT** — drives URLs in helpers such as \`envUrl()\`.
+- **Build (Vercel)** — **\`ENABLE_EXPERIMENTAL_COREPACK\`** — set to **\`1\`** in the Vercel project (and in **\`.env.local.example\`**) so production installs respect **\`packageManager\`** in \`package.json\`; not wired through \`next.config.ts\` (build-time only).
+${notableContentful}- **ENVIRONMENT** — drives URLs in helpers such as \`envUrl()\`.
 - **Optional** — HubSpot, Resend, reCAPTCHA — used by Route Handlers and forms when configured.
 
-## Preview and draft mode
-
-Draft mode uses App Router APIs:
-
-- **Enable draft**: \`src/app/api/draft/route.ts\` checks \`previewSecret\` against **\`CONTENTFUL_PREVIEW_SECRET\`**, enables draft mode, then redirects.
-- **Disable draft**: \`src/app/api/disable-draft/route.ts\`.
-- **Preview content**: Getters accept \`preview: true\` and use the preview client from \`src/contentful/client.ts\`.
-
+${draftSection}
 ## Release process
 
 Releases follow a \`make release tag=vX.X.X\` workflow:
@@ -813,7 +974,11 @@ When you add **routes that must appear in search indexes**, confirm they show up
 // docs/handbook/source-layout.md
 // ---------------------------------------------------------------------------
 
-export function getHandbookSourceLayout(_a: ProjectAnswers): string {
+export function getHandbookSourceLayout(a: ProjectAnswers): string {
+  const contentfulRow = a.includeContentful
+    ? "| `contentful.helpers.ts` | `createImageUrl`, `isVideo`, `getContentfulEntryWebUrl` |\n"
+    : "";
+
   return `# Source layout reference
 
 Use this page when you know what you want to do ("add a constant", "find the sitemap helper") but not which folder it lives in.
@@ -833,8 +998,7 @@ Helpers are **split by topic**—there is no barrel \`utils/index.ts\`. Import t
 | \`array.helpers.ts\` | \`compact\`, \`alphabetize\` |
 | \`string.helpers.ts\` | \`capitalizeWords\`, \`truncate\`, \`replaceNbsp\` |
 | \`url.helpers.ts\` | \`convertRelativeUrl\`, \`ensureLeadingSlash\`, \`tryParseUrl\` |
-| \`contentful.helpers.ts\` | \`createImageUrl\`, \`isVideo\`, \`getContentfulEntryWebUrl\` |
-| \`style.helpers.ts\` | \`cssStyleTag\` tagged template |
+${contentfulRow}| \`style.helpers.ts\` | \`cssStyleTag\` tagged template |
 | \`factory.helpers.ts\` | \`nullish\` — random null/value for factory optional fields |
 
 Specs: \`*.spec.ts\` next to each module (e.g. \`environment.helpers.spec.ts\`).
