@@ -1,6 +1,6 @@
 import type { ProjectAnswers } from "../types.js";
 
-export function getNextConfig(a: ProjectAnswers): string {
+export const getNextConfig = (a: ProjectAnswers): string => {
   const envLines: string[] = ["    ENVIRONMENT: process.env.ENVIRONMENT,"];
 
   if (a.includeContentful) {
@@ -295,4 +295,4 @@ const securityHeaders = [
 
 export default nextConfig;
 `;
-}
+};

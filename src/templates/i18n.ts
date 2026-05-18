@@ -4,7 +4,7 @@ import type { ProjectAnswers } from "../types.js";
 // src/i18n/routing.ts  (only generated when includeI18n)
 // ---------------------------------------------------------------------------
 
-export function getI18nRouting(): string {
+export const getI18nRouting = (): string => {
   return `import { createNavigation } from "next-intl/navigation";
 import { defineRouting } from "next-intl/routing";
 
@@ -16,13 +16,13 @@ export const routing = defineRouting({
 
 export const { Link, usePathname, useRouter } = createNavigation(routing);
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/i18n/request.ts  (only generated when includeI18n)
 // ---------------------------------------------------------------------------
 
-export function getI18nRequest(): string {
+export const getI18nRequest = (): string => {
   return `import { getRequestConfig } from "next-intl/server";
 import { routing } from "src/i18n/routing";
 
@@ -41,13 +41,13 @@ export default getRequestConfig(async ({ requestLocale }) => {
   };
 });
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/app/[locale]/layout.tsx  (only generated when includeI18n)
 // ---------------------------------------------------------------------------
 
-export function getLocaleLayout(a: ProjectAnswers): string {
+export const getLocaleLayout = (a: ProjectAnswers): string => {
   const gaImport = a.includeGA
     ? `import { GoogleAnalytics } from "@next/third-parties/google";\n`
     : "";
@@ -123,13 +123,13 @@ ${gaElement}
   );
 }
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/app/[locale]/page.tsx  (only generated when includeI18n)
 // ---------------------------------------------------------------------------
 
-export function getLocalePage(): string {
+export const getLocalePage = (): string => {
   return `import { draftMode } from "next/headers";
 import { notFound } from "next/navigation";
 
@@ -153,13 +153,13 @@ export default async function Home({ params: _params }: HomeProps) {
   );
 }
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/app/[locale]/[slug]/page.tsx  (only generated when includeI18n)
 // ---------------------------------------------------------------------------
 
-export function getLocaleSlugPage(): string {
+export const getLocaleSlugPage = (): string => {
   return `import type { Metadata } from "next";
 import { draftMode } from "next/headers";
 import { notFound } from "next/navigation";
@@ -204,4 +204,4 @@ export default async function Page({ params }: PageProps) {
   );
 }
 `;
-}
+};

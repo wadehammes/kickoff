@@ -2,7 +2,7 @@
 // src/contentful/client.ts
 // ---------------------------------------------------------------------------
 
-export function getContentfulClient(): string {
+export const getContentfulClient = (): string => {
   return `import { createClient } from "contentful";
 
 interface InitOptions {
@@ -33,13 +33,13 @@ export const contentfulClient = ({ preview = false }: InitOptions) => {
   return client;
 };
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/contentful/helpers.ts
 // ---------------------------------------------------------------------------
 
-export function getContentfulHelpers(): string {
+export const getContentfulHelpers = (): string => {
   return `import type { EntryFieldTypes } from "contentful";
 
 export type ExtractSymbolType<T> =
@@ -159,13 +159,13 @@ export type ContentfulTypeCheck<
       >;
     };
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/contentful/cacheConfig.ts
 // ---------------------------------------------------------------------------
 
-export function getContentfulCacheConfig(): string {
+export const getContentfulCacheConfig = (): string => {
   return `import safeJsonStringify from "safe-json-stringify";
 
 export const CONTENTFUL_CACHE_REVALIDATE_SECONDS = 60 * 60 * 24 * 30;
@@ -174,13 +174,13 @@ export function sanitizeForCache<T>(value: T): T {
   return safeJsonStringify.ensureProperties(value) as T;
 }
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/contentful/cacheKeys.ts
 // ---------------------------------------------------------------------------
 
-export function getContentfulCacheKeys(): string {
+export const getContentfulCacheKeys = (): string => {
   return `export const CONTENTFUL_CACHE_TAG = "contentful";
 
 export const CONTENTFUL_TAGS = {
@@ -208,23 +208,23 @@ export const cacheKeys = {
   }),
 };
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/contentful/contentfulPagination.ts
 // ---------------------------------------------------------------------------
 
-export function getContentfulPagination(): string {
+export const getContentfulPagination = (): string => {
   return `/** \`limit\` per Contentful \`getEntries\` call in paginated fetch loops (API max is 1000). */
 export const CONTENTFUL_BATCH_LIMIT = 500;
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/contentful/parseContentfulAsset.ts
 // ---------------------------------------------------------------------------
 
-export function getParseContentfulAsset(): string {
+export const getParseContentfulAsset = (): string => {
   return `import type { Asset, AssetLink } from "contentful";
 
 export interface ContentfulAsset {
@@ -259,13 +259,13 @@ export const parseContentfulAsset = (
   };
 };
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/contentful/richText.tsx
 // ---------------------------------------------------------------------------
 
-export function getRichText(): string {
+export const getRichText = (): string => {
   return `import { documentToReactComponents } from "@contentful/rich-text-react-renderer";
 import type { Document as RichTextDocument } from "@contentful/rich-text-types";
 
@@ -283,13 +283,13 @@ export const RichText = (props: RichTextProps) => {
   return <>{documentToReactComponents(document)}</>;
 };
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/contentful/getPages.ts  (stub until getters are implemented)
 // ---------------------------------------------------------------------------
 
-export function getContentfulGetPages(): string {
+export const getContentfulGetPages = (): string => {
   return `/**
  * Replace with real Contentful queries as you add content types and parsers.
  * \`pnpm types:contentful\` generates models under \`src/contentful/types/\`.
@@ -315,4 +315,4 @@ export const fetchPage = async (_opts: {
   return null;
 };
 `;
-}
+};

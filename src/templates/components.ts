@@ -4,7 +4,7 @@ import type { ProjectAnswers } from "../types.js";
 // src/components/Navigation/Navigation.component.tsx
 // ---------------------------------------------------------------------------
 
-export function getNavigationComponent(a: ProjectAnswers): string {
+export const getNavigationComponent = (a: ProjectAnswers): string => {
   return `"use client";
 
 import classNames from "classnames";
@@ -45,13 +45,13 @@ export const Navigation = () => {
 
 export default Navigation;
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/components/Navigation/Navigation.module.css
 // ---------------------------------------------------------------------------
 
-export function getNavigationCSS(): string {
+export const getNavigationCSS = (): string => {
   return `.navigation {
   background: var(--color-bg);
   position: fixed;
@@ -86,13 +86,13 @@ export function getNavigationCSS(): string {
   width: 100%;
 }
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/components/Footer/Footer.component.tsx
 // ---------------------------------------------------------------------------
 
-export function getFooterComponent(a: ProjectAnswers): string {
+export const getFooterComponent = (a: ProjectAnswers): string => {
   return `import styles from "./Footer.module.css";
 
 export const Footer = () => (
@@ -107,13 +107,13 @@ export const Footer = () => (
 
 export default Footer;
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/components/Footer/Footer.module.css
 // ---------------------------------------------------------------------------
 
-export function getFooterCSS(): string {
+export const getFooterCSS = (): string => {
   return `.footer {
   align-items: flex-start;
   bottom: 0;
@@ -136,13 +136,13 @@ export function getFooterCSS(): string {
   opacity: 0.7;
 }
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/components/ExitDraftModeLink/ExitDraftModeLink.component.tsx
 // ---------------------------------------------------------------------------
 
-export function getExitDraftModeLink(): string {
+export const getExitDraftModeLink = (): string => {
   return `"use client";
 
 import { usePathname } from "next/navigation";
@@ -160,13 +160,13 @@ export const ExitDraftModeLink = (props: HTMLProps<HTMLAnchorElement>) => {
 
 export default ExitDraftModeLink;
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/components/NotFoundPage/NotFoundPage.component.tsx
 // ---------------------------------------------------------------------------
 
-export function getNotFoundPageComponent(): string {
+export const getNotFoundPageComponent = (): string => {
   return `import Link from "next/link";
 import styles from "./NotFoundPage.module.css";
 
@@ -184,13 +184,13 @@ export const NotFoundPage = () => (
 
 export default NotFoundPage;
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/components/NotFoundPage/NotFoundPage.module.css
 // ---------------------------------------------------------------------------
 
-export function getNotFoundPageCSS(): string {
+export const getNotFoundPageCSS = (): string => {
   return `.container {
   align-items: center;
   display: flex;
@@ -226,4 +226,4 @@ export function getNotFoundPageCSS(): string {
   }
 }
 `;
-}
+};

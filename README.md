@@ -45,6 +45,7 @@ Optional add-ons selected during prompts:
 cd /path/to/kickoff
 pnpm install
 pnpm build
+pnpm test   # generator integration tests (Vitest)
 npm link
 ```
 
@@ -110,7 +111,46 @@ Running `kickoff` starts an interactive prompt:
 
 After answering, the scaffold is written to `./<project-name>/` (or the current directory if selected).
 
-## After generation
+### Non-interactive (CI / scripts)
+
+Pass a JSON file whose keys match `ProjectAnswers` in this repo’s [`src/types.ts`](src/types.ts) (all fields required; use JSON booleans and numbers, not strings):
+
+```sh
+kickoff --answers ./answers.json
+```
+
+Useful flags:
+
+| Flag | Meaning |
+|------|--------|
+| `--answers <path>` | Skip prompts; load answers from JSON |
+| `--force` | Allow writing when the target directory already has files |
+| `--dry-run` | Print paths that would be written; no files created |
+| `--verbose` | Log each file as it is written |
+| `-h`, `--help` | Show usage |
+
+Example `answers.json`:
+
+```json
+{
+  "projectName": "my-new-site",
+  "useCurrentDir": false,
+  "siteName": "My New Site",
+  "prodUrl": "https://www.mynewsite.com",
+  "stagingUrl": "https://staging.mynewsite.com",
+  "devPort": 3000,
+  "primaryColor": "#000000",
+  "bgColor": "#ffffff",
+  "textColor": "#000000",
+  "includeContentful": true,
+  "includeI18n": false,
+  "includeGA": false,
+  "includeResend": false,
+  "includeRecaptcha": false
+}
+```
+
+`--dry-run` still applies the same non-empty directory rules as a real run; use `--force` if you need to preview writes into an existing directory.
 
 ```sh
 cd <project-name>

@@ -1,6 +1,6 @@
 import type { ProjectAnswers } from "../types.js";
 
-export function getGlobalsCSS(_a: ProjectAnswers): string {
+export const getGlobalsCSS = (_a: ProjectAnswers): string => {
   return `@import url("./variables.css");
 
 *,
@@ -363,9 +363,9 @@ p:empty {
   }
 }
 `;
-}
+};
 
-export function getVariablesCSS(a: ProjectAnswers): string {
+export const getVariablesCSS = (a: ProjectAnswers): string => {
   return `:root {
   --color-primary: ${a.primaryColor};
   --color-bg: ${a.bgColor};
@@ -381,8 +381,8 @@ export function getVariablesCSS(a: ProjectAnswers): string {
   }
 }
 `;
-}
+};
 
-export function getRuntimeVariablesJson(): string {
+export const getRuntimeVariablesJson = (): string => {
   return "{}\n";
-}
+};

@@ -4,7 +4,7 @@ import type { ProjectAnswers } from "../types.js";
 // src/lib/schema.ts
 // ---------------------------------------------------------------------------
 
-export function getSchema(a: ProjectAnswers): string {
+export const getSchema = (a: ProjectAnswers): string => {
   return `import type {
   BreadcrumbList,
   Graph,
@@ -195,13 +195,13 @@ export function createSchemaGraph(schemas: Thing[]): Graph {
   };
 }
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/lib/generateSitemap.ts
 // ---------------------------------------------------------------------------
 
-export function getGenerateSitemap(a: ProjectAnswers): string {
+export const getGenerateSitemap = (a: ProjectAnswers): string => {
   return `import fs from "node:fs";
 
 const baseUrl = "${a.prodUrl}";
@@ -244,4 +244,4 @@ export const outputSitemap = (routes: SitemapItem[], filename: string) => {
   fs.writeFileSync(\`./public/generated-sitemap-\${filename}.xml\`, sitemap);
 };
 `;
-}
+};

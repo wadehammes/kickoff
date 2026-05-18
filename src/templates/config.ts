@@ -1,6 +1,6 @@
 import type { ProjectAnswers } from "../types.js";
 
-export function getPackageJson(a: ProjectAnswers): string {
+export const getPackageJson = (a: ProjectAnswers): string => {
   const deps: Record<string, string> = {
     "@faker-js/faker": "latest",
     "@jest/types": "latest",
@@ -104,9 +104,9 @@ export function getPackageJson(a: ProjectAnswers): string {
   };
 
   return `${JSON.stringify(pkg, null, 2)}\n`;
-}
+};
 
-export function getTsConfig(): string {
+export const getTsConfig = (): string => {
   return `{
   "compilerOptions": {
     "allowJs": false,
@@ -149,9 +149,9 @@ export function getTsConfig(): string {
   "exclude": ["node_modules", "next.config.ts"]
 }
 `;
-}
+};
 
-export function getBiomeConfig(): string {
+export const getBiomeConfig = (): string => {
   return `{
   "$schema": "./node_modules/@biomejs/biome/schema.json",
   "formatter": {
@@ -260,9 +260,9 @@ export function getBiomeConfig(): string {
   }
 }
 `;
-}
+};
 
-export function getStylelintConfig(): string {
+export const getStylelintConfig = (): string => {
   return `import type { Config } from "stylelint";
 
 export default {
@@ -284,9 +284,9 @@ export default {
   },
 } satisfies Config;
 `;
-}
+};
 
-export function getPostcssConfig(): string {
+export const getPostcssConfig = (): string => {
   return `${JSON.stringify(
     {
       plugins: {
@@ -301,9 +301,9 @@ export function getPostcssConfig(): string {
     null,
     2,
   )}\n`;
-}
+};
 
-export function getBrowserslistrc(): string {
+export const getBrowserslistrc = (): string => {
   return `# This file is used by:
 # 1. autoprefixer to adjust CSS to support the below specified browsers
 # 2. babel preset-env / SWC to adjust included polyfills
@@ -318,16 +318,16 @@ firefox >= 92
 safari >= 15.4
 not dead
 `;
-}
+};
 
-export function getToolVersions(
+export const getToolVersions = (
   nodeVersion: string,
   pnpmVersion: string,
-): string {
+): string => {
   return `nodejs ${nodeVersion}\npnpm ${pnpmVersion}\n`;
-}
+};
 
-export function getEditorConfig(): string {
+export const getEditorConfig = (): string => {
   return `# Editor configuration, see http://editorconfig.org
 
 root = true
@@ -343,13 +343,13 @@ trim_trailing_whitespace = true
 max_line_length = off
 trim_trailing_whitespace = false
 `;
-}
+};
 
-export function getNpmrc(): string {
+export const getNpmrc = (): string => {
   return "shamefully-hoist=true\nstrict-peer-dependencies=false\n";
-}
+};
 
-export function getGitignore(): string {
+export const getGitignore = (): string => {
   return `# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 .swc
 .cursor
@@ -388,9 +388,9 @@ yarn-error.log*
 
 public/generated-sitemap-*.xml
 `;
-}
+};
 
-export function getPnpmWorkspace(): string {
+export const getPnpmWorkspace = (): string => {
   return `overrides:
   '@babel/helpers@<7.26.10': '>=7.26.10'
   '@babel/runtime@<7.26.10': '>=7.26.10'
@@ -402,9 +402,9 @@ export function getPnpmWorkspace(): string {
   'jws@<3.2.3': '>=3.2.3'
   'nanoid@<3.3.8': '>=3.3.8'
 `;
-}
+};
 
-export function getMakefile(_a: ProjectAnswers): string {
+export const getMakefile = (_a: ProjectAnswers): string => {
   return `SHELL := /bin/bash
 .SILENT: release
 
@@ -422,9 +422,9 @@ release:
 sitemap:
 \tnode scripts/make_sitemap.js
 `;
-}
+};
 
-export function getJestConfig(): string {
+export const getJestConfig = (): string => {
   return `// jest.config.ts
 import type { Config } from "@jest/types";
 import nextJest from "next/jest.js";
@@ -453,9 +453,9 @@ export default async () => {
   return { ...jestConfig, moduleNameMapper, testTimeout: 20000 };
 };
 `;
-}
+};
 
-export function getKnipConfig(a: ProjectAnswers): string {
+export const getKnipConfig = (a: ProjectAnswers): string => {
   const ignoreFiles = [
     "scripts/make_sitemap.js",
     "test-utils.tsx",
@@ -472,9 +472,9 @@ export function getKnipConfig(a: ProjectAnswers): string {
     null,
     2,
   )}\n`;
-}
+};
 
-export function getCssPropsDeclaration(): string {
+export const getCssPropsDeclaration = (): string => {
   return `import type { CSSProp } from "styled-components";
 
 declare module "react" {
@@ -483,15 +483,15 @@ declare module "react" {
   }
 }
 `;
-}
+};
 
-export function getNextEnvDeclaration(): string {
+export const getNextEnvDeclaration = (): string => {
   return `/// <reference types="next" />
 /// <reference types="next/image-types/global" />
 `;
-}
+};
 
-export function getEnvLocalExample(a: ProjectAnswers): string {
+export const getEnvLocalExample = (a: ProjectAnswers): string => {
   const lines: string[] = [];
 
   if (a.includeContentful) {
@@ -574,4 +574,4 @@ export function getEnvLocalExample(a: ProjectAnswers): string {
   );
 
   return lines.join("\n");
-}
+};

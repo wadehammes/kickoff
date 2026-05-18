@@ -4,7 +4,7 @@ import type { ProjectAnswers } from "../types.js";
 // src/app/layout.tsx
 // ---------------------------------------------------------------------------
 
-export function getAppLayout(a: ProjectAnswers): string {
+export const getAppLayout = (a: ProjectAnswers): string => {
   const gaImport = a.includeGA
     ? `import { GoogleAnalytics } from "@next/third-parties/google";\n`
     : "";
@@ -95,13 +95,13 @@ ${gaElement ? `      ${gaElement}\n` : ""}    </html>
 
 export default RootLayout;
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/app/page.tsx
 // ---------------------------------------------------------------------------
 
-export function getAppPage(): string {
+export const getAppPage = (): string => {
   return `import type { Metadata } from "next";
 import { draftMode } from "next/headers";
 import { notFound } from "next/navigation";
@@ -167,13 +167,13 @@ const Home = async () => {
 
 export default Home;
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/app/providers.tsx
 // ---------------------------------------------------------------------------
 
-export function getAppProviders(): string {
+export const getAppProviders = (): string => {
   return `"use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -195,13 +195,13 @@ const Providers = (props: ProvidersProps) => {
 
 export default Providers;
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/app/fonts.ts
 // ---------------------------------------------------------------------------
 
-export function getAppFonts(): string {
+export const getAppFonts = (): string => {
   return `// Add your custom fonts here using next/font/local
 // Example:
 //
@@ -215,13 +215,13 @@ export function getAppFonts(): string {
 
 export {};
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/app/error.tsx
 // ---------------------------------------------------------------------------
 
-export function getAppError(): string {
+export const getAppError = (): string => {
   return `"use client";
 
 import styles from "./error.module.css";
@@ -245,13 +245,13 @@ const ErrorBoundary = ({
 
 export default ErrorBoundary;
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/app/error.module.css
 // ---------------------------------------------------------------------------
 
-export function getAppErrorCSS(): string {
+export const getAppErrorCSS = (): string => {
   return `.errorContainer {
   align-items: center;
   display: flex;
@@ -277,13 +277,13 @@ export function getAppErrorCSS(): string {
   opacity: 0.9;
 }
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/app/loading.tsx
 // ---------------------------------------------------------------------------
 
-export function getAppLoading(): string {
+export const getAppLoading = (): string => {
   return `const Loading = () => (
   <div className="loading-container">
     <div className="loading-spinner" />
@@ -292,26 +292,26 @@ export function getAppLoading(): string {
 
 export default Loading;
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/app/not-found.tsx
 // ---------------------------------------------------------------------------
 
-export function getAppNotFound(): string {
+export const getAppNotFound = (): string => {
   return `import { NotFoundPage } from "src/components/NotFoundPage/NotFoundPage.component";
 
 const NotFound = () => <NotFoundPage />;
 
 export default NotFound;
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/app/robots.ts
 // ---------------------------------------------------------------------------
 
-export function getAppRobots(a: ProjectAnswers): string {
+export const getAppRobots = (a: ProjectAnswers): string => {
   return `import type { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
@@ -324,13 +324,13 @@ export default function robots(): MetadataRoute.Robots {
   };
 }
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/app/manifest.ts
 // ---------------------------------------------------------------------------
 
-export function getAppManifest(a: ProjectAnswers): string {
+export const getAppManifest = (a: ProjectAnswers): string => {
   return `import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
@@ -352,13 +352,13 @@ export default function manifest(): MetadataRoute.Manifest {
   };
 }
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/app/api/draft/route.ts
 // ---------------------------------------------------------------------------
 
-export function getDraftRoute(): string {
+export const getDraftRoute = (): string => {
   return `import { draftMode } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -377,13 +377,13 @@ export async function GET(request: Request) {
   redirect(searchParams.get("redirect") || "/");
 }
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/app/api/disable-draft/route.ts
 // ---------------------------------------------------------------------------
 
-export function getDisableDraftRoute(): string {
+export const getDisableDraftRoute = (): string => {
   return `import { draftMode } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -396,13 +396,13 @@ export async function GET(request: Request) {
   redirect(searchParams.get("redirect") || "/");
 }
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/app/global-error.tsx
 // ---------------------------------------------------------------------------
 
-export function getGlobalError(): string {
+export const getGlobalError = (): string => {
   return `"use client";
 
 import NextError from "next/error";
@@ -423,13 +423,13 @@ const GlobalError = ({
 
 export default GlobalError;
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/app/refresh-content/page.tsx
 // ---------------------------------------------------------------------------
 
-export function getRefreshContentPage(a: ProjectAnswers): string {
+export const getRefreshContentPage = (a: ProjectAnswers): string => {
   return `import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -463,4 +463,4 @@ export default async function RefreshContent({
   );
 }
 `;
-}
+};

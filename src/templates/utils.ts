@@ -4,7 +4,7 @@ import type { ProjectAnswers } from "../types.js";
 // src/proxy.ts
 // ---------------------------------------------------------------------------
 
-export function getProxyTs(): string {
+export const getProxyTs = (): string => {
   return `import { type NextRequest, NextResponse } from "next/server";
 
 export function proxy(request: NextRequest) {
@@ -19,26 +19,26 @@ export function proxy(request: NextRequest) {
   });
 }
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/utils/constants.ts
 // ---------------------------------------------------------------------------
 
-export function getConstants(): string {
+export const getConstants = (): string => {
   return `export const NAVIGATION_ID = "navigation-global";
 
 export const HOME_PAGE_SLUG = "home";
 
 export const EXCLUDED_PAGE_SLUGS_FROM_BUILD = [HOME_PAGE_SLUG];
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/utils/array.helpers.ts
 // ---------------------------------------------------------------------------
 
-export function getArrayHelpers(): string {
+export const getArrayHelpers = (): string => {
   return `export const compact = <T>(
   arr: (T | null | undefined)[] | null | undefined,
 ): T[] => {
@@ -71,13 +71,13 @@ export const alphabetize = <T>(array: T[], key: keyof T): T[] => {
   });
 };
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/utils/array.helpers.spec.ts
 // ---------------------------------------------------------------------------
 
-export function getArrayHelpersSpec(): string {
+export const getArrayHelpersSpec = (): string => {
   return `import { alphabetize, compact } from "src/utils/array.helpers";
 
 describe("compact", () => {
@@ -107,13 +107,13 @@ describe("alphabetize", () => {
   });
 });
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/utils/string.helpers.ts
 // ---------------------------------------------------------------------------
 
-export function getStringHelpers(): string {
+export const getStringHelpers = (): string => {
   return `export const capitalizeWords = (text: string): string =>
   text.replace(/\\b\\w/g, (l) => l.toUpperCase());
 
@@ -133,13 +133,13 @@ export const replaceNbsp = (text: string): string => {
   return text.replace(/\\u00a0/g, " ").replace(/\\u2028/g, "");
 };
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/utils/string.helpers.spec.ts
 // ---------------------------------------------------------------------------
 
-export function getStringHelpersSpec(): string {
+export const getStringHelpersSpec = (): string => {
   return `import {
   capitalizeWords,
   replaceNbsp,
@@ -173,13 +173,13 @@ describe("replaceNbsp", () => {
   });
 });
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/utils/url.helpers.ts
 // ---------------------------------------------------------------------------
 
-export function getUrlHelpers(): string {
+export const getUrlHelpers = (): string => {
   return `export const convertRelativeUrl = (url: string | undefined): string => {
   if (!url) {
     return "";
@@ -209,13 +209,13 @@ export const tryParseUrl = (value: string): URL | null => {
   }
 };
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/utils/url.helpers.spec.ts
 // ---------------------------------------------------------------------------
 
-export function getUrlHelpersSpec(): string {
+export const getUrlHelpersSpec = (): string => {
   return `import {
   convertRelativeUrl,
   ensureLeadingSlash,
@@ -264,13 +264,13 @@ describe("tryParseUrl", () => {
   });
 });
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/utils/environment.helpers.ts
 // ---------------------------------------------------------------------------
 
-export function getEnvironmentHelpers(a: ProjectAnswers): string {
+export const getEnvironmentHelpers = (a: ProjectAnswers): string => {
   return `export const isBrowser = (): boolean =>
   typeof window !== "undefined";
 
@@ -285,13 +285,13 @@ export const envUrl = (): string => {
   return "${a.prodUrl}";
 };
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/utils/environment.helpers.spec.ts
 // ---------------------------------------------------------------------------
 
-export function getEnvironmentHelpersSpec(_a: ProjectAnswers): string {
+export const getEnvironmentHelpersSpec = (_a: ProjectAnswers): string => {
   return `import { isBrowser, isNonNullable } from "src/utils/environment.helpers";
 
 describe("isBrowser", () => {
@@ -313,13 +313,13 @@ describe("isNonNullable", () => {
   });
 });
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/utils/contentful.helpers.ts
 // ---------------------------------------------------------------------------
 
-export function getContentfulUtilHelpers(): string {
+export const getContentfulUtilHelpers = (): string => {
   return `export const createImageUrl = (src: string): string => {
   if (!src) {
     return "";
@@ -350,36 +350,36 @@ export const getContentfulEntryWebUrl = (entryId: string): string | null => {
   return \`https://app.contentful.com/spaces/\${spaceId}/entries/\${entryId}\`;
 };
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/utils/style.helpers.ts
 // ---------------------------------------------------------------------------
 
-export function getStyleHelpers(): string {
+export const getStyleHelpers = (): string => {
   return `/** Tagged template for CSS-in-JS strings — preserves syntax highlighting in editors. */
 export const cssStyleTag = String.raw;
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/utils/factory.helpers.ts
 // ---------------------------------------------------------------------------
 
-export function getFactoryHelpers(): string {
+export const getFactoryHelpers = (): string => {
   return `import { faker } from "@faker-js/faker";
 
 /** Returns either null or one of the provided values at random. Useful for optional fields in factories. */
 export const nullish = <T>(values: readonly T[]): T | null =>
   faker.helpers.arrayElement([null, ...values]);
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/interfaces/common.interfaces.ts
 // ---------------------------------------------------------------------------
 
-export function getCommonInterfaces(): string {
+export const getCommonInterfaces = (): string => {
   return `export const Environments = {
   Staging: "staging",
   Production: "production",
@@ -396,21 +396,21 @@ export type Alignment = "Left" | "Center" | "Right";
 
 export type LinkTarget = "_blank" | "_self";
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/interfaces/common.interfaces.ts (enhanced — same content, kept for compat)
 // ---------------------------------------------------------------------------
 
-export function getCommonInterfacesEnhanced(): string {
+export const getCommonInterfacesEnhanced = (): string => {
   return getCommonInterfaces();
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/hooks/useIsBrowser.ts
 // ---------------------------------------------------------------------------
 
-export function getUseIsBrowser(): string {
+export const getUseIsBrowser = (): string => {
   return `import { useEffect, useState } from "react";
 
 export const useIsBrowser = () => {
@@ -425,13 +425,13 @@ export const useIsBrowser = () => {
   return isBrowser;
 };
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/copy/global.ts
 // ---------------------------------------------------------------------------
 
-export function getCopyGlobal(a: ProjectAnswers): string {
+export const getCopyGlobal = (a: ProjectAnswers): string => {
   return `// Global static copy for ${a.siteName}.
 // Add shared strings here to keep them DRY across components.
 
@@ -439,4 +439,4 @@ export const COPY = {
   siteName: "${a.siteName}",
 } as const;
 `;
-}
+};

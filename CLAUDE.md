@@ -8,9 +8,10 @@
 
 ```
 src/
-├── index.ts          ← CLI entry point (prompts → generateProject)
+├── index.ts          ← CLI entry (argv, prompts or --answers → generateProject)
 ├── types.ts          ← ProjectAnswers interface
-├── generator.ts      ← Orchestrates all write() calls
+├── validateAnswers.ts ← Strict JSON validation for --answers
+├── generator.ts      ← Orchestrates all write() calls; getScaffoldRoot, dry-run / verbose
 └── templates/
     ├── index.ts      ← Barrel re-export
     ├── api.ts        ← src/api/ helpers and urls
@@ -61,6 +62,11 @@ The generated code must follow the same conventions documented in the handbook. 
 - **CSS alphabetized** — properties within each rule block are alphabetized.
 - **No `margin-top`** — use flexbox `gap` for spacing between siblings.
 
+## Kickoff tool code vs scaffolded file contents
+
+- **This repo’s TypeScript** (`src/index.ts`, `src/generator.ts`, `src/templates/*.ts`, tests, etc.) should follow the same arrow-style preference as the handbook (`const fn = () => {}`, `export const getThing = (): string => {}`). Use `function` only where the language requires it (e.g. generators) or for small inline callbacks if that already matches surrounding code.
+- **Inside template literals** (`return \`...\`` in template modules) you are emitting **the user’s project**. That text must follow handbook rules for the generated app. Do not rewrite embedded snippets just to change kickoff’s outer style—lines like `export function generateMetadata()` inside a string are intentional output, not kickoff module declarations.
+
 ## Scripts
 
 ```sh
@@ -68,7 +74,8 @@ pnpm build      # tsc compile to dist/
 pnpm dev        # tsc --watch
 pnpm lint       # biome check
 pnpm lint:fix   # biome check --fix
-node dist/index.js  # run the CLI
+pnpm test       # vitest (generator integration tests)
+node dist/index.js  # run the CLI (interactive; or --answers / --dry-run / --help)
 ```
 
 ## Releasing

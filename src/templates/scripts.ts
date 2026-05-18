@@ -4,7 +4,7 @@ import type { ProjectAnswers } from "../types.js";
 // scripts/scaffold.sh
 // ---------------------------------------------------------------------------
 
-export function getScaffoldSh(): string {
+export const getScaffoldSh = (): string => {
   return `#!/usr/bin/env bash
 set -euo pipefail
 
@@ -183,13 +183,13 @@ fi
 echo "Error: \${component_name} already exists. Aborting scaffolding."
 exit 1
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // scripts/make_sitemap.js
 // ---------------------------------------------------------------------------
 
-export function getMakeSitemapJs(a: ProjectAnswers): string {
+export const getMakeSitemapJs = (a: ProjectAnswers): string => {
   return `const fs = require("node:fs");
 
 const path = ".next/prerender-manifest.json";
@@ -226,13 +226,13 @@ sitemapStr += "</urlset>";
 
 fs.writeFileSync(sitemapPath, sitemapStr);
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // scripts/tsconfig.json
 // ---------------------------------------------------------------------------
 
-export function getScriptsTsConfig(): string {
+export const getScriptsTsConfig = (): string => {
   return `${JSON.stringify(
     {
       compilerOptions: {
@@ -246,13 +246,13 @@ export function getScriptsTsConfig(): string {
     null,
     2,
   )}\n`;
-}
+};
 
 // ---------------------------------------------------------------------------
 // scripts/verify-vercel-release.ts
 // ---------------------------------------------------------------------------
 
-export function getVerifyVercelRelease(): string {
+export const getVerifyVercelRelease = (): string => {
   return `import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
@@ -358,13 +358,13 @@ if (invokedAsMain) {
   });
 }
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // scripts/verify-vercel-for-release.sh
 // ---------------------------------------------------------------------------
 
-export function getVerifyVercelForReleaseSh(): string {
+export const getVerifyVercelForReleaseSh = (): string => {
   return `#!/usr/bin/env bash
 set -euo pipefail
 
@@ -410,13 +410,13 @@ export VC_TEAM="\${team}"
 repo_root="$(cd "\${script_dir}/.." && pwd)"
 (cd "\${repo_root}" && pnpm exec tsx "\${script_dir}/verify-vercel-release.ts")
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // scripts/lib/preview-local.ts
 // ---------------------------------------------------------------------------
 
-export function getPreviewLocal(): string {
+export const getPreviewLocal = (): string => {
   return `/**
  * Shared helpers for local draft preview scripts.
  * Parses env files directly since these scripts run outside Next.js.
@@ -479,13 +479,13 @@ export const openBrowser = (targetUrl: string): void => {
   }
 };
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // scripts/dev-with-preview.ts
 // ---------------------------------------------------------------------------
 
-export function getDevWithPreview(a: ProjectAnswers): string {
+export const getDevWithPreview = (a: ProjectAnswers): string => {
   if (!a.includeContentful) {
     return `/**
  * Starts Next.js dev (${a.devPort}). Draft preview URL logic is omitted when
@@ -634,4 +634,4 @@ main().catch((err: unknown) => {
   process.exit(1);
 });
 `;
-}
+};
