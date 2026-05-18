@@ -4,7 +4,7 @@
 
 import type { ProjectAnswers } from "../types.js";
 
-export function getRichTextDocumentFactory(a: ProjectAnswers): string {
+export const getRichTextDocumentFactory = (a: ProjectAnswers): string => {
   if (!a.includeContentful) {
     return `import type { KeysMatch } from "src/types/KeysMatch";
 import { BaseFactory } from "src/tests/factories/BaseFactory";
@@ -98,13 +98,13 @@ class RichTextDocumentFactory extends BaseFactory<
 
 export const richTextDocumentFactory = new RichTextDocumentFactory();
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/tests/basePageObject.po.ts
 // ---------------------------------------------------------------------------
 
-export function getBasePageObject(): string {
+export const getBasePageObject = (): string => {
   return `// eslint-disable testing-library/no-node-access
 
 export interface BasePageObjectProps {
@@ -127,13 +127,13 @@ export class BasePageObject {
   }
 }
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/tests/factories/BaseFactory.ts
 // ---------------------------------------------------------------------------
 
-export function getBaseFactory(): string {
+export const getBaseFactory = (): string => {
   return `import { faker } from "@faker-js/faker";
 
 export abstract class BaseFactory<
@@ -160,22 +160,22 @@ export abstract class BaseFactory<
   }
 }
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // .jest/setEnvVars.ts
 // ---------------------------------------------------------------------------
 
-export function getSetEnvVars(): string {
+export const getSetEnvVars = (): string => {
   return `process.env.ENVIRONMENT = "staging";
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // .jest/setupTests.ts
 // ---------------------------------------------------------------------------
 
-export function getSetupTests(): string {
+export const getSetupTests = (): string => {
   return `import "@testing-library/jest-dom";
 import { setupIntersectionObserverMock } from "src/tests/mocks/mockIntersectionObserver";
 import { setupMockMatchMedia } from "src/tests/mocks/mockMatchMedia";
@@ -210,13 +210,13 @@ global.afterAll(() => {
   jest.resetAllMocks();
 });
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/tests/mocks/mockIntersectionObserver.ts
 // ---------------------------------------------------------------------------
 
-export function getMockIntersectionObserver(): string {
+export const getMockIntersectionObserver = (): string => {
   return `/**
  * Utility function that mocks the \`IntersectionObserver\` API. Necessary for
  * components that rely on it, otherwise the tests will crash.
@@ -256,13 +256,13 @@ export function setupIntersectionObserverMock({
   });
 }
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/tests/mocks/mockMatchMedia.ts
 // ---------------------------------------------------------------------------
 
-export function getMockMatchMedia(): string {
+export const getMockMatchMedia = (): string => {
   return `export function setupMockMatchMedia() {
   Object.defineProperty(window, "matchMedia", {
     writable: true,
@@ -279,13 +279,13 @@ export function getMockMatchMedia(): string {
   });
 }
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/tests/mocks/mockNextNavigation.ts
 // ---------------------------------------------------------------------------
 
-export function getMockNextNavigation(): string {
+export const getMockNextNavigation = (): string => {
   return `// Mock for next/navigation (App Router).
 // jest.mock("next/navigation", ...) is already set up globally in .jest/setupTests.ts.
 // Import these helpers in individual tests when you need to configure return values.
@@ -317,4 +317,4 @@ export function mockUseRouter(overrides?: Partial<{
   });
 }
 `;
-}
+};

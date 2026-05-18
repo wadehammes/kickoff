@@ -2,7 +2,7 @@
 // .github/workflows/ci.yml
 // ---------------------------------------------------------------------------
 
-export function getCIWorkflow(): string {
+export const getCIWorkflow = (): string => {
   return `name: CI
 on:
   pull_request:
@@ -50,13 +50,13 @@ jobs:
       - name: Run Jest
         run: pnpm test:ci
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // .github/workflows/release.yml
 // ---------------------------------------------------------------------------
 
-export function getReleaseWorkflow(): string {
+export const getReleaseWorkflow = (): string => {
   return `name: create-release
 on:
   push:
@@ -93,13 +93,13 @@ jobs:
           prerelease: false
           token: \${{ secrets.GITHUB_TOKEN }}
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // .github/dependabot.yml
 // ---------------------------------------------------------------------------
 
-export function getDependabotConfig(): string {
+export const getDependabotConfig = (): string => {
   return `version: 2
 updates:
   - package-ecosystem: npm
@@ -108,13 +108,13 @@ updates:
       interval: weekly
     open-pull-requests-limit: 0
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // .github/labeler.yml
 // ---------------------------------------------------------------------------
 
-export function getLabelerYml(): string {
+export const getLabelerYml = (): string => {
   return `javascript:
   - src/**/*
   - scripts/**/*
@@ -141,13 +141,13 @@ dependencies:
   - pnpm-lock.yaml
   - pnpm-workspace.yaml
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // .github/workflows/labeler.yml
 // ---------------------------------------------------------------------------
 
-export function getLabelerWorkflow(): string {
+export const getLabelerWorkflow = (): string => {
   return `name: "Pull Request Labeler"
 on:
   - pull_request_target
@@ -162,4 +162,4 @@ jobs:
         with:
           repo-token: "\${{ secrets.GITHUB_TOKEN }}"
 `;
-}
+};

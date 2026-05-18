@@ -4,7 +4,7 @@ import type { ProjectAnswers } from "../types.js";
 // CLAUDE.md
 // ---------------------------------------------------------------------------
 
-export function getClaude(a: ProjectAnswers): string {
+export const getClaude = (a: ProjectAnswers): string => {
   const cmsClause = a.includeContentful ? "Contentful/CMS changes, " : "";
   return `# Agent instructions
 
@@ -16,13 +16,13 @@ Follow documented patterns.
 
 You can skip a full handbook pass for **narrow** edits (typos, single obvious lines, mechanical fixes) that do not change behavior or documented expectations.
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // README.md (generated project)
 // ---------------------------------------------------------------------------
 
-export function getReadme(a: ProjectAnswers): string {
+export const getReadme = (a: ProjectAnswers): string => {
   const prereqBlock = a.includeContentful
     ? `6. **Contentful space** — Provision the space/environment, create or import content types (\`Page\`, etc.), and collect the tokens you need for the **Contentful** variables in **\`.env.local.example\`** (then see **[Contentful setup](#contentful-setup)**).
 7. **Vercel project and env** — Create a Vercel project linked to this repository. Map **preview** deployments to PRs /\`staging\` and **production** to **\`main\`** (see [Deployment](#deployment)). In the Vercel dashboard, add **every** variable listed in **\`.env.local.example\`** under **Environment Variables**, for each scope you rely on (Preview / Development / Production), matching the example file names.
@@ -155,13 +155,13 @@ Runs the Vercel membership check, pushes the tag → triggers the release workfl
 
 PRs to \`staging\` run: TypeScript strict check, Biome lint, Stylelint, Jest tests.
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // docs/handbook/README.md
 // ---------------------------------------------------------------------------
 
-export function getHandbookReadme(a: ProjectAnswers): string {
+export const getHandbookReadme = (a: ProjectAnswers): string => {
   const s = a.siteName;
   const introSecond = a.includeContentful
     ? "how Contentful feeds the UI"
@@ -235,13 +235,13 @@ ${indexTable}
 
 Ordered **greenfield prerequisites** (${devSetupPrereq}) and everyday machine setup (ASDF, pnpm, env pull, first \`pnpm dev\`) live in the root **[README.md](../../README.md)**.
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // docs/handbook/llms.md
 // ---------------------------------------------------------------------------
 
-export function getHandbookLlms(a: ProjectAnswers): string {
+export const getHandbookLlms = (a: ProjectAnswers): string => {
   const s = a.siteName;
 
   const taskRows = a.includeContentful
@@ -294,13 +294,13 @@ ${taskRows}
 Before substantive edits, read docs/handbook/README.md and the chapter that matches the task (see docs/handbook/llms.md for a task→chapter map). When your change affects behavior, setup, or how features should be built, update the relevant docs/handbook/*.md in the same PR or an immediate follow-up so the handbook stays accurate.
 \`\`\`
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // docs/handbook/architecture.md
 // ---------------------------------------------------------------------------
 
-export function getHandbookArchitecture(a: ProjectAnswers): string {
+export const getHandbookArchitecture = (a: ProjectAnswers): string => {
   const s = a.siteName;
   if (!a.includeContentful) {
     return `# Architecture
@@ -424,13 +424,13 @@ flowchart LR
 - **Branching**: Default branch is \`staging\`. Releases use \`make release tag=vX.X.X\`.
 - **Provisioning**: Hosting bootstrap (GitHub, Vercel, Contentful) is documented under **Prerequisites (greenfield bootstrap)** in the repo root README.
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // docs/handbook/conventions.md
 // ---------------------------------------------------------------------------
 
-export function getHandbookConventions(_a: ProjectAnswers): string {
+export const getHandbookConventions = (_a: ProjectAnswers): string => {
   return `# Conventions
 
 This is the house style: how we format TypeScript and React, how we structure CSS and tests, and the small habits that keep reviews short. The goal is for the repo to read like one careful team wrote it. When something here conflicts with a local shortcut, follow the doc (or open a PR to change the doc if the rule is wrong).
@@ -595,13 +595,13 @@ Keep data-fetching hooks in their own files under \`src/hooks/queries/\` and \`s
 - **Keep query hooks dumb.** Query files should only call \`useQuery\` / \`useMutation\` with standard options. Do not add side effects or callbacks in the query file.
 - **Handle errors and side effects at the call site.**
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // docs/handbook/contentful.md
 // ---------------------------------------------------------------------------
 
-export function getHandbookContentful(a: ProjectAnswers): string {
+export const getHandbookContentful = (a: ProjectAnswers): string => {
   if (!a.includeContentful) {
     return `# Contentful integration
 
@@ -693,13 +693,13 @@ The \`RichText\` component in \`src/contentful/richText.tsx\` is the standard wr
 
 Use \`CONTENTFUL_BATCH_LIMIT\` (defined in \`src/contentful/contentfulPagination.ts\`) when fetching large sets. Batch requests using \`skip\`/\`limit\` with a stable \`order\` so pagination is deterministic.
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // docs/handbook/components.md
 // ---------------------------------------------------------------------------
 
-export function getHandbookComponents(_a: ProjectAnswers): string {
+export const getHandbookComponents = (_a: ProjectAnswers): string => {
   return `# Components
 
 New UI lives under \`src/components/<Name>/\`. This page describes the files we expect in that folder, how the **scaffold** works, and how tests and dynamic imports fit in.
@@ -748,13 +748,13 @@ Use **\`next/dynamic\`** when a component is heavy or client-only (\`ssr: false\
 
 Use **\`next/link\`**'s **\`Link\`** for all navigational links — internal paths, external URLs, \`mailto:\`, \`tel:\`, and the like. For new tabs, set \`target\` and \`rel="noopener noreferrer"\` on \`Link\`. See [conventions.md](conventions.md#react--jsx).
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // docs/handbook/patterns.md
 // ---------------------------------------------------------------------------
 
-export function getHandbookPatterns(a: ProjectAnswers): string {
+export const getHandbookPatterns = (a: ProjectAnswers): string => {
   const cmsBullets = a.includeContentful
     ? `- **Contentful**: Call getters from \`src/contentful/\` with \`{ preview }\` derived from \`draftMode()\` when you need draft content.
 - **Serialization**: Next.js must receive serializable props when passing data from Server to Client Components. Replace \`undefined\` with \`null\` where needed.
@@ -809,13 +809,13 @@ When you add client-side queries, place them under **\`src/hooks/queries/\`**, u
 
 Use **\`next/dynamic\`** for code-splitting when a component is heavy or must be client-only. See [components.md](components.md).
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // docs/handbook/platform.md
 // ---------------------------------------------------------------------------
 
-export function getHandbookPlatform(a: ProjectAnswers): string {
+export const getHandbookPlatform = (a: ProjectAnswers): string => {
   const port = a.devPort;
   const intro = a.includeContentful
     ? "This page covers **CI**, **env vars**, **draft preview**, and **`src/proxy.ts`**."
@@ -910,13 +910,13 @@ Releases follow a \`make release tag=vX.X.X\` workflow:
 
 \`src/proxy.ts\` attaches **\`x-pathname\`** to request headers for downstream use. If you add **Next.js middleware**, import and call \`proxy\` from there so the behavior is applied on each request.
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // docs/handbook/integrations.md
 // ---------------------------------------------------------------------------
 
-export function getHandbookIntegrations(a: ProjectAnswers): string {
+export const getHandbookIntegrations = (a: ProjectAnswers): string => {
   const gaSection = a.includeGA
     ? `## Google Analytics
 
@@ -941,13 +941,13 @@ ${gaSection}## Data layer
 
 Before adding a new script or external loader, **grep the repo for similar env keys** and follow the existing pattern (layout, client component, or Route Handler). If a new origin is required for images or fetches, update **\`images.remotePatterns\`** or security headers in **\`next.config.ts\`** as appropriate.
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // docs/handbook/distribution.md
 // ---------------------------------------------------------------------------
 
-export function getHandbookDistribution(a: ProjectAnswers): string {
+export const getHandbookDistribution = (a: ProjectAnswers): string => {
   const url = a.prodUrl;
   return `# Sitemaps and public output
 
@@ -968,13 +968,13 @@ When you add **routes that must appear in search indexes**, confirm they show up
 - **Robots**: \`src/app/robots.ts\` defines robots behavior for the App Router (production host: \`${url}\`).
 - **Manifest / social**: See \`manifest.ts\`, opengraph-image, and related files under \`src/app/\` for PWA and sharing metadata.
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // docs/handbook/source-layout.md
 // ---------------------------------------------------------------------------
 
-export function getHandbookSourceLayout(a: ProjectAnswers): string {
+export const getHandbookSourceLayout = (a: ProjectAnswers): string => {
   const contentfulRow = a.includeContentful
     ? "| `contentful.helpers.ts` | `createImageUrl`, `isVideo`, `getContentfulEntryWebUrl` |\n"
     : "";
@@ -1012,4 +1012,4 @@ Server- and shared-oriented modules:
 - \`analytics.ts\` — client analytics helpers (see [integrations.md](integrations.md))
 
 `;
-}
+};

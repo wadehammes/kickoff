@@ -2,7 +2,7 @@
 // src/api/helpers.ts
 // ---------------------------------------------------------------------------
 
-export function getApiHelpers(): string {
+export const getApiHelpers = (): string => {
   return `export const FetchMethods = {
   Get: "GET",
   Post: "POST",
@@ -60,13 +60,13 @@ export const fetchResponse = async <T>(
   return res.json() as Promise<T>;
 };
 `;
-}
+};
 
 // ---------------------------------------------------------------------------
 // src/api/urls.ts
 // ---------------------------------------------------------------------------
 
-export function getApiUrls(): string {
+export const getApiUrls = (): string => {
   return `// Define your API URL helpers here.
 // Example:
 //
@@ -79,4 +79,4 @@ export function getApiUrls(): string {
 //     ),
 // };
 `;
-}
+};

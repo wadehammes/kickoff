@@ -42,3 +42,6 @@ jobs:
 
       - name: Lint (Biome)
         run: pnpm lint:ci
+
+      - name: Test (Vitest)
+        run: pnpm test
