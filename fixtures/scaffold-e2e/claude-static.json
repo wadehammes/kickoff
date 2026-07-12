@@ -1,0 +1,17 @@
+{
+  "agentTooling": "claude",
+  "bgColor": "#f5f5f5",
+  "devPort": 3001,
+  "includeContentful": false,
+  "includeGA": false,
+  "includeI18n": false,
+  "includeRecaptcha": false,
+  "includeResend": false,
+  "primaryColor": "#111111",
+  "prodUrl": "https://www.e2e-claude.example",
+  "projectName": "e2e-claude-static",
+  "siteName": "E2E Claude Static",
+  "stagingUrl": "https://staging.e2e-claude.example",
+  "textColor": "#111111",
+  "useCurrentDir": true
+}

@@ -15,6 +15,7 @@ import type { ProjectAnswers } from "./types.js";
 const baseAnswers = (
   overrides: Partial<ProjectAnswers> = {},
 ): ProjectAnswers => ({
+  agentTooling: "cursor",
   bgColor: "#ffffff",
   devPort: 3000,
   includeContentful: true,
@@ -141,6 +142,28 @@ describe("generateProject", () => {
     expect(pkg.devDependencies?.["@types/react-google-recaptcha"]).toBe(
       "latest",
     );
+  });
+
+  it("generates Cursor agent hooks when agentTooling is cursor", async () => {
+    const root = await runInTemp(
+      baseAnswers({ agentTooling: "cursor", projectName: "cursor-site" }),
+    );
+    expect(existsSync(path.join(root, ".cursor/hooks.json"))).toBe(true);
+    expect(existsSync(path.join(root, ".cursor/rules/handbook.mdc"))).toBe(
+      true,
+    );
+    expect(existsSync(path.join(root, ".claude/settings.json"))).toBe(false);
+  });
+
+  it("generates Claude Code agent hooks when agentTooling is claude", async () => {
+    const root = await runInTemp(
+      baseAnswers({ agentTooling: "claude", projectName: "claude-site" }),
+    );
+    expect(existsSync(path.join(root, ".claude/settings.json"))).toBe(true);
+    expect(
+      existsSync(path.join(root, ".claude/hooks/block-added-comments.sh")),
+    ).toBe(true);
+    expect(existsSync(path.join(root, ".cursor/hooks.json"))).toBe(false);
   });
 
   it("dry-run does not write any files", async () => {

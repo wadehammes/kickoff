@@ -206,6 +206,24 @@ const main = async () => {
           name: "includeRecaptcha",
           type: "confirm",
         },
+        {
+          choices: [
+            {
+              description: ".cursor/ hooks and handbook rules",
+              title: "Cursor",
+              value: "cursor",
+            },
+            {
+              description: ".claude/settings.json hooks",
+              title: "Claude Code",
+              value: "claude",
+            },
+          ],
+          initial: 0,
+          message: "Agent tooling (project hooks for handbook enforcement)?",
+          name: "agentTooling",
+          type: "select",
+        },
       ],
       {
         onCancel: () => {

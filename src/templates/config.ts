@@ -61,7 +61,7 @@ export const getPackageJson = (a: ProjectAnswers): string => {
     "stylelint-value-no-unknown-custom-properties": "latest",
     "ts-jest": "latest",
     "ts-node": "latest",
-    typescript: "latest",
+    typescript: "^6.0.3",
     "typescript-plugin-css-modules": "latest",
   };
 
@@ -263,8 +263,7 @@ export const getBiomeConfig = (): string => {
 };
 
 export const getStylelintConfig = (): string => {
-  return `import type { Config } from "stylelint";
-
+  return `/** @type {import("stylelint").Config} */
 export default {
   extends: ["stylelint-config-standard", "stylelint-config-css-modules"],
   plugins: ["stylelint-value-no-unknown-custom-properties"],
@@ -282,7 +281,7 @@ export default {
     "keyframes-name-pattern": null,
     "selector-class-pattern": null,
   },
-} satisfies Config;
+};
 `;
 };
 
@@ -352,7 +351,26 @@ export const getNpmrc = (): string => {
 export const getGitignore = (): string => {
   return `# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 .swc
-.cursor
+
+# Cursor — track shared hooks/rules; ignore local runtime state
+.cursor/*
+!.cursor/hooks.json
+!.cursor/hooks/
+!.cursor/rules/
+.cursor/mcp.json
+.cursor/*.log
+.cursor/settings.local.json
+.cursor/checkpoints/
+.cursor/worktrees/
+.cursor/agent-registry.json
+.cursor/**/*.local.json
+
+# Claude Code — track shared hooks/settings; ignore local runtime state
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
+.claude/settings.local.json
+.claude/*.log
 
 # dependencies
 /node_modules

@@ -271,8 +271,7 @@ describe("tryParseUrl", () => {
 // ---------------------------------------------------------------------------
 
 export const getEnvironmentHelpers = (a: ProjectAnswers): string => {
-  return `export const isBrowser = (): boolean =>
-  typeof window !== "undefined";
+  return `export const isBrowser = (): boolean => typeof window !== "undefined";
 
 export const isNonNullable = <T>(value: T): value is NonNullable<T> =>
   value !== null && value !== undefined;

@@ -45,3 +45,37 @@ jobs:
 
       - name: Test (Vitest)
         run: pnpm test
+
+  scaffold-e2e:
+    name: Scaffold E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4.1.6
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.0.0
+        with:
+          package_json_file: package.json
+
+      - name: Read Node.js version from .tool-versions
+        id: get_node_version
+        shell: bash
+        run: |
+          echo "node_version=$(awk '/nodejs/ {print $2}' .tool-versions)" >> $GITHUB_OUTPUT
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ steps.get_node_version.outputs.node_version }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build kickoff (tsc)
+        run: pnpm build
+
+      - name: Scaffold E2E (generate + tsc/lint/css/jest)
+        run: pnpm test:scaffold-e2e

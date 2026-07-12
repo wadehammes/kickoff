@@ -69,6 +69,19 @@ Or use \`pnpm dev:preview\` which auto-opens draft mode after the server starts.
 `
     : "";
 
+  const agentHooksSection =
+    a.agentTooling === "cursor"
+      ? `## Agent hooks (Cursor)
+
+This project includes **Cursor** hooks under **\`.cursor/\`** (\`hooks.json\`, \`hooks/*.sh\`, \`rules/handbook.mdc\`). They enforce handbook conventions (no added comments, CSS rules, \`pnpm scaffold\` for new components, handbook sync). Requires \`bash\`, \`jq\`, and \`git\` on PATH. See **\`.cursor/hooks/README.md\`**.
+
+`
+      : `## Agent hooks (Claude Code)
+
+This project includes **Claude Code** hooks under **\`.claude/\`** (\`settings.json\`, \`hooks/*.sh\`). Same handbook enforcement as the Cursor variant. Requires \`bash\`, \`jq\`, and \`git\` on PATH. See **\`.claude/hooks/README.md\`**.
+
+`;
+
   return `# ${a.siteName}
 
 ## Prerequisites (greenfield bootstrap)
@@ -130,7 +143,7 @@ Creates:
 - \`src/components/MyComponent/MyComponent.po.tsx\`
 - \`src/tests/factories/MyComponent.factory.ts\`
 
-## Handbook
+${agentHooksSection}## Handbook
 
 Project conventions, architecture, and patterns are documented in \`docs/handbook/\`.
 See \`docs/handbook/README.md\` for the index or \`docs/handbook/llms.md\` for a task→chapter map.
@@ -153,7 +166,7 @@ Runs the Vercel membership check, pushes the tag → triggers the release workfl
 
 ## CI
 
-PRs to \`staging\` run: TypeScript strict check, Biome lint, Stylelint, Jest tests.
+PRs to \`staging\` run: TypeScript strict check (^6.0.x until Next 16.3), Biome lint, Stylelint, Jest tests.
 `;
 };
 
@@ -483,7 +496,7 @@ We standardize on **Biome** for both lint and format of TS/JS/CSS, plus **Stylel
   - \`pnpm lint:fix\` – run \`biome check --write\` (fix what can be fixed)
   - \`pnpm lint:css\` – Stylelint check only
   - \`pnpm lint:css:fix\` – Stylelint with \`--fix\`
-- **Config**: \`biome.json\` for Biome (CSS formatter and linter included); \`stylelint.config.ts\` for Stylelint.
+- **Config**: \`biome.json\` for Biome (CSS formatter and linter included); \`stylelint.config.mjs\` for Stylelint.
 - **Notable rules**: no unused imports/variables, no inferrable types, use \`as const\` where appropriate, \`noDangerouslySetInnerHtml\` is a warning.
 - Run lint/format before committing so CI passes.
 
@@ -837,6 +850,19 @@ export const getHandbookPlatform = (a: ProjectAnswers): string => {
 `
     : "";
 
+  const agentHooksSection =
+    a.agentTooling === "cursor"
+      ? `## Agent hooks (Cursor)
+
+This project includes **Cursor** hooks under **\`.cursor/\`** (\`hooks.json\`, \`hooks/*.sh\`, \`rules/handbook.mdc\`). They enforce handbook conventions (no added comments, CSS rules, \`pnpm scaffold\` for new components, handbook sync). Requires \`bash\`, \`jq\`, and \`git\` on PATH. See **\`.cursor/hooks/README.md\`**.
+
+`
+      : `## Agent hooks (Claude Code)
+
+This project includes **Claude Code** hooks under **\`.claude/\`** (\`settings.json\`, \`hooks/*.sh\`). Same handbook enforcement as the Cursor variant. Requires \`bash\`, \`jq\`, and \`git\` on PATH. See **\`.claude/hooks/README.md\`**.
+
+`;
+
   const draftSection = a.includeContentful
     ? `## Preview and draft mode
 
@@ -872,6 +898,8 @@ PRs that target **\`staging\`** run \`.github/workflows/ci.yml\`:
 
 Run **\`pnpm tsc:ci\`**, **\`pnpm lint:ci\`**, and **\`pnpm test:ci\`** locally before pushing when you touch types, lint, or tests.
 
+**TypeScript** is pinned to **\`^6.0.x\`** in \`package.json\` until Next.js 16.3; bump the pin when you adopt that Next release.
+
 ## Package scripts (local workflow)
 
 | Script | Purpose |
@@ -898,7 +926,7 @@ ${notableContentful}- **ENVIRONMENT** — drives URLs in helpers such as \`envUr
 - **Optional** — HubSpot, Resend, reCAPTCHA — used by Route Handlers and forms when configured.
 
 ${draftSection}
-## Release process
+${agentHooksSection}## Release process
 
 Releases follow a \`make release tag=vX.X.X\` workflow:
 

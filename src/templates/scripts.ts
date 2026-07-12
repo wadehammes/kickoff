@@ -315,7 +315,9 @@ async function main(): Promise<void> {
       headers: { Authorization: \`Bearer \${token}\` },
     });
     if (!res.ok) {
-      console.error(\`Could not load Vercel user: \${res.status} \${res.statusText}\`);
+      console.error(
+        \`Could not load Vercel user: \${res.status} \${res.statusText}\`,
+      );
       process.exit(1);
     }
     userBlob = (await res.json()) as unknown;
@@ -499,13 +501,24 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, "..");
-const nextBin = path.join(repoRoot, "node_modules", "next", "dist", "bin", "next");
+const nextBin = path.join(
+  repoRoot,
+  "node_modules",
+  "next",
+  "dist",
+  "bin",
+  "next",
+);
 
-const child = spawn(process.execPath, [nextBin, "dev", "-p", "${a.devPort}", "--webpack"], {
-  cwd: repoRoot,
-  env: process.env,
-  stdio: "inherit",
-});
+const child = spawn(
+  process.execPath,
+  [nextBin, "dev", "-p", "${a.devPort}", "--webpack"],
+  {
+    cwd: repoRoot,
+    env: process.env,
+    stdio: "inherit",
+  },
+);
 
 child.on("error", (err) => {
   console.error("[dev:preview] Failed to start Next.js:", err);
@@ -537,7 +550,14 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, "..");
-const nextBin = path.join(repoRoot, "node_modules", "next", "dist", "bin", "next");
+const nextBin = path.join(
+  repoRoot,
+  "node_modules",
+  "next",
+  "dist",
+  "bin",
+  "next",
+);
 
 const PORT = ${a.devPort};
 const DEV_ARGS = ["dev", "-p", String(PORT), "--webpack"] as const;
@@ -587,11 +607,15 @@ const waitUntilReady = async (origin: string): Promise<void> => {
 };
 
 const main = async (): Promise<void> => {
-  const child = spawn(process.execPath, [nextBin, ...DEV_ARGS], {
-    cwd: repoRoot,
-    env: process.env,
-    stdio: "inherit",
-  });
+  const child = spawn(
+    process.execPath,
+    [nextBin, ...DEV_ARGS],
+    {
+      cwd: repoRoot,
+      env: process.env,
+      stdio: "inherit",
+    },
+  );
 
   child.on("error", (err) => {
     console.error("[dev:preview] Failed to start Next.js:", err);

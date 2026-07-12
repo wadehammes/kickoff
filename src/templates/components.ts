@@ -32,7 +32,12 @@ export const Navigation = () => {
       className={classNames(styles.navigation, { [styles.scrolled]: scrolled })}
     >
       <div className="container">
-        <Link href="/" className={styles.logo} title="${a.siteName}" aria-label="${a.siteName}">
+        <Link
+          href="/"
+          className={styles.logo}
+          title="${a.siteName}"
+          aria-label="${a.siteName}"
+        >
           <span>${a.siteName}</span>
         </Link>
         <ul className={styles.navItemList}>

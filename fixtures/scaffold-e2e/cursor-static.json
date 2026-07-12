@@ -1,0 +1,17 @@
+{
+  "agentTooling": "cursor",
+  "bgColor": "#ffffff",
+  "devPort": 3000,
+  "includeContentful": false,
+  "includeGA": false,
+  "includeI18n": false,
+  "includeRecaptcha": false,
+  "includeResend": false,
+  "primaryColor": "#000000",
+  "prodUrl": "https://www.e2e-cursor.example",
+  "projectName": "e2e-cursor-static",
+  "siteName": "E2E Cursor Static",
+  "stagingUrl": "https://staging.e2e-cursor.example",
+  "textColor": "#000000",
+  "useCurrentDir": true
+}

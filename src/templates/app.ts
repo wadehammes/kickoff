@@ -62,13 +62,9 @@ export const generateMetadata = (): Metadata => {
     publisher: "${a.siteName}",
     referrer: "origin-when-cross-origin",
   };
-}
+};
 
-const RootLayout = async ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
+const RootLayout = async ({ children }: { children: React.ReactNode }) => {
 ${draftBanner}  return (
     <html lang="en">
       <head>
@@ -104,7 +100,6 @@ export default RootLayout;
 export const getAppPage = (): string => {
   return `import type { Metadata } from "next";
 import { draftMode } from "next/headers";
-import { notFound } from "next/navigation";
 import {
   createBreadcrumbSchema,
   createOrganizationSchema,
@@ -127,7 +122,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
         ? "index, follow"
         : "noindex, nofollow",
   };
-}
+};
 
 const Home = async () => {
   const draft = await draftMode();
@@ -158,7 +153,9 @@ const Home = async () => {
       <div className="page-container">
         <div className="page-header">
           <h1>Welcome</h1>
-          <p>Your new site is ready. Start editing <code>src/app/page.tsx</code>.</p>
+          <p>
+            Your new site is ready. Start editing <code>src/app/page.tsx</code>.
+          </p>
         </div>
       </div>
     </>
@@ -232,7 +229,7 @@ const ErrorBoundary = ({
 }: {
   error: Error & { digest?: string };
   reset: () => void;
-}) {
+}) => {
   return (
     <div className={styles.errorContainer}>
       <h2>Something went wrong!</h2>

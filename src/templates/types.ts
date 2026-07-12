@@ -4,7 +4,7 @@
 
 export const getTypesReactDts = (): string => {
   return `export type PropsWithChildrenOnly = React.PropsWithChildren<unknown>;
-  `;
+`;
 };
 
 // ---------------------------------------------------------------------------

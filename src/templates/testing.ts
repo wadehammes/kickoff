@@ -6,8 +6,8 @@ import type { ProjectAnswers } from "../types.js";
 
 export const getRichTextDocumentFactory = (a: ProjectAnswers): string => {
   if (!a.includeContentful) {
-    return `import type { KeysMatch } from "src/types/KeysMatch";
-import { BaseFactory } from "src/tests/factories/BaseFactory";
+    return `import { BaseFactory } from "src/tests/factories/BaseFactory";
+import type { KeysMatch } from "src/types/KeysMatch";
 
 /** Minimal rich-text document stub for tests when Contentful is not scaffolded. */
 export type RichTextDocumentStub = {
@@ -299,14 +299,17 @@ export const mockUsePathname = jest.fn(() => "/");
 export const mockUseParams = jest.fn(() => ({}));
 export const mockUseSearchParams = jest.fn(() => new URLSearchParams());
 
-export function mockUseRouter(overrides?: Partial<{
-  push: jest.Mock;
-  replace: jest.Mock;
-  prefetch: jest.Mock;
-  back: jest.Mock;
-  forward: jest.Mock;
-}>) {
-  const { useRouter } = jest.requireMock<typeof import("next/navigation")>("next/navigation");
+export function mockUseRouter(
+  overrides?: Partial<{
+    push: jest.Mock;
+    replace: jest.Mock;
+    prefetch: jest.Mock;
+    back: jest.Mock;
+    forward: jest.Mock;
+  }>,
+) {
+  const { useRouter } =
+    jest.requireMock<typeof import("next/navigation")>("next/navigation");
   (useRouter as jest.Mock).mockReturnValue({
     push: mockPush,
     replace: mockReplace,
