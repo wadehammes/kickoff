@@ -3,6 +3,7 @@ import type { ProjectAnswers } from "./types.js";
 import { validateProjectAnswers } from "./validateAnswers.js";
 
 const valid: ProjectAnswers = {
+  agentTooling: "cursor",
   bgColor: "#ffffff",
   devPort: 3000,
   includeContentful: true,
@@ -45,6 +46,12 @@ describe("validateProjectAnswers", () => {
   it("rejects bad projectName", () => {
     expect(
       typeof validateProjectAnswers({ ...valid, projectName: "Bad_Name" }),
+    ).toBe("string");
+  });
+
+  it("rejects bad agentTooling", () => {
+    expect(
+      typeof validateProjectAnswers({ ...valid, agentTooling: "codex" }),
     ).toBe("string");
   });
 

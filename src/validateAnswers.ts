@@ -1,6 +1,7 @@
 import type { ProjectAnswers } from "./types.js";
 
 const REQUIRED_KEYS: (keyof ProjectAnswers)[] = [
+  "agentTooling",
   "bgColor",
   "devPort",
   "includeContentful",
@@ -51,6 +52,10 @@ export const validateProjectAnswers = (
 
   if (typeof o.useCurrentDir !== "boolean") {
     return "useCurrentDir must be a boolean";
+  }
+
+  if (o.agentTooling !== "cursor" && o.agentTooling !== "claude") {
+    return 'agentTooling must be "cursor" or "claude"';
   }
 
   if (typeof o.siteName !== "string" || o.siteName.trim().length === 0) {

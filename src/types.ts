@@ -1,6 +1,10 @@
+export type AgentTooling = "cursor" | "claude";
+
 export interface ProjectAnswers {
   projectName: string;
   useCurrentDir: boolean;
+  /** Cursor (.cursor/) or Claude Code (.claude/) agent hooks for handbook enforcement. */
+  agentTooling: AgentTooling;
   siteName: string;
   prodUrl: string;
   stagingUrl: string;

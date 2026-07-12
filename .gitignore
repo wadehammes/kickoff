@@ -1,2 +1,15 @@
 node_modules/
 dist/
+
+# Cursor — track shared hooks/rules; ignore local runtime state
+.cursor/*
+!.cursor/hooks.json
+!.cursor/hooks/
+!.cursor/rules/
+.cursor/mcp.json
+.cursor/*.log
+.cursor/settings.local.json
+.cursor/checkpoints/
+.cursor/worktrees/
+.cursor/agent-registry.json
+.cursor/**/*.local.json

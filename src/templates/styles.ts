@@ -1,5 +1,15 @@
 import type { ProjectAnswers } from "../types.js";
 
+const normalizeHexForCss = (hex: string): string => {
+  const match = /^#([0-9a-fA-F])(\1)([0-9a-fA-F])(\3)([0-9a-fA-F])(\5)$/.exec(
+    hex,
+  );
+  if (match) {
+    return `#${match[1]}${match[3]}${match[5]}`;
+  }
+  return hex;
+};
+
 export const getGlobalsCSS = (_a: ProjectAnswers): string => {
   return `@import url("./variables.css");
 
@@ -219,6 +229,35 @@ b {
   width: 100%;
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: currentcolor;
+  font-weight: 700;
+  position: relative;
+  text-wrap: balance;
+  z-index: 1;
+}
+
+h1 {
+  font-size: clamp(2.25rem, 5vw, 5rem);
+}
+
+h2 {
+  font-size: clamp(2rem, 5vw, 4rem);
+}
+
+h3 {
+  font-size: clamp(0.8rem, 3vw, 1rem);
+}
+
+p {
+  color: currentcolor;
+}
+
 .page-header {
   margin: auto;
   position: relative;
@@ -270,35 +309,6 @@ b {
   @media screen and (width >= 768px) {
     margin-bottom: 4rem;
   }
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  color: currentcolor;
-  font-weight: 700;
-  position: relative;
-  text-wrap: balance;
-  z-index: 1;
-}
-
-h1 {
-  font-size: clamp(2.25rem, 5vw, 5rem);
-}
-
-h2 {
-  font-size: clamp(2rem, 5vw, 4rem);
-}
-
-h3 {
-  font-size: clamp(0.8rem, 3vw, 1rem);
-}
-
-p {
-  color: currentcolor;
 }
 
 i {
@@ -367,9 +377,9 @@ p:empty {
 
 export const getVariablesCSS = (a: ProjectAnswers): string => {
   return `:root {
-  --color-primary: ${a.primaryColor};
-  --color-bg: ${a.bgColor};
-  --color-text: ${a.textColor};
+  --color-primary: ${normalizeHexForCss(a.primaryColor)};
+  --color-bg: ${normalizeHexForCss(a.bgColor)};
+  --color-text: ${normalizeHexForCss(a.textColor)};
   --font-family-text: sans-serif;
   --font-family-heading: serif;
   --default-padding: 1.25rem;

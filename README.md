@@ -31,6 +31,7 @@ Optional add-ons selected during prompts:
 - **Google Analytics** — @next/third-parties GA
 - **Resend** — transactional email
 - **reCAPTCHA** — react-google-recaptcha
+- **Agent hooks** — Cursor (`.cursor/`) or Claude Code (`.claude/`) handbook-enforcement hooks
 
 ## Requirements
 
@@ -46,6 +47,7 @@ cd /path/to/kickoff
 pnpm install
 pnpm build
 pnpm test   # generator integration tests (Vitest)
+pnpm test:scaffold-e2e   # E2E: scaffold fixtures + run generated project CI checks
 npm link
 ```
 
@@ -107,7 +109,10 @@ Running `kickoff` starts an interactive prompt:
 ? Include Google Analytics? Yes
 ? Include Resend email? No
 ? Include reCAPTCHA? No
+? Agent tooling (project hooks for handbook enforcement)? Cursor
 ```
+
+Choose **Cursor** for `.cursor/hooks.json`, hook scripts, and `rules/handbook.mdc`. Choose **Claude Code** for `.claude/settings.json` and hook scripts. Both sets enforce the same handbook rules (no added comments, CSS conventions, `pnpm scaffold` for new components, handbook sync).
 
 After answering, the scaffold is written to `./<project-name>/` (or the current directory if selected).
 
@@ -146,9 +151,12 @@ Example `answers.json`:
   "includeI18n": false,
   "includeGA": false,
   "includeResend": false,
-  "includeRecaptcha": false
+  "includeRecaptcha": false,
+  "agentTooling": "cursor"
 }
 ```
+
+`agentTooling` is `"cursor"` (`.cursor/` hooks + rules) or `"claude"` (`.claude/settings.json` hooks).
 
 `--dry-run` still applies the same non-empty directory rules as a real run; use `--force` if you need to preview writes into an existing directory.
 
@@ -282,9 +290,30 @@ pnpm dev
 ├── pnpm-workspace.yaml
 ├── postcss.config.json
 ├── README.md
-├── stylelint.config.ts
+├── stylelint.config.mjs
 └── tsconfig.json
 ```
+
+Generated projects also include **either** `.cursor/` (hooks + rules) **or** `.claude/` (settings + hooks), depending on `agentTooling`. TypeScript is pinned to **^6.0.x** until Next.js 16.3.
+
+Omit Contentful-specific paths (`src/contentful/`, draft API routes) when `includeContentful` is false. Omit `src/i18n/` and `src/app/[locale]/` when i18n is off.
+
+## Developing kickoff
+
+| Script | Description |
+|---|---|
+| `pnpm build` | Compile kickoff to `dist/` |
+| `pnpm dev` | TypeScript watch |
+| `pnpm lint` / `pnpm lint:fix` | Biome on this repo |
+| `pnpm test` | Vitest (generator + validation tests) |
+| `pnpm test:scaffold-e2e` | E2E: generate `fixtures/scaffold-e2e/*.json` projects and run their `tsc:ci`, `lint:ci`, `lint:css`, `test:ci` |
+
+**CI** (`.github/workflows/ci.yml` on PRs to `main`):
+
+- **Build/Lint** — `pnpm build`, `pnpm lint:ci`, `pnpm test`
+- **Scaffold E2E** — `pnpm build`, `pnpm test:scaffold-e2e`
+
+Fixture answers live in [`fixtures/scaffold-e2e/`](fixtures/scaffold-e2e/) (`cursor-static.json`, `claude-static.json`).
 
 ## Component scaffolding
 
@@ -319,9 +348,16 @@ See `.env.local.example` in the generated project for the full list. For deploym
 
 ## CI / CD
 
+### Generated projects
+
 - **CI**: GitHub Actions runs TSC, Biome, Stylelint, and Jest on every PR targeting `staging`.
 - **Release**: Push a `v*` tag to trigger a GitHub Release and reset the `main` branch.
 - **Deployment**: Configure Vercel to deploy from `staging` (preview) and `main` (production); keep env in sync with **`vercel env pull`** when you change Vercel settings.
+
+### This repo (kickoff)
+
+- **CI**: PRs to `main` run unit tests plus scaffold E2E (see **Developing kickoff**).
+- **Release**: `make release tag=v1.0.0` pushes a tag and creates a GitHub release.
 
 ## Releasing kickoff itself
 

@@ -131,7 +131,7 @@ configuration:
   - next-env.d.ts
   - postcss.config.json
   - biome.json
-  - stylelint.config.ts
+  - stylelint.config.mjs
   - jest.config.ts
   - tsconfig.json
 

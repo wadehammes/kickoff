@@ -5,6 +5,8 @@ import fsExtra from "fs-extra";
 const { ensureDir, writeFile } = fsExtra;
 
 import {
+  AGENT_HOOK_SCRIPT_NAMES,
+  getAgentHookScriptContent,
   getApiHelpers,
   getApiUrls,
   getAppError,
@@ -25,6 +27,9 @@ import {
   getBrowserslistrc,
   getCIWorkflow,
   getClaude,
+  getClaudeHooksLib,
+  getClaudeHooksReadme,
+  getClaudeSettingsJson,
   getCommonInterfaces,
   getConstants,
   getContentfulCacheConfig,
@@ -36,6 +41,10 @@ import {
   getContentfulUtilHelpers,
   getCopyGlobal,
   getCssPropsDeclaration,
+  getCursorHooksJson,
+  getCursorHooksLib,
+  getCursorHooksReadme,
+  getCursorRulesHandbook,
   getDependabotConfig,
   getDevWithPreview,
   getDisableDraftRoute,
@@ -138,6 +147,7 @@ export const generateProject = async (
   const write = async (
     relativePath: string,
     content: string,
+    options?: { executable?: boolean },
   ): Promise<void> => {
     if (dryRun) {
       console.log(relativePath);
@@ -145,7 +155,11 @@ export const generateProject = async (
     }
     const full = path.join(root, relativePath);
     await ensureDir(path.dirname(full));
-    await writeFile(full, content, "utf-8");
+    const normalized = content.endsWith("\n") ? content : `${content}\n`;
+    await writeFile(full, normalized, {
+      encoding: "utf-8",
+      mode: options?.executable ? 0o755 : undefined,
+    });
     if (verbose) {
       console.log(`wrote ${relativePath}`);
     }
@@ -159,7 +173,7 @@ export const generateProject = async (
   await write("package.json", getPackageJson(a));
   await write("tsconfig.json", getTsConfig());
   await write("biome.json", getBiomeConfig());
-  await write("stylelint.config.ts", getStylelintConfig());
+  await write("stylelint.config.mjs", getStylelintConfig());
   await write("postcss.config.json", getPostcssConfig());
   // Detect running Node and pnpm versions to write into .tool-versions
   const nodeVersion = process.version.replace(/^v/, "");
@@ -196,6 +210,36 @@ export const generateProject = async (
   await write("docs/handbook/integrations.md", getHandbookIntegrations(a));
   await write("docs/handbook/distribution.md", getHandbookDistribution(a));
   await write("docs/handbook/source-layout.md", getHandbookSourceLayout(a));
+
+  // ── Agent hooks (Cursor or Claude Code) ────────────────────────────────────
+  if (a.agentTooling === "cursor") {
+    await write(".cursor/hooks.json", getCursorHooksJson());
+    await write(".cursor/hooks/_lib.sh", getCursorHooksLib(), {
+      executable: true,
+    });
+    for (const scriptName of AGENT_HOOK_SCRIPT_NAMES) {
+      await write(
+        `.cursor/hooks/${scriptName}`,
+        getAgentHookScriptContent(scriptName),
+        { executable: true },
+      );
+    }
+    await write(".cursor/hooks/README.md", getCursorHooksReadme());
+    await write(".cursor/rules/handbook.mdc", getCursorRulesHandbook(a));
+  } else {
+    await write(".claude/settings.json", getClaudeSettingsJson());
+    await write(".claude/hooks/_lib.sh", getClaudeHooksLib(), {
+      executable: true,
+    });
+    for (const scriptName of AGENT_HOOK_SCRIPT_NAMES) {
+      await write(
+        `.claude/hooks/${scriptName}`,
+        getAgentHookScriptContent(scriptName),
+        { executable: true },
+      );
+    }
+    await write(".claude/hooks/README.md", getClaudeHooksReadme());
+  }
 
   // ── public/ ────────────────────────────────────────────────────────────────
   await write("public/sitemap-index.xml", getSitemapIndex(a));
@@ -401,7 +445,9 @@ export async function generateStaticParams(): Promise<PageParams[]> {
   return [];
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { slug } = await params;
   void slug;
 
@@ -507,7 +553,9 @@ export async function generateStaticParams(): Promise<PageParams[]> {
     .map((page) => ({ slug: page.pageSlug }));
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const draft = await draftMode();
 

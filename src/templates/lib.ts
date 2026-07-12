@@ -21,7 +21,9 @@ export interface BreadcrumbItem {
   url: string;
 }
 
-export function createOrganizationSchema(name = "${a.siteName}"): Organization {
+export function createOrganizationSchema(
+  name = "${a.siteName}",
+): Organization {
   return {
     "@type": "Organization",
     name,

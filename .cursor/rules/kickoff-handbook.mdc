@@ -1,0 +1,35 @@
+---
+description: Mandatory handbook-first workflow before substantive kickoff work
+alwaysApply: true
+---
+
+# Handbook first (non-negotiable)
+
+**`AGENTS.md`** and **`src/templates/docs.ts`** are the project source of truth. Templates and handbook must stay in sync.
+
+## Before editing code
+
+On **substantive** work (new scaffold files, template refactors, handbook chapters, generator layout, CSS conventions, test factories in templates):
+
+1. **Read** `AGENTS.md` (conventions, source layout, templates ↔ handbook rule).
+2. **Route** the task to the matching `getHandbook*` getter in `src/templates/docs.ts` before the first code change.
+3. **Reuse documented patterns** — extend existing template getters; do not reimplement parallel logic.
+
+**Substantive = read handbook first.** Narrow mechanical fixes (obvious typos, single-line fixes with unchanged behavior) may skip a full pass.
+
+## During implementation
+
+- **Kickoff tool code** (`src/index.ts`, `src/generator.ts`, tests) — arrow functions (`const fn = () => {}`); no comments unless unavoidable.
+- **Template literals** — emit **generated project** code per handbook rules (components, CSS Modules, factories, etc.). Do not rewrite embedded `function` declarations just to match kickoff's outer style.
+- **CSS in templates** — mobile-first `(width >= …)`; nest under block classes; no `margin-top`; no top-level `@media`.
+- **New scaffold files** — add getter in the right `src/templates/*.ts` module **and** update the matching handbook chapter in `docs.ts`.
+
+## Before finishing
+
+- If behavior, files, or conventions changed → **update `src/templates/docs.ts`** (and `AGENTS.md` if agent instructions changed) in the same change.
+- If kickoff-facing behavior changed (prompts, scripts, CI, scaffold layout) → **update root `README.md`** in the same change.
+- Run `pnpm build`, `pnpm test`, `pnpm lint`.
+
+## If unsure
+
+Search `docs.ts` for the feature area; read that `getHandbook*` chapter. Do not guess conventions from chat memory alone.
