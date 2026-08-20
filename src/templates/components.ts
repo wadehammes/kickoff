@@ -232,3 +232,118 @@ export const getNotFoundPageCSS = (): string => {
 }
 `;
 };
+
+// ---------------------------------------------------------------------------
+// src/components/Button/Button.component.tsx
+// ---------------------------------------------------------------------------
+
+export const getButtonComponent = (): string => {
+  return `"use client";
+
+import { Button as UIButton } from "@base-ui/react/button";
+import classNames from "classnames";
+import type { ComponentProps } from "react";
+import styles from "./Button.module.css";
+
+interface ButtonProps
+  extends Omit<ComponentProps<typeof UIButton>, "children"> {
+  children?: React.ReactNode;
+  isDisabled?: boolean;
+  label: string;
+  type?: "button" | "submit" | "reset";
+  variant?: "primary" | "secondary" | "outline";
+}
+
+export const Button = (props: ButtonProps) => {
+  const {
+    children: _children,
+    disabled,
+    isDisabled,
+    label,
+    type = "button",
+    variant = "primary",
+    ...rest
+  } = props;
+
+  return (
+    <UIButton
+      className={classNames(styles.button, {
+        [styles.outline]: variant === "outline",
+        [styles.secondary]: variant === "secondary",
+      })}
+      disabled={disabled ?? isDisabled}
+      type={type}
+      {...rest}
+    >
+      {label}
+    </UIButton>
+  );
+};
+
+export default Button;
+`;
+};
+
+// ---------------------------------------------------------------------------
+// src/components/Button/Button.module.css
+// ---------------------------------------------------------------------------
+
+export const getButtonCSS = (): string => {
+  return `.button {
+  align-items: center;
+  background-color: var(--color-primary);
+  border: 1px solid transparent;
+  border-radius: 1000px;
+  color: var(--color-bg);
+  display: flex;
+  flex-flow: row nowrap;
+  font-size: 0.875rem;
+  font-weight: 500;
+  gap: 0.5rem;
+  justify-content: center;
+  letter-spacing: 0.05em;
+  outline: 1px solid transparent;
+  outline-offset: 1px;
+  padding: 1rem 1.75rem;
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: all 0.2s ease-in-out;
+
+  &[disabled] {
+    cursor: not-allowed;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  &:hover,
+  &:focus {
+    cursor: pointer;
+    outline: 1px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  &.outline {
+    background-color: transparent;
+    border-color: var(--color-text);
+    color: var(--color-text);
+
+    &:hover {
+      background-color: var(--color-bg);
+      color: var(--color-text);
+    }
+  }
+
+  &.secondary {
+    background-color: var(--color-bg);
+    border-color: var(--color-primary);
+    color: var(--color-text);
+
+    &:hover {
+      background-color: var(--color-primary);
+      color: var(--color-bg);
+    }
+  }
+}
+`;
+};

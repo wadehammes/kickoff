@@ -265,13 +265,13 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
 export function evaluateMembership(
   membership: Record<string, unknown>,
 ): VercelMembershipEvaluation {
-  const raw = membership.role;
+  const membershipRole = membership.role;
   const role =
-    raw == null || raw === ""
+    membershipRole == null || membershipRole === ""
       ? ""
-      : typeof raw === "string"
-        ? raw
-        : String(raw);
+      : typeof membershipRole === "string"
+        ? membershipRole
+        : String(membershipRole);
 
   if (role === "OWNER" || role === "MEMBER") {
     return { allowed: true, role };
@@ -510,15 +510,11 @@ const nextBin = path.join(
   "next",
 );
 
-const child = spawn(
-  process.execPath,
-  [nextBin, "dev", "-p", "${a.devPort}", "--webpack"],
-  {
-    cwd: repoRoot,
-    env: process.env,
-    stdio: "inherit",
-  },
-);
+const child = spawn(process.execPath, [nextBin, "dev", "-p", "${a.devPort}"], {
+  cwd: repoRoot,
+  env: process.env,
+  stdio: "inherit",
+});
 
 child.on("error", (err) => {
   console.error("[dev:preview] Failed to start Next.js:", err);
@@ -560,7 +556,7 @@ const nextBin = path.join(
 );
 
 const PORT = ${a.devPort};
-const DEV_ARGS = ["dev", "-p", String(PORT), "--webpack"] as const;
+const DEV_ARGS = ["dev", "-p", String(PORT)] as const;
 
 const PING_INTERVAL_MS = 300;
 const PING_TIMEOUT_MS = 5_000;
@@ -607,15 +603,11 @@ const waitUntilReady = async (origin: string): Promise<void> => {
 };
 
 const main = async (): Promise<void> => {
-  const child = spawn(
-    process.execPath,
-    [nextBin, ...DEV_ARGS],
-    {
-      cwd: repoRoot,
-      env: process.env,
-      stdio: "inherit",
-    },
-  );
+  const child = spawn(process.execPath, [nextBin, ...DEV_ARGS], {
+    cwd: repoRoot,
+    env: process.env,
+    stdio: "inherit",
+  });
 
   child.on("error", (err) => {
     console.error("[dev:preview] Failed to start Next.js:", err);

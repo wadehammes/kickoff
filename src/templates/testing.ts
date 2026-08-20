@@ -176,7 +176,7 @@ export const getSetEnvVars = (): string => {
 // ---------------------------------------------------------------------------
 
 export const getSetupTests = (): string => {
-  return `import "@testing-library/jest-dom";
+  return `import "@testing-library/jest-dom/jest-globals";
 import { setupIntersectionObserverMock } from "src/tests/mocks/mockIntersectionObserver";
 import { setupMockMatchMedia } from "src/tests/mocks/mockMatchMedia";
 
@@ -194,6 +194,8 @@ jest.mock("next/navigation", () => ({
   redirect: jest.fn(),
   notFound: jest.fn(),
 }));
+
+global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 
 global.beforeAll(() => {
   setupIntersectionObserverMock();
@@ -319,5 +321,21 @@ export function mockUseRouter(
     ...overrides,
   });
 }
+`;
+};
+
+// ---------------------------------------------------------------------------
+// src/tests/mocks/svgMock.tsx
+// ---------------------------------------------------------------------------
+
+export const getSvgMock = (): string => {
+  return `import { forwardRef, type SVGProps } from "react";
+
+const SvgMock = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
+  (props, ref) => <svg ref={ref} {...props} />,
+);
+SvgMock.displayName = "SvgMock";
+
+export default SvgMock;
 `;
 };

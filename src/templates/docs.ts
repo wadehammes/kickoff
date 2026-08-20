@@ -124,8 +124,11 @@ pnpm dev
 | \`pnpm tsc:ci\` | TypeScript strict check |
 | \`pnpm lint\` | Run Biome linter |
 | \`pnpm lint:fix\` | Auto-fix Biome lint issues |
+| \`pnpm lint:check\` | Biome on changed files since \`origin/staging\` |
 | \`pnpm lint:css\` | Run Stylelint |
 | \`pnpm lint:css:fix\` | Auto-fix Stylelint issues |
+| \`pnpm lint:all\` | \`lint:check\`, Stylelint fix, \`tsc:ci\`, and \`knip:ci\` |
+| \`pnpm knip\` / \`pnpm knip:ci\` | Dead-code / unused export analysis ([knip.json](../../knip.json)) |
 | \`pnpm test:ci\` | Run Jest test suite |
 ${scriptsTypesRow}| \`pnpm scaffold MyComponent\` | Scaffold a new component with all standard files |
 
@@ -205,7 +208,7 @@ export const getHandbookReadme = (a: ProjectAnswers): string => {
 | [contentful.md](contentful.md) | Generated types, getters, parsers, sections vs modules, Rich Text, client. |
 | [components.md](components.md) | Component folder layout, \`pnpm scaffold\`, test IDs, exports, dynamic imports, links. |
 | [patterns.md](patterns.md) | Server components, serialization, React Query, \`src/api\`, forms, layout, metadata, JSON-LD. |
-| [platform.md](platform.md) | GitHub CI, common \`pnpm\` scripts, \`next.config\` (env, redirects), draft mode APIs, \`src/proxy.ts\`. |
+| [platform.md](platform.md) | GitHub CI, releases, knip, \`pnpm\` scripts, \`next.config\` (env, redirects), draft mode APIs, \`src/proxy.ts\`. |
 | [integrations.md](integrations.md) | Google Analytics, data layer, related env. |
 | [distribution.md](distribution.md) | Sitemap generation and \`public/\` output. |
 | [source-layout.md](source-layout.md) | \`src/interfaces\`, \`src/utils\` map, \`src/lib\`. |
@@ -214,7 +217,7 @@ export const getHandbookReadme = (a: ProjectAnswers): string => {
 | [conventions.md](conventions.md) | TypeScript, Biome, CSS Modules, testing, test IDs, accessibility, comments, editor, React Query hook rules. |
 | [components.md](components.md) | Component folder layout, \`pnpm scaffold\`, test IDs, exports, dynamic imports, links. |
 | [patterns.md](patterns.md) | Server components, serialization, React Query, \`src/api\`, forms, layout, metadata, JSON-LD. |
-| [platform.md](platform.md) | GitHub CI, common \`pnpm\` scripts, \`next.config\` (env, redirects), \`src/proxy.ts\`. |
+| [platform.md](platform.md) | GitHub CI, releases, knip, \`pnpm\` scripts, \`next.config\` (env, redirects), \`src/proxy.ts\`. |
 | [integrations.md](integrations.md) | Google Analytics, data layer, related env. |
 | [distribution.md](distribution.md) | Sitemap generation and \`public/\` output. |
 | [source-layout.md](source-layout.md) | \`src/interfaces\`, \`src/utils\` map, \`src/lib\`. |
@@ -263,7 +266,7 @@ export const getHandbookLlms = (a: ProjectAnswers): string => {
 | Contentful types/codegen, getters, parsers, sections vs content blocks, ContentRenderer, Rich Text | [contentful.md](contentful.md) |
 | Component folder layout, \`pnpm scaffold\`, exports, dynamic imports, internal/external links | [components.md](components.md) |
 | Server components, caching, React Query, \`src/api\`, forms, metadata / JSON-LD | [patterns.md](patterns.md) |
-| CI, \`pnpm\` scripts, \`next.config\` (env, redirects), draft APIs, \`src/proxy.ts\` | [platform.md](platform.md) |
+| CI, releases, knip, \`pnpm\` scripts, \`next.config\` (env, redirects), draft APIs, \`src/proxy.ts\` | [platform.md](platform.md) |
 | Google Analytics, \`dataLayer\`, client analytics | [integrations.md](integrations.md) |
 | Sitemaps, \`public/\` XML output | [distribution.md](distribution.md) |
 | \`src/interfaces\`, \`src/utils\` map, \`src/lib\` | [source-layout.md](source-layout.md) |`
@@ -271,7 +274,7 @@ export const getHandbookLlms = (a: ProjectAnswers): string => {
 | TypeScript / React style, Biome, CSS Modules, tests, test IDs, a11y, \`next/image\`, React Query hooks | [conventions.md](conventions.md) |
 | Component folder layout, \`pnpm scaffold\`, exports, dynamic imports, internal/external links | [components.md](components.md) |
 | Server components, caching, React Query, \`src/api\`, forms, metadata / JSON-LD | [patterns.md](patterns.md) |
-| CI, \`pnpm\` scripts, \`next.config\` (env, redirects), \`src/proxy.ts\` | [platform.md](platform.md) |
+| CI, releases, knip, \`pnpm\` scripts, \`next.config\` (env, redirects), \`src/proxy.ts\` | [platform.md](platform.md) |
 | Google Analytics, \`dataLayer\`, client analytics | [integrations.md](integrations.md) |
 | Sitemaps, \`public/\` XML output | [distribution.md](distribution.md) |
 | \`src/interfaces\`, \`src/utils\` map, \`src/lib\` | [source-layout.md](source-layout.md) |`;
@@ -325,7 +328,7 @@ If you are new here, this page is your map. It explains how the site is structur
 ## Tech stack
 
 - **Framework**: Next.js 16 with the **App Router**. Routes live under \`src/app/\`.
-- **UI**: React 19, TypeScript.
+- **UI**: React 19, TypeScript. Headless primitives: **[Base UI](https://base-ui.com/react/overview/quick-start)** (\`@base-ui/react\`) in \`src/ui/\`; styled controls in \`src/components/\` (e.g. \`Button\`, \`DeployButton\`).
 - **Data**: Server Components for request/build-time data; **React Query** for client mutations. This scaffold was generated **without** Contentful.
 - **Styling**: **CSS Modules** with tokens in \`src/styles/globals.css\`.
 - **Tooling**: pnpm, Biome, Stylelint, Jest.
@@ -348,7 +351,7 @@ If you are new here, this page is your map. It explains how the site is structur
 ## Tech stack
 
 - **Framework**: Next.js 16 with the **App Router**. Routes live under \`src/app/\` (\`page.tsx\`, \`layout.tsx\`, Route Handlers under \`src/app/api/\`).
-- **UI**: React 19, TypeScript.
+- **UI**: React 19, TypeScript. Headless primitives: **[Base UI](https://base-ui.com/react/overview/quick-start)** (\`@base-ui/react\`) in \`src/ui/\`; styled controls in \`src/components/\` (e.g. \`Button\`, \`DeployButton\`).
 - **CMS**: Contentful. Content types are generated into \`src/contentful/types/\`; getters and parsers live in \`src/contentful/\`.
 - **Data fetching**: Server Components and Contentful getters at request/build time; **React Query** (TanStack) for client-side mutations and any future client queries. Mutation hooks live in \`src/hooks/mutations/\` and call the API surface in \`src/api/urls.ts\`.
 - **Styling**: **CSS Modules** (\`.module.css\`) with modern CSS (nesting, custom properties). Global tokens and reset live in \`src/styles/globals.css\`.
@@ -363,7 +366,7 @@ Next.js App Router entrypoints.
 - **\`layout.tsx\`** — Root layout: fonts, global CSS, \`Providers\`, navigation, footer, draft-mode UI, analytics when configured.
 - **\`page.tsx\`** — Home route; nested folders define segments (e.g. \`[slug]/page.tsx\` for CMS pages).
 - **\`api/**/route.ts\`** — Route Handlers (email, draft mode, Vercel hooks, etc.).
-- **\`refresh-content/page.tsx\`** — Token-gated page to trigger a content refresh/redeploy.
+- **\`refresh-content/page.tsx\`** — Token-gated page with \`DeployPage\` to trigger staging/production redeploys via Vercel deploy hooks.
 
 ### \`src/components/\`
 
@@ -384,11 +387,16 @@ Custom hooks; mutations under \`src/hooks/mutations/\` use React Query and \`src
 ### \`src/api/\`
 
 - **\`urls.ts\`** — \`api\` object for client-side calls to same-origin Route Handlers.
-- **\`helpers.ts\`** — \`fetchOptions\`, \`FetchMethods\`, \`fetchResponse\`.
+- **\`helpers.ts\`** — \`fetchOptions\`, \`FetchMethods\`, \`fetchJsonResponse\`, \`ApiError\` (and internal \`fetchResponse\` helper used by \`fetchJsonResponse\`).
+- **\`deploy.types.ts\`** — Types for refresh-content deploy API calls.
 
 ### \`src/lib/\`
 
-Server-oriented helpers: \`generateSitemap.ts\`, \`schema.ts\` (JSON-LD). See [distribution.md](distribution.md).
+Server-oriented helpers: \`generateSitemap.ts\`, \`schema.ts\` (JSON-LD), \`refreshContentAccess.ts\`, \`deployProgressStorage.ts\`, \`vercelDeploymentStatus.ts\`. See [distribution.md](distribution.md).
+
+### \`src/ui/\`
+
+Shared Base UI wrappers with shared CSS or behavior. Import headless parts from \`@base-ui/react/<module>\` subpaths — see [src/ui/README.md](../../src/ui/README.md).
 
 ### \`src/utils/\`
 
@@ -460,7 +468,8 @@ If you are unsure, copy a nearby file that already does the right thing and run 
 - **Never use non-null assertion (\`!\`).** Use optional chaining, nullish coalescing (\`??\`), or explicit checks instead.
 - **Omit redundant return types.** Do not add an explicit return type annotation when the compiler can infer it. Add return types only when needed for public API clarity or when inference would be wrong or unclear.
 - **No nested ternaries.** Use \`if\`/\`else\` or extract to a variable or helper so each branch is clear. A single ternary is fine; nesting is not.
-- **No barrel files.** Do not add \`index.ts\` (or \`index.tsx\`) files that re-export from other modules. Import directly from the target module file.
+- **No barrel files.** Do not add \`index.ts\` (or \`index.tsx\`) files that re-export from other modules. Import directly from the target module file. **Exception:** \`src/contentful/types/\` is generated and includes \`index.ts\`.
+- **Base UI imports.** Import from \`@base-ui/react/<module>\` subpaths (e.g. \`@base-ui/react/button\`) — never through barrel re-exports like \`base-ui.ts\`.
 - **Absolute imports (\`src/…\`).** Import application TypeScript and JavaScript modules with paths rooted at \`src/\`. Do not use relative paths (\`./\`, \`../\`) to reach another module under \`src/\` unless an exception below applies.
 - **Exceptions to absolute imports:** (1) **CSS Modules** and other static assets co-located with the importing file (e.g. \`import styles from "./MyComponent.module.css"\`). (2) **\`src/contentful/types/\`**—generated; do not hand-edit their import style.
 - **Do not re-export types (or values) from another module.** Import from the module that defines them. Never re-export types from a component file so consumers can import from a single place — have them import from the defining module directly.
@@ -480,7 +489,11 @@ We favor plain functions with typed props—no \`React.FC\`—and explicit condi
 - **Conditional components**: Use a ternary (\`condition ? <Component /> : null\`) instead of short-circuit (\`condition && <Component />\`) so the render branch is explicit and avoids accidentally rendering falsy values (e.g. \`0\`). Write conditionals as multi-line statement blocks.
 - **Multiple or conditional class names**: Use the \`classnames\` package (import as \`classNames\`) instead of template literals or string concatenation. For **conditional** classes, use **object notation**: \`classNames(styles.a, { [styles.active]: isActive })\` — avoid \`isActive && styles.active\` and avoid ternaries that return class strings. For static lists use multiple arguments: \`classNames(styles.a, styles.b)\`. When accepting an optional \`className\` prop: \`classNames(styles.container, className)\`.
 - **Raster images in UI**: Use **\`next/image\`** (\`import Image from "next/image"\`). Avoid bare \`<img>\` for content images unless you have a documented exception. Every \`Image\` needs an \`alt\`.
-- **Links**: Use **\`next/link\`**'s **\`Link\`** for all navigational links—internal paths, external URLs, \`mailto:\`, \`tel:\`, and the like—not a bare \`<a>\` unless you have a rare, documented exception. For new tabs, set \`target\` and \`rel="noopener noreferrer"\`.
+- **Links**: Use **\`next/link\`**'s **\`Link\`** for all navigational links—internal paths, external URLs, \`mailto:\`, \`tel:\`, and the like—not a bare \`<a>\` unless you have a rare, documented exception. For new tabs, set \`target\` and \`rel="noopener noreferrer"\`. Do not use Base UI \`Button\` for navigation.
+
+### Base UI
+
+Headless UI comes from **[Base UI](https://base-ui.com/react/overview/quick-start)** (\`@base-ui/react\`). Import from package subpaths; style with CSS Modules and \`data-*\` state attributes. Add \`src/ui/<Name>/\` only when shared CSS or behavior is needed beyond what Base UI provides. Mark wrappers \`"use client"\`.
 
 ### Large components and state
 
@@ -493,9 +506,11 @@ We standardize on **Biome** for both lint and format of TS/JS/CSS, plus **Stylel
 - **Braces**: Always use curly braces \`{}\` for control flow, even for single-line bodies. Use statement blocks for all conditionals and early returns—no single-line \`if\` bodies (e.g. \`if (!x) { return null; }\` not \`if (!x) return null\`).
 - **Commands**:
   - \`pnpm lint\` – Biome check only
-  - \`pnpm lint:fix\` – run \`biome check --write\` (fix what can be fixed)
+  - \`pnpm lint:fix\` – run \`biome check --fix\`
+  - \`pnpm lint:check\` – Biome on changed files since \`origin/staging\`
   - \`pnpm lint:css\` – Stylelint check only
   - \`pnpm lint:css:fix\` – Stylelint with \`--fix\`
+  - \`pnpm lint:all\` – \`lint:check\`, Stylelint fix, \`tsc:ci\`, and \`knip:ci\`
 - **Config**: \`biome.json\` for Biome (CSS formatter and linter included); \`stylelint.config.mjs\` for Stylelint.
 - **Notable rules**: no unused imports/variables, no inferrable types, use \`as const\` where appropriate, \`noDangerouslySetInnerHtml\` is a warning.
 - Run lint/format before committing so CI passes.
@@ -513,7 +528,7 @@ Place the CSS module next to the component, e.g. \`MyComponent.component.tsx\` a
 ### Modern CSS
 
 - **Nesting**: Use nesting for scoped styles and for nested media queries.
-- **Custom properties**: Prefer variables from the global design system. All design tokens live in \`src/styles/variables.css\`, imported by \`globals.css\`. If you need to inject a custom property at render time (inline \`style={{ "--foo": value }}\`), declare it in the same file as \`--foo: initial;\` so Stylelint recognizes it.
+- **Custom properties**: Prefer variables from the global design system. All design tokens live in \`src/styles/variables.css\`, imported by \`globals.css\`. Semantic tokens include **\`--color-toast-*\`**, **\`--toast-width\`**, and **\`--toast-offset\`** for Sonner toasts. If you need to inject a custom property at render time (inline \`style={{ "--foo": value }}\`), declare it in the same file as \`--foo: initial;\` so Stylelint recognizes it.
 - **Runtime font variables**: Next.js \`localFont\` injects font variables via a class on \`<html>\` at runtime. Do not declare them in CSS. Register them in \`src/styles/runtime-variables.json\` for Stylelint.
 - **Modern features**: Use \`color-mix()\`, \`clamp()\` where they simplify code. Keep styles DRY.
 
@@ -539,7 +554,7 @@ Tests use Jest, **page objects** for **render setup, mocks, and shared test data
 
 - **Base class**: \`src/tests/basePageObject.po.ts\` (optional \`debug\`, \`raiseOnFind\`).
 - **Per-component page object**: In \`<Name>.po.tsx\`, define a class that extends \`BasePageObject\`, sets \`testId = "rh<ComponentName>"\`, implements \`render<Name>()\` using the custom \`render\` from test-utils, and holds test data and setup (factories, \`jest.resetAllMocks()\`, mock implementations). No \`screen\` queries in the PO.
-- **Tests**: In \`<Name>.spec.tsx\`, import **\`describe\`**, **\`it\`**, **\`expect\`**, **\`beforeEach\`** from **\`@jest/globals\`**. Instantiate the page object in \`beforeEach\`, then query the DOM with **\`screen\`** / **\`userEvent\`** (e.g. \`expect(screen.getByTestId(po.testId)).toBeInTheDocument()\`).
+- **Tests**: In \`<Name>.spec.tsx\`, import **\`describe\`**, **\`it\`**, **\`expect\`**, **\`beforeEach\`** from **\`@jest/globals\`**. Matchers: **\`@testing-library/jest-dom/jest-globals\`** in [\`.jest/setupTests.ts\`](../../.jest/setupTests.ts). Instantiate the page object in \`beforeEach\`, then query the DOM with **\`screen\`** / **\`userEvent\`** (e.g. \`expect(screen.getByTestId(po.testId)).toBeInTheDocument()\`).
 - **Custom render**: Always use the \`render\` from \`src/tests/test-utils.tsx\`. It wraps the tree with the same providers as the app.
 
 ### Test data
@@ -760,6 +775,10 @@ Use **\`next/dynamic\`** when a component is heavy or client-only (\`ssr: false\
 ## Links
 
 Use **\`next/link\`**'s **\`Link\`** for all navigational links — internal paths, external URLs, \`mailto:\`, \`tel:\`, and the like. For new tabs, set \`target\` and \`rel="noopener noreferrer"\` on \`Link\`. See [conventions.md](conventions.md#react--jsx).
+
+## Base UI
+
+New headless behavior should use **[Base UI](https://base-ui.com/react/overview/quick-start)** (\`@base-ui/react\`): import from the package subpath (e.g. \`@base-ui/react/dialog\`, \`@base-ui/react/field\`) — **no barrel re-exports**. Style with CSS Modules + design tokens. Add **\`src/ui/<Name>/\`** only when behavior or shared CSS is needed (e.g. **\`Collapsible\`**, **\`FieldErrorMessage\`**). See **[src/ui/README.md](../../src/ui/README.md)** for portal setup (**\`.appRoot\`** on the layout \`main\` in [\`layout.tsx\`](../app/layout.tsx)). **\`Button\`**, **\`DeployButton\`**, and **\`DeployPage\`** demonstrate styled Base UI usage.
 `;
 };
 
@@ -797,6 +816,10 @@ Mutation hooks live in **\`src/hooks/mutations/\`**.
 ## React Query — queries
 
 When you add client-side queries, place them under **\`src/hooks/queries/\`**, use a stable **\`queryKey\`**, and call through \`src/api/urls.ts\` inside \`queryFn\`. Follow the hook rules in [conventions.md](conventions.md) (single params object, no side effects in the hook file).
+
+## Refresh content
+
+**\`src/app/refresh-content/page.tsx\`** is **\`force-dynamic\`** and **\`noindex\`**. Access is gated by **\`REFRESH_CONTENT_ACCESS_TOKEN\`** when set — see [platform.md](platform.md). **\`DeployPage\`** triggers redeploys through **\`POST /api/refresh-content/deploy\`**. **\`DeployButton\`** uses **\`useDeployMonitor\`** (React Query mutation + polled status/active queries). **\`startedAt\`** (click time) drives elapsed labels and status **\`since\`**; **\`furthestDeployStatus\`** keeps phase labels monotonic (**Starting** → **Building**). Completion toasts fire from status polls and the elapsed timer without a page refresh.
 
 ## API layer and Route Handlers
 
@@ -894,11 +917,17 @@ PRs that target **\`staging\`** run \`.github/workflows/ci.yml\`:
 3. **\`pnpm install\`**
 4. **\`pnpm tsc:ci\`** — TypeScript strict
 5. **\`pnpm lint:ci\`** — Biome in CI reporter mode
-6. **\`pnpm test:ci\`** — Jest
+6. **\`pnpm lint:css\`** — Stylelint
+7. **\`pnpm test:ci\`** — Jest
+8. **\`pnpm knip:ci\`** — unused exports and dependencies
 
-Run **\`pnpm tsc:ci\`**, **\`pnpm lint:ci\`**, and **\`pnpm test:ci\`** locally before pushing when you touch types, lint, or tests.
+Run **\`pnpm lint:all\`** locally for the same checks as a full pre-push pass (\`lint:check\`, Stylelint fix, \`tsc:ci\`, \`knip:ci\`). Run **\`pnpm tsc:ci\`**, **\`pnpm lint:ci\`**, **\`pnpm lint:css\`**, **\`pnpm test:ci\`**, and **\`pnpm knip:ci\`** individually when iterating.
 
-**TypeScript** is pinned to **\`^6.0.x\`** in \`package.json\` until Next.js 16.3; bump the pin when you adopt that Next release.
+**TypeScript** is pinned to **\`^7.0.2\`** in \`package.json\`.
+
+### Knip
+
+**[knip](https://knip.dev/)** runs in CI to flag unused files, exports, and dependencies. Config: [knip.json](../../knip.json). Generated Contentful types, **\`scripts/\`**, and starter scaffold files under **\`src/ui/\`**, **\`src/tests/factories/\`**, and related paths are ignored until you wire them up; fix or explicitly ignore new false positives rather than disabling checks globally.
 
 ## Package scripts (local workflow)
 
@@ -907,7 +936,10 @@ Run **\`pnpm tsc:ci\`**, **\`pnpm lint:ci\`**, and **\`pnpm test:ci\`** locally 
 | \`pnpm dev\` | Next dev server on port ${port}. |
 | \`pnpm build\` / \`pnpm start\` | Production build and serve (\`build\` runs \`make sitemap\`). |
 | \`pnpm lint\` / \`pnpm lint:fix\` | Biome (same family as \`lint:ci\`). |
+| \`pnpm lint:check\` | Biome on changed files since \`origin/staging\`. |
 | \`pnpm lint:css\` / \`pnpm lint:css:fix\` | Stylelint. |
+| \`pnpm lint:all\` | \`lint:check\`, Stylelint fix, \`tsc:ci\`, and \`knip:ci\`. |
+| \`pnpm knip\` / \`pnpm knip:ci\` | Dead-code / unused export analysis ([knip.json](../../knip.json)). |
 | \`pnpm test:ci\` | Jest (CI-style). |
 | \`pnpm scaffold\` | New component folder under \`src/components/\` (see [components.md](components.md)). |
 ${scriptRowsExtra}
@@ -923,7 +955,25 @@ Notable groups:
 
 - **Build (Vercel)** — **\`ENABLE_EXPERIMENTAL_COREPACK\`** — set to **\`1\`** in the Vercel project (and in **\`.env.local.example\`**) so production installs respect **\`packageManager\`** in \`package.json\`; not wired through \`next.config.ts\` (build-time only).
 ${notableContentful}- **ENVIRONMENT** — drives URLs in helpers such as \`envUrl()\`.
+- **Refresh content** — **\`REFRESH_CONTENT_ACCESS_TOKEN\`**, **\`VERCEL_DEPLOY_HOOK_STAGING\`**, **\`VERCEL_DEPLOY_HOOK_PRODUCTION\`**, **\`VERCEL_API_TOKEN\`** (server-only; used by refresh-content page and deploy API routes). **\`VERCEL_TEAM_SLUG\`** or **\`VERCEL_TEAM_ID\`** scopes List Deployments API calls when the project lives under a team.
 - **Optional** — HubSpot, Resend, reCAPTCHA — used by Route Handlers and forms when configured.
+
+## Refresh content and deploy hooks
+
+- **Page**: **\`src/app/refresh-content/page.tsx\`** is **\`force-dynamic\`**, **\`noindex\`**, and gated by **\`isRefreshContentAuthorized\`** in **\`refreshContentAccess.ts\`**.
+- **Access**: When **\`REFRESH_CONTENT_ACCESS_TOKEN\`** is set, the page and deploy API require a matching **\`?token=\`** on every environment. When unset, only **\`ENVIRONMENT=local\`** may access without a token.
+- **Deploy hooks**: **\`DeployPage\`** calls **\`POST /api/refresh-content/deploy\`** with **\`{ target, token }\`**. Hook URLs come from server-only env vars (never client bundles):
+
+| Env var | Vercel deploy hook | Branch |
+|---------|-------------------|--------|
+| **\`VERCEL_DEPLOY_HOOK_STAGING\`** | **Staging** | **\`staging\`** |
+| **\`VERCEL_DEPLOY_HOOK_PRODUCTION\`** | **Production** | **\`main\`** |
+
+  Set both in Vercel for **Production**, **Preview**, and **Development**. List hook URLs with **\`vercel deploy-hooks ls\`**. Add each URL with **\`vercel env add\`**; run **\`vercel env pull\`** after linking the project.
+
+  If either hook env var is missing, the deploy API returns **\`503\`** with **\`{ "error": "Deploy hook not configured" }\`**.
+
+- **Deploy monitoring**: After a hook trigger, **\`POST /api/refresh-content/deploy\`** returns **\`createdAt\`**, **\`deployHookId\`**, and **\`projectId\`**. Route handlers share **\`parseDeployTarget\`**, **\`parseDeployHookUrl\`**, and **\`resolveDeployHookMetadata\`** from **\`refreshContentAccess.ts\`**; **\`vercelDeploymentStatus.ts\`** handles Vercel List Deployments polling. **\`useDeployMonitor\`** (used by **\`DeployButton\`**) calls **\`api.deploy.*\`** via React Query: a **mutation** for trigger, **polled queries** for **\`GET /api/refresh-content/deploy/status\`**, and an **active** query for **\`GET /api/refresh-content/deploy/active\`** on load. **\`startedAt\`** (button click time) is persisted in **\`localStorage\`** and used for the elapsed label and as the status **\`since\`** value. Status and active routes are **\`force-dynamic\`** with **\`Cache-Control: no-store\`**; Vercel fetches use **\`cache: 'no-store'\`**. Client **\`api.deploy.status\`** / **\`api.deploy.active\`** also pass **\`cache: 'no-store'\`**. Polling stops on terminal status (**\`ready\`**, **\`error\`**, **\`canceled\`**) or when **\`monitoring: false\`** (no API token). Without **\`VERCEL_API_TOKEN\`**, the button counts up for **\`DEPLOY_ESTIMATED_MS\`** (2 minutes) then shows **Refresh may be complete**. Labels use monotonic **\`displayStatus\`** via **\`furthestDeployStatus\`** (**Starting (m:ss)**, **Building (m:ss)**, etc.). Sonner toasts are configured in **\`providers.tsx\`** with styles in **\`globals.css\`**.
 
 ${draftSection}
 ${agentHooksSection}## Release process
@@ -1037,7 +1087,13 @@ Server- and shared-oriented modules:
 
 - \`generateSitemap.ts\` — sitemap XML generation (see [distribution.md](distribution.md))
 - \`schema.ts\` — JSON-LD / schema.org helpers
-- \`analytics.ts\` — client analytics helpers (see [integrations.md](integrations.md))
+- \`refreshContentAccess.ts\` — token gate, **\`parseDeployTarget\`**, hook URL parsing, and **\`resolveDeployHookMetadata\`**
+- \`deployProgressStorage.ts\` — client **\`localStorage\`**, label formatting, and **\`furthestDeployStatus\`**
+- \`vercelDeploymentStatus.ts\` — poll Vercel List Deployments after a deploy-hook trigger
+
+## \`src/ui/\`
+
+Base UI wrappers and shared headless CSS. See [src/ui/README.md](../../src/ui/README.md).
 
 `;
 };

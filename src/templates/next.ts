@@ -57,14 +57,13 @@ export const getNextConfig = (a: ProjectAnswers): string => {
     : "img-src * blob: data:;";
 
   const optimizePackages = [
+    '"@base-ui/react"',
     '"@tanstack/react-query"',
-    '"html-react-parser"',
-    '"react-aria"',
-    '"react-intersection-observer"',
     '"sonner"',
   ];
   if (a.includeContentful) {
     optimizePackages.unshift('"@contentful/rich-text-react-renderer"');
+    optimizePackages.push('"html-react-parser"');
   }
   if (a.includeRecaptcha) optimizePackages.push('"react-google-recaptcha"');
 
@@ -86,7 +85,7 @@ ${envLines.join("\n")}
     minimumCacheTTL: 14400,
     remotePatterns: ${remotePatternsBlock},
   },
-  // Turbopack is the default bundler in Next.js 16.1+
+  // Turbopack is the default bundler in Next.js 16+
   turbopack: {
     rules: {
       "*.svg": {
@@ -94,18 +93,7 @@ ${envLines.join("\n")}
         loaders: [
           {
             loader: "@svgr/webpack",
-            options: {
-              ref: true,
-              svgoConfig: {
-                plugins: [
-                  {
-                    active: false,
-                    name: "removeViewBox",
-                  },
-                ],
-              },
-              titleProp: true,
-            },
+            options: { svgo: false },
           },
         ],
       },
@@ -116,43 +104,6 @@ ${envLines.join("\n")}
     optimizePackageImports: [
       ${optimizePackages.join(",\n      ")},
     ],
-  },
-  webpack(config, { dev, isServer }) {
-    const fileLoaderRule = config.module.rules.find((rule) =>
-      rule.test?.test?.(".svg"),
-    );
-
-    config.module.rules.push({
-      test: /\\.svg$/i,
-      issuer: fileLoaderRule.issuer,
-      use: {
-        loader: "@svgr/webpack",
-        options: {
-          svgoConfig: {
-            plugins: [
-              {
-                name: "removeViewBox",
-                active: false,
-              },
-            ],
-          },
-        },
-      },
-    });
-
-    fileLoaderRule.exclude = /\\.svg$/i;
-
-    if (!dev && !isServer && process.env.ANALYZE === "true") {
-      const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
-      config.plugins.push(
-        new BundleAnalyzerPlugin({
-          analyzerMode: "static",
-          openAnalyzer: false,
-        }),
-      );
-    }
-
-    return config;
   },
   async redirects() {
     if (process.env.ENVIRONMENT === "production") {

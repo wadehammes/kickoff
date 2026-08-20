@@ -15,7 +15,13 @@ import { generateProject } from "./generator.js";
 import type { ProjectAnswers } from "./types.js";
 import { validateProjectAnswers } from "./validateAnswers.js";
 
-const SCAFFOLD_CHECKS = ["tsc:ci", "lint:ci", "lint:css", "test:ci"] as const;
+const SCAFFOLD_CHECKS = [
+  "tsc:ci",
+  "lint:ci",
+  "lint:css",
+  "test:ci",
+  "knip:ci",
+] as const;
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),

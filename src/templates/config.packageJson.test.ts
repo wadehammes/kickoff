@@ -3,6 +3,7 @@ import type { ProjectAnswers } from "../types.js";
 import { getPackageJson } from "./config.js";
 
 const answers = (overrides: Partial<ProjectAnswers> = {}): ProjectAnswers => ({
+  agentTooling: "cursor",
   bgColor: "#ffffff",
   devPort: 3000,
   includeContentful: true,
@@ -68,5 +69,26 @@ describe("getPackageJson", () => {
   it("sets package name from projectName", () => {
     const pkg = parse(answers({ projectName: "my-widget" }));
     expect(pkg.name).toBe("my-widget");
+  });
+
+  it("includes Base UI and omits react-aria", () => {
+    const pkg = parse(answers());
+    expect(pkg.dependencies?.["@base-ui/react"]).toBe("latest");
+    expect(pkg.dependencies?.["react-aria"]).toBeUndefined();
+    expect(pkg.devDependencies?.["@svgr/webpack"]).toBe("latest");
+  });
+
+  it("uses turbopack by default for dev scripts", () => {
+    const pkg = parse(answers({ devPort: 3000 }));
+    expect(pkg.scripts?.dev).toBe("next dev -p 3000");
+    expect(pkg.scripts?.dev).not.toContain("--webpack");
+  });
+
+  it("includes full lint and knip scripts", () => {
+    const pkg = parse(answers());
+    expect(pkg.scripts?.["lint:check"]).toContain("origin/staging");
+    expect(pkg.scripts?.["lint:all"]).toContain("knip:ci");
+    expect(pkg.scripts?.knip).toBe("knip");
+    expect(pkg.devDependencies?.knip).toBe("latest");
   });
 });
