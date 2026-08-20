@@ -2,32 +2,31 @@ import type { ProjectAnswers } from "../types.js";
 
 export const getPackageJson = (a: ProjectAnswers): string => {
   const deps: Record<string, string> = {
-    "@faker-js/faker": "latest",
+    "@base-ui/react": "latest",
     "@jest/types": "latest",
-    "@next/third-parties": "latest",
-    "@svgr/webpack": "latest",
     "@tanstack/react-query": "latest",
     classnames: "latest",
-    "html-react-parser": "latest",
     "jest-mock": "latest",
     next: "latest",
     "postcss-flexbugs-fixes": "latest",
     "postcss-preset-env": "latest",
     react: "latest",
-    "react-aria": "latest",
     "react-dom": "latest",
-    "react-hook-form": "latest",
-    "react-intersection-observer": "latest",
-    "safe-json-stringify": "latest",
     "schema-dts": "latest",
     sonner: "latest",
     tslib: "latest",
   };
 
+  if (a.includeGA) {
+    deps["@next/third-parties"] = "latest";
+  }
+
   if (a.includeContentful) {
     deps["@contentful/rich-text-react-renderer"] = "latest";
     deps["@contentful/rich-text-types"] = "latest";
     deps.contentful = "latest";
+    deps["html-react-parser"] = "latest";
+    deps["safe-json-stringify"] = "latest";
   }
 
   if (a.includeI18n) {
@@ -41,8 +40,11 @@ export const getPackageJson = (a: ProjectAnswers): string => {
   }
 
   const devDeps: Record<string, string> = {
+    "@jest/globals": "latest",
+    "@svgr/webpack": "latest",
     // Pinned: biome.json schema and rule names change between releases
-    "@biomejs/biome": "2.4.15",
+    "@biomejs/biome": "2.5.8",
+    "@faker-js/faker": "latest",
     "@testing-library/dom": "latest",
     "@testing-library/jest-dom": "latest",
     "@testing-library/react": "latest",
@@ -50,20 +52,25 @@ export const getPackageJson = (a: ProjectAnswers): string => {
     "@types/jest": "latest",
     "@types/node": "latest",
     "@types/react": "latest",
-    "@types/safe-json-stringify": "latest",
     csstype: "latest",
+    "identity-obj-proxy": "latest",
     jest: "latest",
     "jest-environment-jsdom": "latest",
+    knip: "latest",
     "react-is": "latest",
     stylelint: "latest",
     "stylelint-config-css-modules": "latest",
     "stylelint-config-standard": "latest",
     "stylelint-value-no-unknown-custom-properties": "latest",
     "ts-jest": "latest",
-    "ts-node": "latest",
-    typescript: "^6.0.3",
+    tsx: "latest",
+    typescript: "^7.0.2",
     "typescript-plugin-css-modules": "latest",
   };
+
+  if (a.includeContentful) {
+    devDeps["@types/safe-json-stringify"] = "latest";
+  }
 
   if (a.includeRecaptcha) {
     devDeps["@types/react-google-recaptcha"] = "latest";
@@ -75,13 +82,20 @@ export const getPackageJson = (a: ProjectAnswers): string => {
 
   const scripts: Record<string, string> = {
     build: "next build && make sitemap",
-    dev: `NODE_OPTIONS='--inspect' next dev -p ${a.devPort} --webpack`,
+    dev: `next dev -p ${a.devPort}`,
+    "dev:debug": `NODE_OPTIONS='--inspect' next dev -p ${a.devPort}`,
     "dev:preview": "tsx scripts/dev-with-preview.ts",
     lint: "biome check",
     "lint:ci": "biome ci --reporter=github",
+    "lint:fix": "biome check --fix",
+    "lint:check":
+      "biome check --changed --since origin/staging --no-errors-on-unmatched --verbose --write --diagnostic-level=error",
     "lint:css": 'stylelint "**/*.css"',
     "lint:css:fix": 'stylelint "**/*.css" --fix',
-    "lint:fix": "biome check --fix .",
+    "lint:all":
+      "pnpm lint:check && pnpm lint:css:fix && pnpm tsc:ci && pnpm knip:ci",
+    knip: "knip",
+    "knip:ci": "knip --no-progress",
     scaffold: "bash scripts/scaffold.sh",
     start: `next start -p ${a.devPort}`,
     "test:ci": "jest --passWithNoTests",
@@ -131,6 +145,7 @@ export const getTsConfig = (): string => {
     "strict": true,
     "target": "es2015",
     "typeRoots": ["node_modules/@types"],
+    "types": ["jest", "node"],
     "incremental": true,
     "plugins": [
       { "name": "next" },
@@ -466,6 +481,7 @@ export default async () => {
   const moduleNameMapper = {
     ...jestConfig.moduleNameMapper,
     "\\\\.(css|less|scss|sass)$": "identity-obj-proxy",
+    "\\\\.svg$": "<rootDir>/src/tests/mocks/svgMock.tsx",
   };
 
   return { ...jestConfig, moduleNameMapper, testTimeout: 20000 };
@@ -474,18 +490,56 @@ export default async () => {
 };
 
 export const getKnipConfig = (a: ProjectAnswers): string => {
-  const ignoreFiles = [
-    "scripts/make_sitemap.js",
-    "test-utils.tsx",
-    "src/tests/**",
+  const ignore = [
+    "scripts/**",
+    "src/app/fonts.ts",
+    "src/copy/**",
+    "src/hooks/useIsBrowser.ts",
+    "src/interfaces/**",
+    "src/lib/generateSitemap.ts",
+    "src/tests/factories/**",
+    "src/tests/mocks/mockNextNavigation.ts",
+    "src/types/KeysMatch.ts",
+    "src/ui/**",
+    "src/utils/constants.ts",
+    "src/utils/factory.helpers.ts",
+    "src/utils/style.helpers.ts",
   ];
+
   if (a.includeContentful) {
-    ignoreFiles.unshift("src/contentful/types/**");
+    ignore.unshift("src/contentful/types/**");
+  } else {
+    ignore.push("src/components/ExitDraftModeLink/**");
   }
+
+  const ignoreDependencies = [
+    "@faker-js/faker",
+    "@svgr/webpack",
+    "jest-mock",
+    "styled-components",
+    "csstype",
+    "react-is",
+  ];
+
   return `${JSON.stringify(
     {
-      $schema: "https://unpkg.com/knip@5/schema.json",
-      ignoreFiles,
+      $schema: "./node_modules/knip/schema.json",
+      entry: ["jest.config.ts"],
+      ignore,
+      ignoreBinaries: ["make"],
+      ignoreDependencies,
+      ignoreIssues: {
+        "src/api/helpers.ts": ["types", "enumMembers"],
+        "src/components/**": ["exports"],
+        "src/lib/schema.ts": ["exports"],
+      },
+      rules: {
+        duplicates: "off",
+      },
+      tags: ["-lintignore"],
+      workspaces: {
+        ".": {},
+      },
     },
     null,
     2,
@@ -583,11 +637,19 @@ export const getEnvLocalExample = (a: ProjectAnswers): string => {
     "# package.json's packageManager field (Corepack). Vercel: Settings → Environment Variables.",
     "ENABLE_EXPERIMENTAL_COREPACK=1",
     "",
-    "# Vercel API token (for programmatic deploy/cache purge)",
+    "# Vercel API token (for polling deploy status on refresh-content)",
     "VERCEL_API_TOKEN=",
     "",
-    "# Vercel team ID (find in team settings)",
+    "# Vercel team slug or ID (scopes List Deployments API when under a team)",
+    "VERCEL_TEAM_SLUG=",
     "VERCEL_TEAM_ID=",
+    "",
+    "# Deploy hooks for refresh-content (list with vercel deploy-hooks ls)",
+    "VERCEL_DEPLOY_HOOK_STAGING=",
+    "VERCEL_DEPLOY_HOOK_PRODUCTION=",
+    "",
+    "# Token required to access /refresh-content when set (omit for local-only access)",
+    "REFRESH_CONTENT_ACCESS_TOKEN=",
     "",
   );
 

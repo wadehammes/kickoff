@@ -25,11 +25,15 @@ import {
   getBasePageObject,
   getBiomeConfig,
   getBrowserslistrc,
+  getButtonComponent,
+  getButtonCSS,
   getCIWorkflow,
   getClaude,
   getClaudeHooksLib,
   getClaudeHooksReadme,
   getClaudeSettingsJson,
+  getCollapsibleComponent,
+  getCollapsibleCSS,
   getCommonInterfaces,
   getConstants,
   getContentfulCacheConfig,
@@ -46,6 +50,18 @@ import {
   getCursorHooksReadme,
   getCursorRulesHandbook,
   getDependabotConfig,
+  getDeployActiveRoute,
+  getDeployButtonComponent,
+  getDeployButtonPO,
+  getDeployButtonTest,
+  getDeployPageComponent,
+  getDeployPageCSS,
+  getDeployProgressStorage,
+  getDeployProgressStorageSpec,
+  getDeployQueryKeys,
+  getDeployRoute,
+  getDeployStatusRoute,
+  getDeployTypes,
   getDevWithPreview,
   getDisableDraftRoute,
   getDraftRoute,
@@ -55,6 +71,7 @@ import {
   getEnvLocalExample,
   getExitDraftModeLink,
   getFactoryHelpers,
+  getFieldErrorMessageComponent,
   getFooterComponent,
   getFooterCSS,
   getGenerateSitemap,
@@ -101,6 +118,8 @@ import {
   getPreviewLocal,
   getProxyTs,
   getReadme,
+  getRefreshContentAccess,
+  getRefreshContentAccessSpec,
   getRefreshContentPage,
   getReleaseWorkflow,
   getRichText,
@@ -116,13 +135,19 @@ import {
   getStringHelpersSpec,
   getStyleHelpers,
   getStylelintConfig,
+  getSvgMock,
   getToolVersions,
   getTsConfig,
   getTypesReactDts,
+  getUiReadme,
   getUrlHelpers,
   getUrlHelpersSpec,
+  getUseDeployMonitor,
   getUseIsBrowser,
+  getUseTriggerDeployMutation,
   getVariablesCSS,
+  getVercelDeploymentStatus,
+  getVercelDeploymentStatusSpec,
   getVerifyVercelForReleaseSh,
   getVerifyVercelRelease,
 } from "./templates/index.js";
@@ -297,6 +322,16 @@ export const generateProject = async (
     await write("src/app/api/disable-draft/route.ts", getDisableDraftRoute());
   }
 
+  await write("src/app/api/refresh-content/deploy/route.ts", getDeployRoute());
+  await write(
+    "src/app/api/refresh-content/deploy/status/route.ts",
+    getDeployStatusRoute(),
+  );
+  await write(
+    "src/app/api/refresh-content/deploy/active/route.ts",
+    getDeployActiveRoute(),
+  );
+
   // ── src/components/ ────────────────────────────────────────────────────────
   await write(
     "src/components/Navigation/Navigation.component.tsx",
@@ -323,6 +358,31 @@ export const generateProject = async (
     "src/components/NotFoundPage/NotFoundPage.module.css",
     getNotFoundPageCSS(),
   );
+  await write(
+    "src/components/Button/Button.component.tsx",
+    getButtonComponent(),
+  );
+  await write("src/components/Button/Button.module.css", getButtonCSS());
+  await write(
+    "src/components/DeployPage/DeployPage.component.tsx",
+    getDeployPageComponent(a),
+  );
+  await write(
+    "src/components/DeployPage/DeployPage.module.css",
+    getDeployPageCSS(),
+  );
+  await write(
+    "src/components/DeployButton/DeployButton.component.tsx",
+    getDeployButtonComponent(),
+  );
+  await write(
+    "src/components/DeployButton/DeployButton.po.tsx",
+    getDeployButtonPO(),
+  );
+  await write(
+    "src/components/DeployButton/DeployButton.test.tsx",
+    getDeployButtonTest(),
+  );
 
   // ── src/contentful/ ────────────────────────────────────────────────────────
   if (a.includeContentful) {
@@ -348,6 +408,7 @@ export const generateProject = async (
 
   // ── src/api/ ───────────────────────────────────────────────────────────────
   await write("src/api/helpers.ts", getApiHelpers());
+  await write("src/api/deploy.types.ts", getDeployTypes());
   await write("src/api/urls.ts", getApiUrls());
 
   // ── src/copy/ ───────────────────────────────────────────────────────────────
@@ -355,6 +416,12 @@ export const generateProject = async (
 
   // ── src/hooks/ ───────────────────────────────────────────────────────────────
   await write("src/hooks/useIsBrowser.ts", getUseIsBrowser());
+  await write("src/hooks/useDeployMonitor.ts", getUseDeployMonitor());
+  await write(
+    "src/hooks/mutations/useTriggerDeploy.mutation.ts",
+    getUseTriggerDeployMutation(),
+  );
+  await write("src/hooks/queries/deployQueryKeys.ts", getDeployQueryKeys());
 
   // ── src/interfaces/ ────────────────────────────────────────────────────────
   await write("src/interfaces/common.interfaces.ts", getCommonInterfaces());
@@ -362,11 +429,37 @@ export const generateProject = async (
   // ── src/lib/ ───────────────────────────────────────────────────────────────
   await write("src/lib/generateSitemap.ts", getGenerateSitemap(a));
   await write("src/lib/schema.ts", getSchema(a));
+  await write("src/lib/refreshContentAccess.ts", getRefreshContentAccess());
+  await write(
+    "src/lib/refreshContentAccess.spec.ts",
+    getRefreshContentAccessSpec(),
+  );
+  await write("src/lib/deployProgressStorage.ts", getDeployProgressStorage());
+  await write(
+    "src/lib/deployProgressStorage.spec.ts",
+    getDeployProgressStorageSpec(),
+  );
+  await write("src/lib/vercelDeploymentStatus.ts", getVercelDeploymentStatus());
+  await write(
+    "src/lib/vercelDeploymentStatus.spec.ts",
+    getVercelDeploymentStatusSpec(),
+  );
 
   // ── src/styles/ ────────────────────────────────────────────────────────────
   await write("src/styles/globals.css", getGlobalsCSS(a));
   await write("src/styles/variables.css", getVariablesCSS(a));
   await write("src/styles/runtime-variables.json", getRuntimeVariablesJson());
+
+  await write("src/ui/README.md", getUiReadme());
+  await write(
+    "src/ui/Collapsible/Collapsible.component.tsx",
+    getCollapsibleComponent(),
+  );
+  await write("src/ui/Collapsible/Collapsible.module.css", getCollapsibleCSS());
+  await write(
+    "src/ui/Field/FieldErrorMessage.component.tsx",
+    getFieldErrorMessageComponent(),
+  );
 
   // ── src/tests/ ─────────────────────────────────────────────────────────────
   await write("src/tests/basePageObject.po.ts", getBasePageObject());
@@ -377,6 +470,7 @@ export const generateProject = async (
   );
   await write("src/tests/mocks/mockMatchMedia.ts", getMockMatchMedia());
   await write("src/tests/mocks/mockNextNavigation.ts", getMockNextNavigation());
+  await write("src/tests/mocks/svgMock.tsx", getSvgMock());
 
   // ── src/tests/factories/ ───────────────────────────────────────────────────
   await write("src/tests/factories/BaseFactory.ts", getBaseFactory());
@@ -653,9 +747,7 @@ export default Page;
 const getTestUtils = (): string => {
   return `import { type RenderOptions, render } from "@testing-library/react";
 import type { ReactElement } from "react";
-import type { PropsWithChildrenOnly } from "src/@types/react";
-
-const Providers = ({ children }: PropsWithChildrenOnly) => <>{children}</>;
+import Providers from "src/app/providers";
 
 const customRender = (
   ui: ReactElement,

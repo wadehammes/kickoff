@@ -166,6 +166,30 @@ describe("generateProject", () => {
     expect(existsSync(path.join(root, ".cursor/hooks.json"))).toBe(false);
   });
 
+  it("generates knip config, svg mock, and CI knip step", async () => {
+    const root = await runInTemp(baseAnswers({ projectName: "knip-site" }));
+    const knip = JSON.parse(
+      readFileSync(path.join(root, "knip.json"), "utf-8"),
+    ) as {
+      ignore: string[];
+      ignoreDependencies: string[];
+    };
+
+    expect(knip.ignore).toContain("scripts/**");
+    expect(knip.ignoreDependencies).toEqual(
+      expect.arrayContaining(["@svgr/webpack", "jest-mock"]),
+    );
+    expect(existsSync(path.join(root, "src/tests/mocks/svgMock.tsx"))).toBe(
+      true,
+    );
+
+    const ci = readFileSync(
+      path.join(root, ".github/workflows/ci.yml"),
+      "utf-8",
+    );
+    expect(ci).toContain("pnpm knip:ci");
+  });
+
   it("dry-run does not write any files", async () => {
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     const prev = process.cwd();

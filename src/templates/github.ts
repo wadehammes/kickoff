@@ -49,6 +49,8 @@ jobs:
         run: pnpm lint:css
       - name: Run Jest
         run: pnpm test:ci
+      - name: Run Knip
+        run: pnpm knip:ci
 `;
 };
 
@@ -133,6 +135,7 @@ configuration:
   - biome.json
   - stylelint.config.mjs
   - jest.config.ts
+  - knip.json
   - tsconfig.json
 
 dependencies:

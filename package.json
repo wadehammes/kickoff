@@ -14,21 +14,24 @@
     "lint": "biome check",
     "lint:ci": "biome ci --reporter=github",
     "lint:fix": "biome check --fix",
+    "lint:check": "biome check --changed --since origin/main --no-errors-on-unmatched --verbose --write --diagnostic-level=error",
+    "lint:all": "pnpm lint:check && pnpm tsc:ci",
     "test": "vitest run",
     "test:scaffold-e2e": "node dist/verifyScaffoldE2e.js",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "tsc:ci": "tsc --strict"
   },
   "dependencies": {
-    "chalk": "^5.6.2",
-    "fs-extra": "^11.3.6",
+    "chalk": "^6.0.0",
+    "fs-extra": "^11.4.0",
     "prompts": "^2.4.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.3",
+    "@biomejs/biome": "2.5.9",
     "@types/fs-extra": "^11.0.4",
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.2.0",
     "@types/prompts": "^2.4.9",
     "typescript": "^7.0.2",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   }
 }

@@ -11,14 +11,15 @@ Every generated project includes:
 | Concern | Technology |
 |---|---|
 | Framework | Next.js ^16 (App Router) |
-| Language | TypeScript ^6, strict mode |
+| Language | TypeScript ^7, strict mode |
 | CMS | Contentful ^11, draft mode, type generation |
 | Package manager | pnpm 10.33.3 |
 | Node | 24.15.0 (via asdf `.tool-versions`) |
-| Linting | Biome 2.4.15 + Stylelint ^17 |
+| Linting | Biome 2.5.8 + Stylelint ^17 |
 | Testing | Jest ^30 + Testing Library + ts-jest |
 | Styling | CSS Modules + PostCSS Preset Env |
-| SVG | @svgr/webpack |
+| UI primitives | @base-ui/react |
+| SVG (Turbopack) | @svgr/webpack |
 | Data fetching | @tanstack/react-query ^5 |
 | Forms | react-hook-form ^7 |
 | Schema | schema-dts (JSON-LD) |
@@ -213,7 +214,8 @@ pnpm dev
 │   │   ├── [slug]/
 │   │   ├── api/
 │   │   │   ├── disable-draft/
-│   │   │   └── draft/
+│   │   │   ├── draft/
+│   │   │   └── refresh-content/deploy/   # Deploy hook trigger + status
 │   │   ├── refresh-content/
 │   │   ├── error.tsx
 │   │   ├── global-error.tsx
@@ -225,9 +227,13 @@ pnpm dev
 │   │   ├── providers.tsx
 │   │   └── robots.ts
 │   ├── api/                    # Fetch helpers and typed API surface
+│   │   ├── deploy.types.ts
 │   │   ├── helpers.ts
 │   │   └── urls.ts
 │   ├── components/
+│   │   ├── Button/
+│   │   ├── DeployButton/
+│   │   ├── DeployPage/
 │   │   ├── ExitDraftModeLink/
 │   │   ├── Footer/
 │   │   ├── Navigation/
@@ -244,16 +250,23 @@ pnpm dev
 │   ├── copy/
 │   │   └── global.ts           # Static copy strings
 │   ├── hooks/
+│   │   ├── mutations/
+│   │   ├── queries/
+│   │   ├── useDeployMonitor.ts
 │   │   └── useIsBrowser.ts
 │   ├── interfaces/
 │   │   └── common.interfaces.ts
 │   ├── lib/
+│   │   ├── deployProgressStorage.ts
 │   │   ├── generateSitemap.ts
-│   │   └── schema.ts
+│   │   ├── refreshContentAccess.ts
+│   │   ├── schema.ts
+│   │   └── vercelDeploymentStatus.ts
 │   ├── styles/
 │   │   ├── globals.css
 │   │   ├── runtime-variables.json
 │   │   └── variables.css
+│   ├── ui/                     # Base UI wrappers (Collapsible, FieldErrorMessage)
 │   ├── tests/
 │   │   ├── factories/
 │   │   │   ├── BaseFactory.ts
@@ -294,7 +307,7 @@ pnpm dev
 └── tsconfig.json
 ```
 
-Generated projects also include **either** `.cursor/` (hooks + rules) **or** `.claude/` (settings + hooks), depending on `agentTooling`. TypeScript is pinned to **^6.0.x** until Next.js 16.3.
+Generated projects also include **either** `.cursor/` (hooks + rules) **or** `.claude/` (settings + hooks), depending on `agentTooling`. TypeScript is pinned to **^7.0.2** in generated `package.json`.
 
 Omit Contentful-specific paths (`src/contentful/`, draft API routes) when `includeContentful` is false. Omit `src/i18n/` and `src/app/[locale]/` when i18n is off.
 
@@ -305,8 +318,10 @@ Omit Contentful-specific paths (`src/contentful/`, draft API routes) when `inclu
 | `pnpm build` | Compile kickoff to `dist/` |
 | `pnpm dev` | TypeScript watch |
 | `pnpm lint` / `pnpm lint:fix` | Biome on this repo |
+| `pnpm lint:css` / `pnpm lint:css:fix` | Stylelint on CSS in this repo |
+| `pnpm lint:all` | Biome (changed files), Stylelint fix, `tsc`, and knip |
 | `pnpm test` | Vitest (generator + validation tests) |
-| `pnpm test:scaffold-e2e` | E2E: generate `fixtures/scaffold-e2e/*.json` projects and run their `tsc:ci`, `lint:ci`, `lint:css`, `test:ci` |
+| `pnpm test:scaffold-e2e` | E2E: generate `fixtures/scaffold-e2e/*.json` projects and run their `tsc:ci`, `lint:ci`, `lint:css`, `test:ci`, `knip:ci` |
 
 **CI** (`.github/workflows/ci.yml` on PRs to `main`):
 
@@ -350,7 +365,8 @@ See `.env.local.example` in the generated project for the full list. For deploym
 
 ### Generated projects
 
-- **CI**: GitHub Actions runs TSC, Biome, Stylelint, and Jest on every PR targeting `staging`.
+- **CI**: GitHub Actions runs TSC, Biome, Stylelint, Jest, and Knip on every PR targeting `staging`.
+- **Local pre-push**: `pnpm lint:all` runs changed-file Biome (`lint:check` since `origin/staging`), Stylelint fix, `tsc:ci`, and `knip:ci`.
 - **Release**: Push a `v*` tag to trigger a GitHub Release and reset the `main` branch.
 - **Deployment**: Configure Vercel to deploy from `staging` (preview) and `main` (production); keep env in sync with **`vercel env pull`** when you change Vercel settings.
 

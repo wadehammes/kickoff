@@ -41,8 +41,7 @@ export const getAppLayout = (a: ProjectAnswers): string => {
 `
     : "";
 
-  return `${gaImport}${draftImport}import { Toaster } from "sonner";
-import Providers from "src/app/providers";
+  return `${gaImport}${draftImport}import Providers from "src/app/providers";
 import { Footer } from "src/components/Footer/Footer.component";
 import { Navigation } from "src/components/Navigation/Navigation.component";
 import "src/styles/globals.css";
@@ -77,10 +76,9 @@ ${preconnectCtf}        <link
       </head>
       <body>
 ${draftUi}        <Providers>
-          <Toaster />
           <div className="page">
             <Navigation />
-            <main className="page-content">{children}</main>
+            <main className="page-content appRoot">{children}</main>
             <Footer />
           </div>
         </Providers>
@@ -175,6 +173,7 @@ export const getAppProviders = (): string => {
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
+import { Toaster } from "sonner";
 
 interface ProvidersProps {
   children: ReactNode;
@@ -186,7 +185,25 @@ const Providers = (props: ProvidersProps) => {
   const [queryClient] = useState(() => new QueryClient());
 
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      {children}
+      <Toaster
+        className="toaster"
+        closeButton
+        expand
+        gap={12}
+        position="top-center"
+        toastOptions={{
+          classNames: {
+            closeButton: "toast-close",
+            toast: "toast",
+          },
+          duration: 5_000,
+          unstyled: true,
+        }}
+        visibleToasts={3}
+      />
+    </QueryClientProvider>
   );
 };
 
@@ -419,45 +436,5 @@ const GlobalError = ({
 };
 
 export default GlobalError;
-`;
-};
-
-// ---------------------------------------------------------------------------
-// src/app/refresh-content/page.tsx
-// ---------------------------------------------------------------------------
-
-export const getRefreshContentPage = (a: ProjectAnswers): string => {
-  return `import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
-export const metadata: Metadata = {
-  robots: "noindex, nofollow",
-  title: "Refresh Content | ${a.siteName}",
-};
-
-export default async function RefreshContent({
-  searchParams,
-}: {
-  searchParams?: Promise<{ token?: string }>;
-}) {
-  const { token } = (await searchParams) ?? {};
-
-  if (
-    process.env.ENVIRONMENT === "production" &&
-    (!token || token !== process.env.REFRESH_CONTENT_ACCESS_TOKEN)
-  ) {
-    return notFound();
-  }
-
-  return (
-    <div style={{ padding: "2rem" }}>
-      <h1>Refresh Content</h1>
-      <p>Content has been refreshed. You can close this page.</p>
-    </div>
-  );
-}
 `;
 };
