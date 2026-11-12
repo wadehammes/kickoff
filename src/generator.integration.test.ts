@@ -68,7 +68,7 @@ describe("generateProject", () => {
       readFileSync(path.join(root, "package.json"), "utf-8"),
     ) as { dependencies?: Record<string, string>; name: string };
     expect(pkg.name).toBe("with-cms");
-    expect(pkg.dependencies?.contentful).toBe("latest");
+    expect(pkg.dependencies?.contentful).toBe("^11.12.10");
   });
 
   it("omits Contentful when includeContentful is false", async () => {
@@ -100,7 +100,7 @@ describe("generateProject", () => {
     const pkg = JSON.parse(
       readFileSync(path.join(root, "package.json"), "utf-8"),
     ) as { dependencies?: Record<string, string>; name: string };
-    expect(pkg.dependencies?.["next-intl"]).toBe("latest");
+    expect(pkg.dependencies?.["next-intl"]).toBe("^4.14.9");
   });
 
   it("adds Google Analytics wiring when includeGA is true", async () => {
@@ -123,7 +123,7 @@ describe("generateProject", () => {
     const pkg = JSON.parse(
       readFileSync(path.join(root, "package.json"), "utf-8"),
     ) as { dependencies?: Record<string, string> };
-    expect(pkg.dependencies?.resend).toBe("latest");
+    expect(pkg.dependencies?.resend).toBe("^6.35.0");
   });
 
   it("adds reCAPTCHA env and packages when includeRecaptcha is true", async () => {
@@ -138,9 +138,9 @@ describe("generateProject", () => {
       dependencies?: Record<string, string>;
       devDependencies?: Record<string, string>;
     };
-    expect(pkg.dependencies?.["react-google-recaptcha"]).toBe("latest");
+    expect(pkg.dependencies?.["react-google-recaptcha"]).toBe("^3.1.0");
     expect(pkg.devDependencies?.["@types/react-google-recaptcha"]).toBe(
-      "latest",
+      "^2.1.9",
     );
   });
 
@@ -153,6 +153,42 @@ describe("generateProject", () => {
       true,
     );
     expect(existsSync(path.join(root, ".claude/settings.json"))).toBe(false);
+    expect(
+      existsSync(path.join(root, ".cursor/hooks/block-query-hook-mocks.sh")),
+    ).toBe(true);
+    expect(
+      existsSync(path.join(root, ".cursor/hooks/enforce-handbook-edit.sh")),
+    ).toBe(true);
+    expect(
+      existsSync(path.join(root, "src/tests/utils/handbookEditGuard.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(
+        path.join(root, "scripts/cursor-handbook-guard.runner.spec.ts"),
+      ),
+    ).toBe(true);
+    expect(
+      existsSync(path.join(root, "src/tests/utils/handbookTestRules.ts")),
+    ).toBe(true);
+    expect(existsSync(path.join(root, "scripts/watch-release.sh"))).toBe(true);
+    expect(
+      existsSync(path.join(root, ".cursor/hooks/session-stop-checks.sh")),
+    ).toBe(true);
+    expect(existsSync(path.join(root, ".cursor/hooks/_stop_checks.sh"))).toBe(
+      true,
+    );
+    const hooks = JSON.parse(
+      readFileSync(path.join(root, ".cursor/hooks.json"), "utf-8"),
+    ) as {
+      hooks?: {
+        beforeShellExecution?: unknown[];
+        stop?: { command: string }[];
+      };
+    };
+    expect(hooks.hooks?.beforeShellExecution?.length).toBeGreaterThan(0);
+    expect(hooks.hooks?.stop?.map((h) => h.command)).toEqual([
+      ".cursor/hooks/session-stop-checks.sh",
+    ]);
   });
 
   it("generates Claude Code agent hooks when agentTooling is claude", async () => {
@@ -163,6 +199,14 @@ describe("generateProject", () => {
     expect(
       existsSync(path.join(root, ".claude/hooks/block-added-comments.sh")),
     ).toBe(true);
+    expect(
+      existsSync(path.join(root, ".claude/hooks/handbook-drift-check.mjs")),
+    ).toBe(true);
+    expect(
+      existsSync(path.join(root, ".claude/hooks/block-destructive-git.sh")),
+    ).toBe(true);
+    expect(existsSync(path.join(root, "scripts/git-commit.sh"))).toBe(true);
+    expect(existsSync(path.join(root, ".githooks/commit-msg"))).toBe(true);
     expect(existsSync(path.join(root, ".cursor/hooks.json"))).toBe(false);
   });
 

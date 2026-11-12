@@ -1,4 +1,19 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import type { ProjectAnswers } from "../types.js";
+
+const scaffoldAssetsDir = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../scaffold-assets",
+);
+const cursorHooksAssetDir = path.join(scaffoldAssetsDir, "cursor-hooks");
+const cursorHooksExtraDir = path.join(scaffoldAssetsDir, "cursor-hooks-extra");
+const claudeHooksAssetDir = path.join(scaffoldAssetsDir, "claude-hooks");
+
+const readScaffoldAsset = (dir: string, name: string): string =>
+  readFileSync(path.join(dir, name), "utf8");
 
 export const AGENT_HOOK_SCRIPT_NAMES = [
   "session-handbook-routing.sh",
@@ -14,6 +29,37 @@ export const AGENT_HOOK_SCRIPT_NAMES = [
   "check-css-nesting.sh",
   "handbook-drift-check.sh",
 ] as const;
+
+export const CLAUDE_ONLY_HOOK_SCRIPT_NAMES = [
+  "block-destructive-git.sh",
+  "block-co-authored-by-commit.sh",
+  "block-generated-types.sh",
+] as const;
+
+export const CURSOR_EXTRA_HOOK_SCRIPT_NAMES = [
+  "block-query-hook-mocks.sh",
+  "enforce-handbook-edit.sh",
+  "lint-all-check.sh",
+  "handbook-test-drift-check.sh",
+  "session-stop-checks.sh",
+  "block-destructive-git.sh",
+  "block-co-authored-by-commit.sh",
+] as const;
+
+export const getClaudeHookScriptNames = (a: ProjectAnswers): string[] => [
+  ...AGENT_HOOK_SCRIPT_NAMES.filter(
+    (name) => name !== "handbook-drift-check.sh",
+  ),
+  ...CLAUDE_ONLY_HOOK_SCRIPT_NAMES.filter(
+    (name) => name !== "block-generated-types.sh" || a.includeContentful,
+  ),
+];
+
+export const getCursorHookScriptNames = (a: ProjectAnswers): string[] => [
+  ...AGENT_HOOK_SCRIPT_NAMES,
+  ...CURSOR_EXTRA_HOOK_SCRIPT_NAMES,
+  ...(a.includeContentful ? ["block-generated-types.sh"] : []),
+];
 
 export const getAgentHookScriptPaths = (
   tooling: ProjectAnswers["agentTooling"],
@@ -93,7 +139,7 @@ stop_followup() {
   local reason="$1"
   jq -n --arg r "$reason" '{ followup_message: $r }'
 }
-`;
+${readScaffoldAsset(cursorHooksAssetDir, "lib-stop-helpers.sh")}`;
 };
 
 export const getClaudeHooksLib = (): string => {
@@ -467,7 +513,9 @@ case "$file" in
   *.module.css)
     chapter="conventions.md (CSS Modules: mobile-first base + nested @media)" ;;
   */src/app/api/* | src/app/api/*)
-    chapter="patterns.md (API routes, cache headers)" ;;
+    chapter="api-routes.md (route map, api.* wiring)" ;;
+  */src/tests/factories/* | src/tests/factories/*)
+    chapter="factories.md (BaseFactory, KeysMatch)" ;;
   */src/app/* | src/app/*)
     chapter="patterns.md (App Router pages, metadata, layouts)" ;;
   */src/components/* | src/components/*)
@@ -570,7 +618,108 @@ exit 0
 `;
 };
 
-export const getCursorHooksJson = (): string => {
+export const getBlockQueryHookMocksSh = (): string =>
+  readScaffoldAsset(cursorHooksExtraDir, "block-query-hook-mocks.sh");
+
+export const getEnforceHandbookEditSh = (): string =>
+  readScaffoldAsset(cursorHooksExtraDir, "enforce-handbook-edit.sh");
+
+export const getLintAllCheckSh = (): string =>
+  readScaffoldAsset(cursorHooksExtraDir, "lint-all-check.sh");
+
+export const getHandbookTestDriftCheckSh = (): string =>
+  readScaffoldAsset(cursorHooksExtraDir, "handbook-test-drift-check.sh");
+
+export const getCursorBlockDestructiveGitSh = (): string =>
+  readScaffoldAsset(cursorHooksExtraDir, "block-destructive-git.sh");
+
+export const getCursorBlockCoAuthoredByCommitSh = (): string =>
+  readScaffoldAsset(cursorHooksExtraDir, "block-co-authored-by-commit.sh");
+
+export const getCursorBlockGeneratedTypesSh = (): string =>
+  readScaffoldAsset(cursorHooksExtraDir, "block-generated-types.sh");
+
+export const getBlockDestructiveGitSh = (): string =>
+  readScaffoldAsset(claudeHooksAssetDir, "block-destructive-git.sh");
+
+export const getBlockCoAuthoredByCommitSh = (): string =>
+  readScaffoldAsset(claudeHooksAssetDir, "block-co-authored-by-commit.sh");
+
+export const getBlockGeneratedTypesSh = (): string =>
+  readScaffoldAsset(claudeHooksAssetDir, "block-generated-types.sh");
+
+export const getHandbookDriftCheckMjs = (): string =>
+  readScaffoldAsset(claudeHooksAssetDir, "handbook-drift-check.mjs");
+
+export const getStopChecksSh = (): string =>
+  readScaffoldAsset(cursorHooksAssetDir, "_stop_checks.sh");
+
+export const getSessionStopChecksSh = (): string =>
+  readScaffoldAsset(cursorHooksAssetDir, "session-stop-checks.sh");
+
+export const getCursorHooksJson = (a: ProjectAnswers): string => {
+  const preToolUse = [
+    {
+      command: ".cursor/hooks/block-added-comments.sh",
+      matcher: "Write|StrReplace",
+      timeout: 10,
+    },
+    {
+      command: ".cursor/hooks/block-toplevel-media.sh",
+      matcher: "Write|StrReplace",
+      timeout: 10,
+    },
+    {
+      command: ".cursor/hooks/block-custom-media.sh",
+      matcher: "Write|StrReplace",
+      timeout: 10,
+    },
+    {
+      command: ".cursor/hooks/block-margin-top.sh",
+      matcher: "Write|StrReplace",
+      timeout: 10,
+    },
+    {
+      command: ".cursor/hooks/block-placeholder-names.sh",
+      matcher: "Write|StrReplace",
+      timeout: 10,
+    },
+    {
+      command: ".cursor/hooks/enforce-scaffold.sh",
+      matcher: "Write",
+      timeout: 10,
+    },
+    {
+      command: ".cursor/hooks/block-barrel-files.sh",
+      matcher: "Write",
+      timeout: 10,
+    },
+    {
+      command: ".cursor/hooks/enforce-factory-location.sh",
+      matcher: "Write",
+      timeout: 10,
+    },
+    {
+      command: ".cursor/hooks/block-query-hook-mocks.sh",
+      matcher: "Write|StrReplace",
+      timeout: 10,
+    },
+    {
+      command: ".cursor/hooks/enforce-handbook-edit.sh",
+      matcher: "Write|StrReplace",
+      timeout: 45,
+      failClosed: false,
+    },
+  ];
+
+  if (a.includeContentful) {
+    preToolUse.push({
+      command: ".cursor/hooks/block-generated-types.sh",
+      matcher: "Write|StrReplace",
+      timeout: 10,
+    });
+  }
+
   return `${JSON.stringify(
     {
       version: 1,
@@ -581,48 +730,21 @@ export const getCursorHooksJson = (): string => {
             timeout: 10,
           },
         ],
-        preToolUse: [
+        beforeShellExecution: [
           {
-            command: ".cursor/hooks/block-added-comments.sh",
-            matcher: "Write|StrReplace",
-            timeout: 10,
+            command: ".cursor/hooks/block-co-authored-by-commit.sh",
+            matcher: "git commit",
+            timeout: 5,
+            failClosed: true,
           },
           {
-            command: ".cursor/hooks/block-toplevel-media.sh",
-            matcher: "Write|StrReplace",
-            timeout: 10,
-          },
-          {
-            command: ".cursor/hooks/block-custom-media.sh",
-            matcher: "Write|StrReplace",
-            timeout: 10,
-          },
-          {
-            command: ".cursor/hooks/block-margin-top.sh",
-            matcher: "Write|StrReplace",
-            timeout: 10,
-          },
-          {
-            command: ".cursor/hooks/block-placeholder-names.sh",
-            matcher: "Write|StrReplace",
-            timeout: 10,
-          },
-          {
-            command: ".cursor/hooks/enforce-scaffold.sh",
-            matcher: "Write",
-            timeout: 10,
-          },
-          {
-            command: ".cursor/hooks/block-barrel-files.sh",
-            matcher: "Write",
-            timeout: 10,
-          },
-          {
-            command: ".cursor/hooks/enforce-factory-location.sh",
-            matcher: "Write",
-            timeout: 10,
+            command: ".cursor/hooks/block-destructive-git.sh",
+            matcher: "git push|git reset|git clean",
+            timeout: 5,
+            failClosed: true,
           },
         ],
+        preToolUse,
         postToolUse: [
           {
             command: ".cursor/hooks/handbook-sync-nudge.sh",
@@ -637,9 +759,9 @@ export const getCursorHooksJson = (): string => {
         ],
         stop: [
           {
-            command: ".cursor/hooks/handbook-drift-check.sh",
+            command: ".cursor/hooks/session-stop-checks.sh",
             loop_limit: 1,
-            timeout: 15,
+            timeout: 360,
           },
         ],
       },
@@ -649,7 +771,7 @@ export const getCursorHooksJson = (): string => {
   )}\n`;
 };
 
-export const getClaudeSettingsJson = (): string => {
+export const getClaudeSettingsJson = (a: ProjectAnswers): string => {
   const hook = (command: string) => ({
     hooks: [{ type: "command", command }],
   });
@@ -702,7 +824,12 @@ export const getClaudeSettingsJson = (): string => {
             ...hook(".claude/hooks/check-css-nesting.sh"),
           },
         ],
-        Stop: [hook(".claude/hooks/handbook-drift-check.sh")],
+        Stop: [
+          hook(".claude/hooks/handbook-drift-check.mjs"),
+          ...(a.includeContentful
+            ? [hook(".claude/hooks/block-generated-types.sh")]
+            : []),
+        ],
       },
     },
     null,
@@ -813,8 +940,15 @@ Shared team files under \`.claude/\` are tracked in git (\`settings.json\`, \`ho
 `;
 };
 
+export type AgentHookScriptName =
+  | (typeof AGENT_HOOK_SCRIPT_NAMES)[number]
+  | (typeof CLAUDE_ONLY_HOOK_SCRIPT_NAMES)[number]
+  | (typeof CURSOR_EXTRA_HOOK_SCRIPT_NAMES)[number]
+  | "block-generated-types.sh";
+
 export const getAgentHookScriptContent = (
-  name: (typeof AGENT_HOOK_SCRIPT_NAMES)[number],
+  name: AgentHookScriptName,
+  options?: { tooling?: "cursor" | "claude" },
 ): string => {
   switch (name) {
     case "session-handbook-routing.sh":
@@ -841,6 +975,28 @@ export const getAgentHookScriptContent = (
       return getCheckCssNestingSh();
     case "handbook-drift-check.sh":
       return getHandbookDriftCheckSh();
+    case "block-query-hook-mocks.sh":
+      return getBlockQueryHookMocksSh();
+    case "enforce-handbook-edit.sh":
+      return getEnforceHandbookEditSh();
+    case "lint-all-check.sh":
+      return getLintAllCheckSh();
+    case "handbook-test-drift-check.sh":
+      return getHandbookTestDriftCheckSh();
+    case "session-stop-checks.sh":
+      return getSessionStopChecksSh();
+    case "block-destructive-git.sh":
+      return options?.tooling === "cursor"
+        ? getCursorBlockDestructiveGitSh()
+        : getBlockDestructiveGitSh();
+    case "block-co-authored-by-commit.sh":
+      return options?.tooling === "cursor"
+        ? getCursorBlockCoAuthoredByCommitSh()
+        : getBlockCoAuthoredByCommitSh();
+    case "block-generated-types.sh":
+      return options?.tooling === "cursor"
+        ? getCursorBlockGeneratedTypesSh()
+        : getBlockGeneratedTypesSh();
     default:
       return "";
   }

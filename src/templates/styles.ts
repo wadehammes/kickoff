@@ -23,7 +23,6 @@ html,
 body,
 div,
 span,
-applet,
 object,
 iframe,
 h1,
@@ -37,9 +36,7 @@ blockquote,
 pre,
 a,
 abbr,
-acronym,
 address,
-big,
 cite,
 code,
 del,
@@ -52,16 +49,13 @@ q,
 s,
 samp,
 small,
-strike,
 strong,
 sub,
 sup,
-tt,
 var,
 b,
 u,
 i,
-center,
 dl,
 dt,
 dd,
@@ -375,97 +369,6 @@ p:empty {
   to {
     opacity: 1;
   }
-}
-
-.toaster {
-  --width: var(--toast-width);
-  --offset-top: var(--toast-offset);
-  --offset-left: 0;
-  --offset-right: 0;
-  --mobile-offset-left: var(--toast-offset);
-  --mobile-offset-right: var(--toast-offset);
-  --gap: 0.75rem;
-
-  padding: 0;
-
-  &[data-x-position="center"] {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-
-    @media (width <= 600px) {
-      width: var(--toast-width);
-    }
-  }
-}
-
-.toast {
-  --toast-bg: var(--color-toast-default-bg);
-  --toast-border: var(--color-toast-default-border);
-  --toast-text: var(--color-toast-default-text);
-
-  align-items: center;
-  background-color: var(--toast-bg);
-  border: 1px solid var(--toast-border);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px var(--color-toast-shadow);
-  color: var(--toast-text);
-  display: flex;
-  font-family: var(--font-family-text);
-  font-size: 0.9375rem;
-  font-weight: 400;
-  gap: 0.75rem;
-  line-height: 1.4;
-  padding: 0.875rem 1rem;
-  position: relative;
-  width: 100%;
-}
-
-.toast[data-type="success"] {
-  --toast-bg: var(--color-toast-success-bg);
-  --toast-border: var(--color-toast-success-border);
-  --toast-text: var(--color-toast-success-text);
-}
-
-.toast[data-type="error"] {
-  --toast-bg: var(--color-toast-error-bg);
-  --toast-border: var(--color-toast-error-border);
-  --toast-text: var(--color-toast-error-text);
-}
-
-.toast[data-type="warning"] {
-  --toast-bg: var(--color-toast-warning-bg);
-  --toast-border: var(--color-toast-warning-border);
-  --toast-text: var(--color-toast-warning-text);
-}
-
-.toast [data-icon] {
-  display: none;
-}
-
-.toast > *:not(.toast-close) {
-  flex: 1;
-  min-width: 0;
-}
-
-.toast-close {
-  align-items: center;
-  background: none;
-  border: 0;
-  border-radius: 4px;
-  color: var(--toast-text);
-  cursor: pointer;
-  display: flex;
-  flex-shrink: 0;
-  margin-left: auto;
-  opacity: 0.8;
-  order: 999;
-  padding: 0.25rem;
-  transition: opacity 0.15s ease;
-}
-
-.toast-close:hover {
-  opacity: 1;
 }
 `;
 };

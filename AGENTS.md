@@ -21,7 +21,8 @@ src/
     ├── components.ts     ← Navigation, Footer, ExitDraftModeLink, NotFoundPage
     ├── config.ts         ← package.json, tsconfig, biome, jest, postcss, env...
     ├── contentful.ts     ← client, helpers, cache, parsers, richText
-    ├── docs.ts           ← CLAUDE.md, README, all 11 handbook pages (generated projects)
+    ├── docs.ts           ← CLAUDE.md, README, handbook index/llms/core chapters (generated projects)
+    ├── handbook-agent.ts ← glossary, decisions, agent-workflow, api-routes, factories, data-storage
     ├── github.ts         ← CI, release, dependabot, labeler workflows
     ├── i18n.ts           ← routing, request, locale layout/pages
     ├── lib.ts            ← schema.ts, generateSitemap.ts

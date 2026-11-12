@@ -89,6 +89,8 @@ export const getApiUrls = (): string => {
   return `import type {
   DeployActiveInput,
   DeployActiveResponse,
+  DeployBuildStatsInput,
+  DeployBuildStatsResponse,
   DeployStatusInput,
   DeployStatusResponse,
   DeployTriggerInput,
@@ -111,6 +113,13 @@ const buildDeploySearchParams = (
 
 export const api = {
   deploy: {
+    buildStats: ({ token }: DeployBuildStatsInput) =>
+      fetchJsonResponse<DeployBuildStatsResponse>(
+        fetch(
+          \`/api/refresh-content/deploy/build-stats?\${buildDeploySearchParams({}, token)}\`,
+          fetchOptions({ cache: "no-store", method: FetchMethods.Get }),
+        ),
+      ),
     active: ({ target, token }: DeployActiveInput) =>
       fetchJsonResponse<DeployActiveResponse>(
         fetch(
@@ -121,24 +130,32 @@ export const api = {
     status: ({
       createdAt,
       deployHookId,
+      jobCreatedAt,
       projectId,
       target,
       token,
-    }: DeployStatusInput) =>
-      fetchJsonResponse<DeployStatusResponse>(
+    }: DeployStatusInput) => {
+      const base: Record<string, string> = {
+        deployHookId,
+        projectId,
+        since: String(createdAt),
+        target,
+      };
+
+      if (jobCreatedAt !== undefined) {
+        base.jobCreatedAt = String(jobCreatedAt);
+      }
+
+      return fetchJsonResponse<DeployStatusResponse>(
         fetch(
           \`/api/refresh-content/deploy/status?\${buildDeploySearchParams(
-            {
-              deployHookId,
-              projectId,
-              since: String(createdAt),
-              target,
-            },
+            base,
             token,
           )}\`,
           fetchOptions({ cache: "no-store", method: FetchMethods.Get }),
         ),
-      ),
+      );
+    },
     trigger: ({ target, token }: DeployTriggerInput) =>
       fetchJsonResponse<DeployTriggerResponse>(
         fetch(

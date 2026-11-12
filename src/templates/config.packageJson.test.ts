@@ -34,8 +34,8 @@ const parse = (a: ProjectAnswers): PkgJson =>
 describe("getPackageJson", () => {
   it("includes Contentful packages and types script when includeContentful is true", () => {
     const pkg = parse(answers());
-    expect(pkg.dependencies?.contentful).toBe("latest");
-    expect(pkg.devDependencies?.["cf-content-types-generator"]).toBe("latest");
+    expect(pkg.dependencies?.contentful).toBe("^11.12.10");
+    expect(pkg.devDependencies?.["cf-content-types-generator"]).toBe("^3.0.1");
     expect(pkg.scripts?.["types:contentful"]).toContain(
       "cf-content-types-generator",
     );
@@ -50,19 +50,19 @@ describe("getPackageJson", () => {
 
   it("adds next-intl when includeI18n is true", () => {
     const pkg = parse(answers({ includeI18n: true }));
-    expect(pkg.dependencies?.["next-intl"]).toBe("latest");
+    expect(pkg.dependencies?.["next-intl"]).toBe("^4.14.9");
   });
 
   it("adds resend when includeResend is true", () => {
     const pkg = parse(answers({ includeResend: true }));
-    expect(pkg.dependencies?.resend).toBe("latest");
+    expect(pkg.dependencies?.resend).toBe("^6.35.0");
   });
 
   it("adds react-google-recaptcha and types when includeRecaptcha is true", () => {
     const pkg = parse(answers({ includeRecaptcha: true }));
-    expect(pkg.dependencies?.["react-google-recaptcha"]).toBe("latest");
+    expect(pkg.dependencies?.["react-google-recaptcha"]).toBe("^3.1.0");
     expect(pkg.devDependencies?.["@types/react-google-recaptcha"]).toBe(
-      "latest",
+      "^2.1.9",
     );
   });
 
@@ -73,9 +73,9 @@ describe("getPackageJson", () => {
 
   it("includes Base UI and omits react-aria", () => {
     const pkg = parse(answers());
-    expect(pkg.dependencies?.["@base-ui/react"]).toBe("latest");
+    expect(pkg.dependencies?.["@base-ui/react"]).toBe("^1.9.0");
     expect(pkg.dependencies?.["react-aria"]).toBeUndefined();
-    expect(pkg.devDependencies?.["@svgr/webpack"]).toBe("latest");
+    expect(pkg.devDependencies?.["@svgr/webpack"]).toBe("^8.1.0");
   });
 
   it("uses turbopack by default for dev scripts", () => {
@@ -89,6 +89,6 @@ describe("getPackageJson", () => {
     expect(pkg.scripts?.["lint:check"]).toContain("origin/staging");
     expect(pkg.scripts?.["lint:all"]).toContain("knip:ci");
     expect(pkg.scripts?.knip).toBe("knip");
-    expect(pkg.devDependencies?.knip).toBe("latest");
+    expect(pkg.devDependencies?.knip).toBe("^6.43.0");
   });
 });

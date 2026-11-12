@@ -347,3 +347,199 @@ export const getButtonCSS = (): string => {
 }
 `;
 };
+
+// ---------------------------------------------------------------------------
+// src/lib/toast/appToast.ts
+// ---------------------------------------------------------------------------
+
+export const getAppToast = (): string => {
+  return `import { Toast } from "@base-ui/react/toast";
+
+export const APP_TOAST_LIMIT = 3;
+export const APP_TOAST_TIMEOUT_MS = 5_000;
+
+export const appToastManager = Toast.createToastManager();
+
+type AppToastOptions = {
+  id?: string;
+};
+
+type AppToastType = "error" | "success" | "warning";
+
+const showAppToast = (
+  type: AppToastType,
+  message: string,
+  options?: AppToastOptions,
+) =>
+  appToastManager.add({
+    id: options?.id,
+    priority: type === "error" ? "high" : "low",
+    title: message,
+    type,
+  });
+
+export const appToast = {
+  error: (message: string, options?: AppToastOptions) =>
+    showAppToast("error", message, options),
+  success: (message: string, options?: AppToastOptions) =>
+    showAppToast("success", message, options),
+  warning: (message: string, options?: AppToastOptions) =>
+    showAppToast("warning", message, options),
+};
+`;
+};
+
+// ---------------------------------------------------------------------------
+// src/components/Toast/ToastHost.component.tsx
+// ---------------------------------------------------------------------------
+
+export const getToastHostComponent = (): string => {
+  return `"use client";
+
+import { Toast } from "@base-ui/react/toast";
+import type { PropsWithChildrenOnly } from "src/@types/react";
+import styles from "src/components/Toast/ToastHost.module.css";
+import {
+  APP_TOAST_LIMIT,
+  APP_TOAST_TIMEOUT_MS,
+  appToastManager,
+} from "src/lib/toast/appToast";
+
+const ToastList = () => {
+  const { toasts } = Toast.useToastManager();
+
+  return toasts.map((toastItem) => (
+    <Toast.Root
+      className={styles.toast}
+      key={toastItem.id}
+      swipeDirection={["down", "right"]}
+      toast={toastItem}
+    >
+      <Toast.Content className={styles.content}>
+        <Toast.Title className={styles.title} />
+        <Toast.Close aria-label="Close notification" className={styles.close} />
+      </Toast.Content>
+    </Toast.Root>
+  ));
+};
+
+export const ToastHost = ({ children }: PropsWithChildrenOnly) => (
+  <Toast.Provider
+    limit={APP_TOAST_LIMIT}
+    timeout={APP_TOAST_TIMEOUT_MS}
+    toastManager={appToastManager}
+  >
+    {children}
+    <Toast.Portal>
+      <Toast.Viewport className={styles.viewport}>
+        <ToastList />
+      </Toast.Viewport>
+    </Toast.Portal>
+  </Toast.Provider>
+);
+
+export default ToastHost;
+`;
+};
+
+export const getToastHostCSS = (): string => {
+  return `.viewport {
+  position: fixed;
+  top: var(--toast-offset);
+  left: 50%;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: var(--toast-width);
+  max-width: calc(100vw - 2rem);
+  padding: 0;
+  margin: 0;
+  pointer-events: none;
+  list-style: none;
+  transform: translateX(-50%);
+}
+
+.toast {
+  --toast-bg: var(--color-toast-default-bg);
+  --toast-text: var(--color-toast-default-text);
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.625rem 2rem;
+  font-family: var(--font-family-text);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--toast-text);
+  pointer-events: auto;
+  background-color: var(--toast-bg);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px var(--color-toast-shadow);
+}
+
+.toast[data-type="success"] {
+  --toast-bg: var(--color-toast-success-bg);
+  --toast-text: var(--color-toast-success-text);
+}
+
+.toast[data-type="error"] {
+  --toast-bg: var(--color-toast-error-bg);
+  --toast-text: var(--color-toast-error-text);
+}
+
+.toast[data-type="warning"] {
+  --toast-bg: var(--color-toast-warning-bg);
+  --toast-text: var(--color-toast-warning-text);
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font: inherit;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.close {
+  position: absolute;
+  top: 50%;
+  right: 0.375rem;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  color: var(--toast-text);
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  opacity: 0.65;
+  transform: translateY(-50%);
+  transition: opacity 0.15s ease;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  &:focus-visible {
+    outline: 1px solid rgb(255 255 255 / 35%);
+    outline-offset: 1px;
+    opacity: 1;
+  }
+}
+`;
+};

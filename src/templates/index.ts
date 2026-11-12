@@ -7,6 +7,7 @@ export * from "./contentful.js";
 export * from "./deploy.js";
 export * from "./docs.js";
 export * from "./github.js";
+export * from "./handbook-agent.js";
 export * from "./i18n.js";
 export * from "./lib.js";
 export * from "./next.js";

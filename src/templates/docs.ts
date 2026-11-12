@@ -8,7 +8,7 @@ export const getClaude = (a: ProjectAnswers): string => {
   const cmsClause = a.includeContentful ? "Contentful/CMS changes, " : "";
   return `# Agent instructions
 
-Before **substantive** work in this repo—features, refactors, ${cmsClause}patterns that touch the App Router or API routes, CI or env, analytics—read **\`docs/handbook/README.md\`** and the handbook **chapter** that matches the task. Use **\`docs/handbook/llms.md\`** for a compact task→chapter map (helpful for routing or for pasting into other tools).
+Before **substantive** work in this repo—features, refactors, ${cmsClause}patterns that touch the App Router or API routes, CI or env, analytics—read **\`docs/handbook/README.md\`** and the handbook **chapter** that matches the task. Use **\`docs/handbook/llms.md\`** for a compact task→chapter map. When unsure which pattern to use, read **\`docs/handbook/decisions.md\`** first.
 
 Follow documented patterns.
 
@@ -73,7 +73,7 @@ Or use \`pnpm dev:preview\` which auto-opens draft mode after the server starts.
     a.agentTooling === "cursor"
       ? `## Agent hooks (Cursor)
 
-This project includes **Cursor** hooks under **\`.cursor/\`** (\`hooks.json\`, \`hooks/*.sh\`, \`rules/handbook.mdc\`). They enforce handbook conventions (no added comments, CSS rules, \`pnpm scaffold\` for new components, handbook sync). Requires \`bash\`, \`jq\`, and \`git\` on PATH. See **\`.cursor/hooks/README.md\`**.
+This project includes **Cursor** hooks under **\`.cursor/\`** (\`hooks.json\`, \`hooks/*.sh\`, \`rules/handbook.mdc\`). They enforce handbook conventions (no added comments, CSS rules, \`pnpm scaffold\` for new components, handbook sync). The \`stop\` hook runs \`session-stop-checks.sh\` (handbook drift, \`pnpm lint:all\`, and handbook test rules in one follow-up; dedupe state under \`.cursor/hooks-state/\`). Requires \`bash\`, \`jq\`, \`git\`, and \`pnpm\` on PATH. See **\`.cursor/hooks/README.md\`**.
 
 `
       : `## Agent hooks (Claude Code)
@@ -183,8 +183,17 @@ export const getHandbookReadme = (a: ProjectAnswers): string => {
     ? "how Contentful feeds the UI"
     : "how the app is structured";
 
+  const agentIndexRows = `| [glossary.md](glossary.md) | Domain terms (PO, \`api.*\`, deploy, handbook). |
+| [decisions.md](decisions.md) | **X vs Y** choices and feature playbooks for agents. |
+| [agent-workflow.md](agent-workflow.md) | Agent finish checklist, hooks, \`pnpm lint:all\` / \`handbook:check\`. |
+| [api-routes.md](api-routes.md) | \`api.*\` → Route Handler map and extension rules. |
+| [factories.md](factories.md) | \`BaseFactory\`, \`KeysMatch\`, factories under \`src/tests/factories/\`. |
+| [data-storage.md](data-storage.md) | Client storage (e.g. deploy progress) and doc checklist. |
+`;
+
   const howToRead = a.includeContentful
-    ? `1. **Orientation** — [architecture.md](architecture.md): stack, folders, App Router, and how data gets from Contentful to the screen.
+    ? `0. **Pattern choice** — [decisions.md](decisions.md) when you are unsure **X vs Y**.
+1. **Orientation** — [architecture.md](architecture.md): stack, folders, App Router, and how data gets from Contentful to the screen.
 2. **Day-to-day coding** — [conventions.md](conventions.md): TypeScript, React, CSS, tests, accessibility.
 3. **CMS work** — [contentful.md](contentful.md): types, getters, parsers, sections and content blocks.
 4. **UI structure** — [components.md](components.md): folders, files, tests.
@@ -193,7 +202,8 @@ export const getHandbookReadme = (a: ProjectAnswers): string => {
 7. **Analytics & tags** — [integrations.md](integrations.md): GA, data layer, third parties.
 8. **Sitemaps** — [distribution.md](distribution.md): sitemap generation and public output.
 9. **Where things live** — [source-layout.md](source-layout.md): interfaces, \`src/utils\`, \`src/lib\`.`
-    : `1. **Orientation** — [architecture.md](architecture.md): stack, folders, App Router.
+    : `0. **Pattern choice** — [decisions.md](decisions.md) when you are unsure **X vs Y**.
+1. **Orientation** — [architecture.md](architecture.md): stack, folders, App Router.
 2. **Day-to-day coding** — [conventions.md](conventions.md): TypeScript, React, CSS, tests, accessibility.
 3. **UI structure** — [components.md](components.md): folders, files, tests.
 4. **App patterns** — [patterns.md](patterns.md): App Router data loading, React Query, API routes, forms, SEO.
@@ -203,7 +213,7 @@ export const getHandbookReadme = (a: ProjectAnswers): string => {
 8. **Where things live** — [source-layout.md](source-layout.md): interfaces, \`src/utils\`, \`src/lib\`.`;
 
   const indexTable = a.includeContentful
-    ? `| [architecture.md](architecture.md) | Tech stack, directory map, \`src/app\`, data flow, key config. Start here. |
+    ? `${agentIndexRows}| [architecture.md](architecture.md) | Tech stack, directory map, \`src/app\`, data flow, key config. Start here. |
 | [conventions.md](conventions.md) | TypeScript, Biome, CSS Modules, testing, test IDs, accessibility, comments, editor, React Query hook rules. |
 | [contentful.md](contentful.md) | Generated types, getters, parsers, sections vs modules, Rich Text, client. |
 | [components.md](components.md) | Component folder layout, \`pnpm scaffold\`, test IDs, exports, dynamic imports, links. |
@@ -213,7 +223,7 @@ export const getHandbookReadme = (a: ProjectAnswers): string => {
 | [distribution.md](distribution.md) | Sitemap generation and \`public/\` output. |
 | [source-layout.md](source-layout.md) | \`src/interfaces\`, \`src/utils\` map, \`src/lib\`. |
 | [llms.md](llms.md) | Task-to-chapter routing for tools; copy-paste blurb for non-Cursor agents. |`
-    : `| [architecture.md](architecture.md) | Tech stack, \`src/app\`, key config. Start here. |
+    : `${agentIndexRows}| [architecture.md](architecture.md) | Tech stack, \`src/app\`, key config. Start here. |
 | [conventions.md](conventions.md) | TypeScript, Biome, CSS Modules, testing, test IDs, accessibility, comments, editor, React Query hook rules. |
 | [components.md](components.md) | Component folder layout, \`pnpm scaffold\`, test IDs, exports, dynamic imports, links. |
 | [patterns.md](patterns.md) | Server components, serialization, React Query, \`src/api\`, forms, layout, metadata, JSON-LD. |
@@ -233,7 +243,7 @@ This is the **${s} handbook**: how the site is put together, how we write code, 
 
 You do not have to read everything in one sitting. Skim the index, bookmark what you need, and come back when you touch that area. **Do keep these docs honest**—when behavior in the repo changes, update the matching page here so the next person (or tool) is not led astray.
 
-**For tools and LLMs** (custom GPTs, other agents): **[llms.md](llms.md)** is a compact **task → chapter** map and a short copy-paste instruction blurb.
+**For tools and LLMs** (custom GPTs, other agents): **[llms.md](llms.md)** has a compact **task → chapter** map and a copy-paste blurb. Start with **[decisions.md](decisions.md)** when unsure which pattern to use.
 
 ## How to read this handbook
 
@@ -260,8 +270,19 @@ Ordered **greenfield prerequisites** (${devSetupPrereq}) and everyday machine se
 export const getHandbookLlms = (a: ProjectAnswers): string => {
   const s = a.siteName;
 
+  const agentTaskRows = `| Domain term (PO, \`api.*\`, deploy target, handbook) | [glossary.md](glossary.md) |
+| Unsure which pattern (RSC vs Query, PO vs spec, \`api.*\` vs raw \`fetch\`) | [decisions.md](decisions.md) |
+| Step-by-step: component, API route, hook, factory | [decisions.md](decisions.md) → Feature playbooks |
+| Agent session: what to read / run before finishing | [agent-workflow.md](agent-workflow.md), [CLAUDE.md](../../CLAUDE.md) |
+| New or changed Route Handler / \`api.*\` method | [api-routes.md](api-routes.md) |
+| Client storage, deploy progress \`localStorage\` | [data-storage.md](data-storage.md) |
+| Test factories, \`KeysMatch\`, \`build()\` | [factories.md](factories.md) |
+| Cursor hooks, \`enforce-handbook-edit\`, stop orchestrator | [agent-workflow.md](agent-workflow.md) + [platform.md](platform.md) |
+| Fix failing CI / \`pnpm handbook:check\` | [platform.md](platform.md) + [agent-workflow.md](agent-workflow.md) |
+`;
+
   const taskRows = a.includeContentful
-    ? `| Stack, folders, App Router layout, Contentful → page render flow | [architecture.md](architecture.md) |
+    ? `${agentTaskRows}| Stack, folders, App Router layout, Contentful → page render flow | [architecture.md](architecture.md) |
 | TypeScript / React style, Biome, CSS Modules, tests, test IDs, a11y, \`next/image\`, React Query hooks | [conventions.md](conventions.md) |
 | Contentful types/codegen, getters, parsers, sections vs content blocks, ContentRenderer, Rich Text | [contentful.md](contentful.md) |
 | Component folder layout, \`pnpm scaffold\`, exports, dynamic imports, internal/external links | [components.md](components.md) |
@@ -270,7 +291,7 @@ export const getHandbookLlms = (a: ProjectAnswers): string => {
 | Google Analytics, \`dataLayer\`, client analytics | [integrations.md](integrations.md) |
 | Sitemaps, \`public/\` XML output | [distribution.md](distribution.md) |
 | \`src/interfaces\`, \`src/utils\` map, \`src/lib\` | [source-layout.md](source-layout.md) |`
-    : `| Stack, folders, App Router layout | [architecture.md](architecture.md) |
+    : `${agentTaskRows}| Stack, folders, App Router layout | [architecture.md](architecture.md) |
 | TypeScript / React style, Biome, CSS Modules, tests, test IDs, a11y, \`next/image\`, React Query hooks | [conventions.md](conventions.md) |
 | Component folder layout, \`pnpm scaffold\`, exports, dynamic imports, internal/external links | [components.md](components.md) |
 | Server components, caching, React Query, \`src/api\`, forms, metadata / JSON-LD | [patterns.md](patterns.md) |
@@ -307,7 +328,7 @@ ${taskRows}
 ## Suggested instruction blurb (copy-paste)
 
 \`\`\`text
-Before substantive edits, read docs/handbook/README.md and the chapter that matches the task (see docs/handbook/llms.md for a task→chapter map). When your change affects behavior, setup, or how features should be built, update the relevant docs/handbook/*.md in the same PR or an immediate follow-up so the handbook stays accurate.
+Before any work, read docs/handbook/README.md and the chapter that matches the task (see docs/handbook/llms.md for a task→chapter map). When unsure which pattern to use, read docs/handbook/decisions.md first. Follow documented patterns. When your change affects behavior, setup, or conventions, update the relevant docs/handbook/*.md in the same PR or an immediate follow-up so the handbook stays accurate. When user-facing features, routes, setup, or tech stack listed in the root README change, update README.md too.
 \`\`\`
 `;
 };
@@ -528,7 +549,7 @@ Place the CSS module next to the component, e.g. \`MyComponent.component.tsx\` a
 ### Modern CSS
 
 - **Nesting**: Use nesting for scoped styles and for nested media queries.
-- **Custom properties**: Prefer variables from the global design system. All design tokens live in \`src/styles/variables.css\`, imported by \`globals.css\`. Semantic tokens include **\`--color-toast-*\`**, **\`--toast-width\`**, and **\`--toast-offset\`** for Sonner toasts. If you need to inject a custom property at render time (inline \`style={{ "--foo": value }}\`), declare it in the same file as \`--foo: initial;\` so Stylelint recognizes it.
+- **Custom properties**: Prefer variables from the global design system. All design tokens live in \`src/styles/variables.css\`, imported by \`globals.css\`. Semantic tokens include **\`--color-toast-*\`**, **\`--toast-width\`**, and **\`--toast-offset\`** for Base UI toasts (\`ToastHost\` / \`appToast\`). If you need to inject a custom property at render time (inline \`style={{ "--foo": value }}\`), declare it in the same file as \`--foo: initial;\` so Stylelint recognizes it.
 - **Runtime font variables**: Next.js \`localFont\` injects font variables via a class on \`<html>\` at runtime. Do not declare them in CSS. Register them in \`src/styles/runtime-variables.json\` for Stylelint.
 - **Modern features**: Use \`color-mix()\`, \`clamp()\` where they simplify code. Keep styles DRY.
 
@@ -576,6 +597,8 @@ Default to running **in-repo utilities** for real in component tests — URL bui
 
 - **Don't mock**: anything under \`src/utils/\` — URL builders, string helpers, etc. Let them run.
 - **Do mock**: external dependencies — \`src/api/*\` calls, \`src/lib/analytics\`, \`next/navigation\`, \`next/script\`, \`IntersectionObserver\`, and similar.
+- **Toasts in specs**: Jest maps \`src/lib/toast/appToast\` to \`src/tests/mocks/appToast.mock.ts\`. Re-export \`mockToast\` from the page object when asserting deploy/API toasts.
+- **Handbook test rules**: \`src/tests/utils/handbookTestRules.ts\` and \`handbookTestRules.spec.ts\` enforce the **Do not test React Query** rules below; Cursor \`block-query-hook-mocks.sh\` blocks new violations on edit.
 
 ### Jest and \`next/script\`
 
@@ -622,6 +645,12 @@ Keep data-fetching hooks in their own files under \`src/hooks/queries/\` and \`s
 - **Hook params must be a single object.** Pass one argument object to the hook instead of multiple positional arguments.
 - **Keep query hooks dumb.** Query files should only call \`useQuery\` / \`useMutation\` with standard options. Do not add side effects or callbacks in the query file.
 - **Handle errors and side effects at the call site.**
+
+### Do not test React Query
+
+- Do **not** add specs under **\`src/hooks/mutations/\`** or **\`src/hooks/queries/\`**.
+- In feature tests, mock **\`src/api/urls\`** and let real query/mutation hooks run in the shared test \`render\` wrapper. Do **not** \`jest.mock\` or \`jest.mocked\` hooks from those folders.
+- Rules are enforced in **\`handbookTestRules.ts\`** and Cursor **\`block-query-hook-mocks.sh\`**.
 `;
 };
 
@@ -744,7 +773,7 @@ One directory per component under \`src/components/<ComponentName>/\`. Use **Pas
 | **\`<Name>.po.tsx\`** | Page object for tests. Extends \`BasePageObject\`, sets \`testId = "rh<Name>"\`, implements \`render<Name>(...)\` with \`render()\` from \`src/tests/test-utils.tsx\`, and holds setup, mocks, and test data. **No \`screen\` queries in the PO** — queries belong in the spec. |
 | **\`<Name>.spec.tsx\`** | Jest tests. Import \`describe\`, \`it\`, \`expect\`, \`beforeEach\` from \`@jest/globals\`. After the PO renders, use \`screen\` and \`userEvent\` for all queries and interactions. |
 | **\`<Name>.interfaces.ts\`** | Use when the component has **public** props or data types not already defined by a Contentful parser. If the component is driven by Contentful, the "interface" is usually the parsed type from \`src/contentful/parse<Name>.ts\`, so you may not need a separate interfaces file. |
-| **\`src/tests/factories/<Name>.factory.ts\`** | Subclass of \`BaseFactory\` for test data when tests need complex or repeated props. **Lives in \`src/tests/factories/\`, not in the component folder** — factories are shared test infrastructure. See the factory rules in [conventions.md](conventions.md). |
+| **\`src/tests/factories/<Name>.factory.ts\`** | Subclass of \`BaseFactory\` for test data when tests need complex or repeated props. **Lives in \`src/tests/factories/\`, not in the component folder** — factories are shared test infrastructure. See [factories.md](factories.md) and [conventions.md](conventions.md). |
 | **\`<Name>.module.css\`** | Layout, spacing, typography, responsive rules. Use nesting and \`var(--...)\` from the design system. |
 | **\`use<Something>.hook.ts\`** | Optional. When the component has a custom hook used only by that component, place it in the same folder. |
 
@@ -877,7 +906,7 @@ export const getHandbookPlatform = (a: ProjectAnswers): string => {
     a.agentTooling === "cursor"
       ? `## Agent hooks (Cursor)
 
-This project includes **Cursor** hooks under **\`.cursor/\`** (\`hooks.json\`, \`hooks/*.sh\`, \`rules/handbook.mdc\`). They enforce handbook conventions (no added comments, CSS rules, \`pnpm scaffold\` for new components, handbook sync). Requires \`bash\`, \`jq\`, and \`git\` on PATH. See **\`.cursor/hooks/README.md\`**.
+This project includes **Cursor** hooks under **\`.cursor/\`** (\`hooks.json\`, \`hooks/*.sh\`, \`rules/handbook.mdc\`). They enforce handbook conventions (no added comments, CSS rules, \`pnpm scaffold\` for new components, handbook sync). The \`stop\` hook runs \`session-stop-checks.sh\` (handbook drift, \`pnpm lint:all\`, and handbook test rules in one follow-up; dedupe state under \`.cursor/hooks-state/\`). Requires \`bash\`, \`jq\`, \`git\`, and \`pnpm\` on PATH. See **\`.cursor/hooks/README.md\`**.
 
 `
       : `## Agent hooks (Claude Code)
@@ -973,7 +1002,7 @@ ${notableContentful}- **ENVIRONMENT** — drives URLs in helpers such as \`envUr
 
   If either hook env var is missing, the deploy API returns **\`503\`** with **\`{ "error": "Deploy hook not configured" }\`**.
 
-- **Deploy monitoring**: After a hook trigger, **\`POST /api/refresh-content/deploy\`** returns **\`createdAt\`**, **\`deployHookId\`**, and **\`projectId\`**. Route handlers share **\`parseDeployTarget\`**, **\`parseDeployHookUrl\`**, and **\`resolveDeployHookMetadata\`** from **\`refreshContentAccess.ts\`**; **\`vercelDeploymentStatus.ts\`** handles Vercel List Deployments polling. **\`useDeployMonitor\`** (used by **\`DeployButton\`**) calls **\`api.deploy.*\`** via React Query: a **mutation** for trigger, **polled queries** for **\`GET /api/refresh-content/deploy/status\`**, and an **active** query for **\`GET /api/refresh-content/deploy/active\`** on load. **\`startedAt\`** (button click time) is persisted in **\`localStorage\`** and used for the elapsed label and as the status **\`since\`** value. Status and active routes are **\`force-dynamic\`** with **\`Cache-Control: no-store\`**; Vercel fetches use **\`cache: 'no-store'\`**. Client **\`api.deploy.status\`** / **\`api.deploy.active\`** also pass **\`cache: 'no-store'\`**. Polling stops on terminal status (**\`ready\`**, **\`error\`**, **\`canceled\`**) or when **\`monitoring: false\`** (no API token). Without **\`VERCEL_API_TOKEN\`**, the button counts up for **\`DEPLOY_ESTIMATED_MS\`** (2 minutes) then shows **Refresh may be complete**. Labels use monotonic **\`displayStatus\`** via **\`furthestDeployStatus\`** (**Starting (m:ss)**, **Building (m:ss)**, etc.). Sonner toasts are configured in **\`providers.tsx\`** with styles in **\`globals.css\`**.
+- **Deploy monitoring**: After a hook trigger, **\`POST /api/refresh-content/deploy\`** returns **\`createdAt\`**, **\`deployHookId\`**, and **\`projectId\`**. Route handlers share **\`parseDeployTarget\`**, **\`parseDeployHookUrl\`**, and **\`resolveDeployHookMetadata\`** from **\`refreshContentAccess.ts\`**; **\`vercelDeploymentStatus.ts\`** handles Vercel List Deployments polling. **\`useDeployMonitor\`** (used by **\`DeployButton\`**) calls **\`api.deploy.*\`** via React Query: a **mutation** for trigger, **polled queries** for **\`GET /api/refresh-content/deploy/status\`**, and an **active** query for **\`GET /api/refresh-content/deploy/active\`** on load. **\`GET /api/refresh-content/deploy/build-stats\`** returns Vercel build timing when **\`VERCEL_API_TOKEN\`** is set (**\`useDeployBuildStats\`** / **\`DeployBuildStats\`**). **\`startedAt\`** (button click time) is persisted in **\`localStorage\`** and used for the elapsed label and as the status **\`since\`** value. Status and active routes are **\`force-dynamic\`** with **\`Cache-Control: no-store\`**; Vercel fetches use **\`cache: 'no-store'\`**. Client **\`api.deploy.status\`** / **\`api.deploy.active\`** also pass **\`cache: 'no-store'\`**. Polling stops on terminal status (**\`ready\`**, **\`error\`**, **\`canceled\`**) or when **\`monitoring: false\`** (no API token). Without **\`VERCEL_API_TOKEN\`**, the button counts up for **\`DEPLOY_ESTIMATED_MS\`** (2 minutes) then shows **Refresh may be complete**. Labels use monotonic **\`displayStatus\`** via **\`furthestDeployStatus\`** (**Starting (m:ss)**, **Building (m:ss)**, etc.). Completion toasts use **\`appToast\`** via **\`ToastHost\`** in **\`providers.tsx\`** (tokens in **\`variables.css\`**).
 
 ${draftSection}
 ${agentHooksSection}## Release process
@@ -982,7 +1011,8 @@ Releases follow a \`make release tag=vX.X.X\` workflow:
 
 1. The Makefile target runs \`scripts/verify-vercel-for-release.sh\` to confirm you are a Vercel project member.
 2. It then creates and pushes a git tag.
-3. The release workflow (\`.github/workflows/release.yml\`) deploys to production on Vercel.
+3. **\`scripts/watch-release.sh\`** follows the GitHub **release** workflow for the pushed tag (requires \`gh\` when available).
+4. The release workflow (\`.github/workflows/release.yml\`) deploys to production on Vercel.
 
 ## \`src/proxy.ts\`
 
