@@ -35,7 +35,7 @@
         "noUnusedImports": "error",
         "noUnusedVariables": "error"
       },
-      "recommended": true,
+      "preset": "recommended",
       "style": {
         "noParameterAssign": "error",
         "noUnusedTemplateLiteral": "error",

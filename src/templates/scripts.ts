@@ -1,4 +1,12 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { ProjectAnswers } from "../types.js";
+
+const scriptsScaffoldAssetDir = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../scaffold-assets/scripts",
+);
 
 // ---------------------------------------------------------------------------
 // scripts/scaffold.sh
@@ -651,3 +659,191 @@ main().catch((err: unknown) => {
 });
 `;
 };
+
+// ---------------------------------------------------------------------------
+// scripts/handbook-sync-check.sh
+// ---------------------------------------------------------------------------
+
+export const getHandbookSyncCheckSh = (): string => {
+  return `#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+BASE_REF="\${1:-origin/staging}"
+
+if ! git rev-parse --verify "\${BASE_REF}^{commit}" >/dev/null 2>&1; then
+  echo "handbook-sync-check: base ref '\${BASE_REF}' not found (fetch remotes first)." >&2
+  exit 1
+fi
+
+# shellcheck source=/dev/null
+source "\${ROOT}/.cursor/hooks/_lib.sh"
+
+changed="$(git diff --name-only "\${BASE_REF}"...HEAD 2>/dev/null || true)"
+
+code_changed="$(printf '%s\\n' "$changed" | grep -E '^src/.*\\.(ts|tsx|css)$|^\\.jest/|^jest\\.config\\.(ts|js|mjs)$|^next\\.config\\.(ts|js|mjs)$|^vercel\\.json$' || true)"
+docs_changed="$(printf '%s\\n' "$changed" | grep -E '^docs/handbook/.*\\.md$' || true)"
+
+if [ -z "$code_changed" ]; then
+  exit 0
+fi
+
+if [ -n "$docs_changed" ]; then
+  exit 0
+fi
+
+chapter_set=""
+while IFS= read -r path; do
+  [ -z "$path" ] && continue
+  for chapter in $(handbook_chapters_for_path "$path"); do
+    case " $chapter_set " in
+      *" $chapter "*) ;;
+      *) chapter_set="\${chapter_set}\${chapter} " ;;
+    esac
+  done
+done <<EOF
+$code_changed
+EOF
+
+suggested="$(printf '%s' "$chapter_set" | xargs | tr ' ' '\\n' | sort -u | paste -sd ', ' -)"
+
+cat >&2 <<EOF
+handbook-sync-check failed: code or test infra changed vs \${BASE_REF} but no docs/handbook/*.md in the diff.
+
+Update the handbook (route via docs/handbook/llms.md) or add docs/handbook/*.md in this PR.
+Suggested chapter(s): \${suggested:-conventions.md, platform.md}
+
+Changed paths:
+$code_changed
+EOF
+
+exit 1
+`;
+};
+
+// ---------------------------------------------------------------------------
+// scripts/verify-vercel-release.test.mjs
+// ---------------------------------------------------------------------------
+
+export const getGitCommitSh = (): string => {
+  return `#!/usr/bin/env bash
+set -euo pipefail
+
+exec git -c core.hooksPath=.githooks commit "$@"
+`;
+};
+
+export const getGithooksCommitMsg = (): string => {
+  return `#!/usr/bin/env bash
+set -euo pipefail
+
+msg_file="\${1:?commit-msg hook requires message file path}"
+
+if grep -qiE '^Co-authored-by:' "$msg_file"; then
+  echo 'commit-msg: Co-authored-by trailers are not allowed in this repository.' >&2
+  echo 'Remove Co-authored-by lines from the commit message and try again.' >&2
+  exit 1
+fi
+
+exit 0
+`;
+};
+
+export const getVerifyVercelReleaseTestMjs = (): string => {
+  return `import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import { evaluateMembership } from "./verify-vercel-release.ts";
+
+describe("evaluateMembership", () => {
+  it("allows OWNER", () => {
+    const { allowed, role } = evaluateMembership({ role: "OWNER" });
+    assert.equal(allowed, true);
+    assert.equal(role, "OWNER");
+  });
+
+  it("allows MEMBER", () => {
+    const { allowed, role } = evaluateMembership({ role: "MEMBER" });
+    assert.equal(allowed, true);
+    assert.equal(role, "MEMBER");
+  });
+
+  it("denies DEVELOPER", () => {
+    const { allowed, role } = evaluateMembership({ role: "DEVELOPER" });
+    assert.equal(allowed, false);
+    assert.equal(role, "DEVELOPER");
+  });
+});
+`;
+};
+
+export const getWatchReleaseSh = (): string => {
+  return `#!/usr/bin/env bash
+# Follow the create-release run for a freshly pushed tag and report the outcome.
+# The tag is already pushed by the time this runs, so a problem here is a problem
+# with the release workflow, never a reason to re-tag.
+set -euo pipefail
+
+tag="\${1:-}"
+if [[ -z "\${tag}" ]]; then
+	echo "usage: watch-release.sh <tag>" >&2
+	exit 1
+fi
+
+repo="\${GITHUB_REPOSITORY:-}"
+if [[ -z "\${repo}" ]] && command -v gh >/dev/null; then
+	repo="$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || true)"
+fi
+repo="\${repo:-}"
+actions_url="https://github.com/\${repo}/actions/workflows/release.yml"
+
+# gh is optional: without it the release still runs, we just cannot follow it.
+if ! command -v gh >/dev/null; then
+	printf '\\nPushed %s. Install the GitHub CLI to follow the run from here.\\n' "\${tag}"
+	printf '  %s\\n' "\${actions_url}"
+	printf '  (Remote "Bypassed rule violations" on v* tag push is expected under rulesets.)\\n'
+	exit 0
+fi
+
+# GitHub creates the run asynchronously after the push, so poll until it shows up.
+# For a tag push the run's headBranch is the tag name.
+run_id=""
+for _ in $(seq 1 30); do
+	run_id="$(gh run list --repo "\${repo}" --workflow=release.yml --branch "\${tag}" \\
+		--limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null || true)"
+	[[ -n "\${run_id}" ]] && break
+	sleep 2
+done
+
+if [[ -z "\${run_id}" ]]; then
+	printf '\\nPushed %s, but no create-release run appeared within 60s.\\n' "\${tag}" >&2
+	printf '  %s\\n' "\${actions_url}" >&2
+	exit 1
+fi
+
+printf '\\nPushed %s. Watching create-release (run %s)...\\n\\n' "\${tag}" "\${run_id}"
+
+if ! gh run watch "\${run_id}" --repo "\${repo}" --exit-status; then
+	printf '\\ncreate-release FAILED for %s. The tag is pushed; fix the workflow and re-run it.\\n' "\${tag}" >&2
+	printf '  https://github.com/%s/actions/runs/%s\\n' "\${repo}" "\${run_id}" >&2
+	exit 1
+fi
+
+release_url="$(gh release view "\${tag}" --repo "\${repo}" --json url --jq .url 2>/dev/null || true)"
+if [[ -z "\${release_url}" ]]; then
+	printf '\\ncreate-release succeeded but no release is published for %s yet.\\n' "\${tag}" >&2
+	printf '  https://github.com/%s/actions/runs/%s\\n' "\${repo}" "\${run_id}" >&2
+	exit 1
+fi
+
+printf '\\nRelease %s published, main fast-forwarded.\\n' "\${tag}"
+printf '  %s\\n' "\${release_url}"
+`;
+};
+
+export const getCursorHandbookGuardRunnerSpec = (): string =>
+  readFileSync(
+    join(scriptsScaffoldAssetDir, "cursor-handbook-guard.runner.spec.ts"),
+    "utf8",
+  );

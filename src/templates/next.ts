@@ -56,16 +56,19 @@ export const getNextConfig = (a: ProjectAnswers): string => {
     ? "img-src * blob: data: images.ctfassets.net;"
     : "img-src * blob: data:;";
 
-  const optimizePackages = [
-    '"@base-ui/react"',
-    '"@tanstack/react-query"',
-    '"sonner"',
-  ];
+  const optimizePackages = ['"@base-ui/react"', '"@tanstack/react-query"'];
   if (a.includeContentful) {
     optimizePackages.unshift('"@contentful/rich-text-react-renderer"');
     optimizePackages.push('"html-react-parser"');
   }
   if (a.includeRecaptcha) optimizePackages.push('"react-google-recaptcha"');
+
+  const optimizePackageImportsBlock =
+    optimizePackages.length <= 2
+      ? `[${optimizePackages.join(", ")}]`
+      : `[
+      ${optimizePackages.join(",\n      ")},
+    ]`;
 
   return `import type { NextConfig } from "next";
 
@@ -101,9 +104,7 @@ ${envLines.join("\n")}
   },
   experimental: {
     inlineCss: true,
-    optimizePackageImports: [
-      ${optimizePackages.join(",\n      ")},
-    ],
+    optimizePackageImports: ${optimizePackageImportsBlock},
   },
   async redirects() {
     if (process.env.ENVIRONMENT === "production") {

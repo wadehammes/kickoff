@@ -2,82 +2,83 @@ import type { ProjectAnswers } from "../types.js";
 
 export const getPackageJson = (a: ProjectAnswers): string => {
   const deps: Record<string, string> = {
-    "@base-ui/react": "latest",
-    "@jest/types": "latest",
-    "@tanstack/react-query": "latest",
-    classnames: "latest",
-    "jest-mock": "latest",
-    next: "latest",
-    "postcss-flexbugs-fixes": "latest",
-    "postcss-preset-env": "latest",
-    react: "latest",
-    "react-dom": "latest",
-    "schema-dts": "latest",
-    sonner: "latest",
-    tslib: "latest",
+    "@base-ui/react": "^1.9.0",
+    "@jest/types": "^30.5.1",
+    "@tanstack/react-query": "^5.105.0",
+    classnames: "^2.5.1",
+    "jest-mock": "^30.5.2",
+    next: "^16.4.3",
+    "postcss-flexbugs-fixes": "^5.0.2",
+    "postcss-preset-env": "^11.6.1",
+    react: "^19.3.1",
+    "react-dom": "^19.3.1",
+    "schema-dts": "^2.1.0",
+    tslib: "^2.8.1",
   };
 
   if (a.includeGA) {
-    deps["@next/third-parties"] = "latest";
+    deps["@next/third-parties"] = "^16.4.3";
   }
 
   if (a.includeContentful) {
-    deps["@contentful/rich-text-react-renderer"] = "latest";
-    deps["@contentful/rich-text-types"] = "latest";
-    deps.contentful = "latest";
-    deps["html-react-parser"] = "latest";
-    deps["safe-json-stringify"] = "latest";
+    deps["@contentful/rich-text-react-renderer"] = "^16.2.2";
+    deps["@contentful/rich-text-types"] = "^17.2.7";
+    deps.contentful = "^11.12.10";
+    deps["html-react-parser"] = "^6.1.9";
+    deps["safe-json-stringify"] = "^1.2.0";
+    deps["server-only"] = "^0.0.1";
   }
 
   if (a.includeI18n) {
-    deps["next-intl"] = "latest";
+    deps["next-intl"] = "^4.14.9";
   }
   if (a.includeResend) {
-    deps.resend = "latest";
+    deps.resend = "^6.35.0";
   }
   if (a.includeRecaptcha) {
-    deps["react-google-recaptcha"] = "latest";
+    deps["react-google-recaptcha"] = "^3.1.0";
   }
 
   const devDeps: Record<string, string> = {
-    "@jest/globals": "latest",
-    "@svgr/webpack": "latest",
+    "@jest/globals": "^30.5.2",
+    "@svgr/webpack": "^8.1.0",
     // Pinned: biome.json schema and rule names change between releases
-    "@biomejs/biome": "2.5.8",
-    "@faker-js/faker": "latest",
-    "@testing-library/dom": "latest",
-    "@testing-library/jest-dom": "latest",
-    "@testing-library/react": "latest",
-    "@testing-library/user-event": "latest",
-    "@types/jest": "latest",
-    "@types/node": "latest",
-    "@types/react": "latest",
-    csstype: "latest",
-    "identity-obj-proxy": "latest",
-    jest: "latest",
-    "jest-environment-jsdom": "latest",
-    knip: "latest",
-    "react-is": "latest",
-    stylelint: "latest",
-    "stylelint-config-css-modules": "latest",
-    "stylelint-config-standard": "latest",
-    "stylelint-value-no-unknown-custom-properties": "latest",
-    "ts-jest": "latest",
-    tsx: "latest",
+    "@biomejs/biome": "2.6.6",
+    "@faker-js/faker": "^10.6.0",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    csstype: "^3.2.3",
+    "identity-obj-proxy": "^3.0.0",
+    jest: "^30.5.2",
+    "jest-environment-jsdom": "^30.5.2",
+    knip: "^6.43.0",
+    "react-is": "^19.2.4",
+    stylelint: "^18.0.0-next.0",
+    "stylelint-config-css-modules": "^4.6.0",
+    "stylelint-config-standard": "^41.0.0-next.0",
+    "stylelint-value-no-unknown-custom-properties": "^6.1.1",
+    "ts-jest": "^29.4.15",
+    tsx: "^4.20.5",
     typescript: "^7.0.2",
-    "typescript-plugin-css-modules": "latest",
+    "typescript-plugin-css-modules": "^5.3.0",
   };
 
   if (a.includeContentful) {
-    devDeps["@types/safe-json-stringify"] = "latest";
+    devDeps["@types/safe-json-stringify"] = "^1.1.5";
   }
 
   if (a.includeRecaptcha) {
-    devDeps["@types/react-google-recaptcha"] = "latest";
+    devDeps["@types/react-google-recaptcha"] = "^2.1.9";
   }
 
   if (a.includeContentful) {
-    devDeps["cf-content-types-generator"] = "latest";
+    devDeps["cf-content-types-generator"] = "^3.0.1";
   }
 
   const scripts: Record<string, string> = {
@@ -99,7 +100,10 @@ export const getPackageJson = (a: ProjectAnswers): string => {
     scaffold: "bash scripts/scaffold.sh",
     start: `next start -p ${a.devPort}`,
     "test:ci": "jest --passWithNoTests",
+    "test:scripts":
+      "node --import tsx --test scripts/verify-vercel-release.test.mjs",
     "tsc:ci": "tsc --strict",
+    "handbook:check": "bash scripts/handbook-sync-check.sh",
   };
 
   if (a.includeContentful) {
@@ -111,7 +115,7 @@ export const getPackageJson = (a: ProjectAnswers): string => {
     dependencies: Object.fromEntries(Object.entries(deps).sort()),
     devDependencies: Object.fromEntries(Object.entries(devDeps).sort()),
     name: a.projectName,
-    packageManager: "pnpm@10.33.3",
+    packageManager: "pnpm@12.18.0",
     private: true,
     scripts,
     version: "0.0.0",
@@ -220,7 +224,7 @@ export const getBiomeConfig = (): string => {
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "a11y": { "noSvgWithoutTitle": "off" },
       "complexity": {
         "noImportantStyles": "warn",
@@ -372,6 +376,7 @@ export const getGitignore = (): string => {
 !.cursor/hooks.json
 !.cursor/hooks/
 !.cursor/rules/
+.cursor/hooks-state/
 .cursor/mcp.json
 .cursor/*.log
 .cursor/settings.local.json
@@ -424,7 +429,11 @@ public/generated-sitemap-*.xml
 };
 
 export const getPnpmWorkspace = (): string => {
-  return `overrides:
+  return `allowBuilds:
+  esbuild: true
+  "@parcel/watcher": true
+
+overrides:
   '@babel/helpers@<7.26.10': '>=7.26.10'
   '@babel/runtime@<7.26.10': '>=7.26.10'
   'brace-expansion@>=1.0.0 <=1.1.11': '>=1.1.12'
@@ -464,12 +473,18 @@ import nextJest from "next/jest.js";
 
 const customJestConfig: Config.InitialOptions = {
   verbose: true,
-  testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
+  testPathIgnorePatterns: [
+    "<rootDir>/.next/",
+    "<rootDir>/node_modules/",
+    "<rootDir>/scripts/",
+  ],
   setupFiles: ["<rootDir>/.jest/setEnvVars.ts"],
   setupFilesAfterEnv: ["<rootDir>/.jest/setupTests.ts"],
   moduleDirectories: ["node_modules", "<rootDir>"],
   testEnvironment: "jest-environment-jsdom",
-  transformIgnorePatterns: ["<rootDir>/node_modules/(?!isbot|jest-dom)"],
+  transformIgnorePatterns: [
+    "<rootDir>/node_modules/(?!isbot|jest-dom|@faker-js|@base-ui)",
+  ],
   preset: "ts-jest",
 };
 
@@ -478,19 +493,46 @@ const createJestConfig = nextJest({ dir: "./" })(customJestConfig);
 export default async () => {
   const jestConfig = await createJestConfig();
 
+  const allowEsmPackagesInTransformIgnorePatterns = (patterns: string[]) =>
+    patterns.map((pattern) => {
+      if (pattern.includes("next/src/shared/lib)/")) {
+        return pattern.replace(
+          "next/src/shared/lib)/",
+          "next/src/shared/lib|@faker-js|@base-ui)/",
+        );
+      }
+      if (pattern.includes("next[\\\\/]src[\\\\/]shared[\\\\/]lib)[\\\\/]")) {
+        return pattern.replace(
+          "next[\\\\/]src[\\\\/]shared[\\\\/]lib)[\\\\/]",
+          "next[\\\\/]src[\\\\/]shared[\\\\/]lib|@faker-js|@base-ui\\\\+)[\\\\/]",
+        );
+      }
+      return pattern;
+    });
+
   const moduleNameMapper = {
     ...jestConfig.moduleNameMapper,
     "\\\\.(css|less|scss|sass)$": "identity-obj-proxy",
-    "\\\\.svg$": "<rootDir>/src/tests/mocks/svgMock.tsx",
+    "^.+\\\\.(svg)$": "<rootDir>/src/tests/mocks/svgMock.tsx",
+    "^src/lib/toast/appToast$": "<rootDir>/src/tests/mocks/appToast.mock.ts",
   };
 
-  return { ...jestConfig, moduleNameMapper, testTimeout: 20000 };
+  return {
+    ...jestConfig,
+    moduleNameMapper,
+    testTimeout: 20000,
+    transformIgnorePatterns: allowEsmPackagesInTransformIgnorePatterns(
+      jestConfig.transformIgnorePatterns ?? [],
+    ),
+  };
 };
 `;
 };
 
 export const getKnipConfig = (a: ProjectAnswers): string => {
   const ignore = [
+    ".claude/hooks/**",
+    ".cursor/hooks/**",
     "scripts/**",
     "src/app/fonts.ts",
     "src/copy/**",
@@ -524,7 +566,8 @@ export const getKnipConfig = (a: ProjectAnswers): string => {
   return `${JSON.stringify(
     {
       $schema: "./node_modules/knip/schema.json",
-      entry: ["jest.config.ts"],
+      entry: ["jest.config.ts", "scripts/cursor-handbook-guard.runner.spec.ts"],
+      ignoreExportsUsedInFile: true,
       ignore,
       ignoreBinaries: ["make"],
       ignoreDependencies,
