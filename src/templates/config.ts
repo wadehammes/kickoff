@@ -1,5 +1,9 @@
 import type { ProjectAnswers } from "../types.js";
 
+/** Branch PRs target: `main` for the trunk-based Claude pipeline, otherwise `staging`. */
+export const getBaseBranch = (a: ProjectAnswers): "main" | "staging" =>
+  a.includeClaudePipeline ? "main" : "staging";
+
 export const getPackageJson = (a: ProjectAnswers): string => {
   const deps: Record<string, string> = {
     "@base-ui/react": "latest",
@@ -80,6 +84,11 @@ export const getPackageJson = (a: ProjectAnswers): string => {
     devDeps["cf-content-types-generator"] = "latest";
   }
 
+  if (a.includeClaudePipeline) {
+    devDeps["@axe-core/playwright"] = "latest";
+    devDeps["@playwright/test"] = "latest";
+  }
+
   const scripts: Record<string, string> = {
     build: "next build && make sitemap",
     dev: `next dev -p ${a.devPort}`,
@@ -88,8 +97,7 @@ export const getPackageJson = (a: ProjectAnswers): string => {
     lint: "biome check",
     "lint:ci": "biome ci --reporter=github",
     "lint:fix": "biome check --fix",
-    "lint:check":
-      "biome check --changed --since origin/staging --no-errors-on-unmatched --verbose --write --diagnostic-level=error",
+    "lint:check": `biome check --changed --since origin/${getBaseBranch(a)} --no-errors-on-unmatched --verbose --write --diagnostic-level=error`,
     "lint:css": 'stylelint "**/*.css"',
     "lint:css:fix": 'stylelint "**/*.css" --fix',
     "lint:all":
@@ -101,6 +109,11 @@ export const getPackageJson = (a: ProjectAnswers): string => {
     "test:ci": "jest --passWithNoTests",
     "tsc:ci": "tsc --strict",
   };
+
+  if (a.includeClaudePipeline) {
+    scripts["test:e2e"] = "playwright test";
+    scripts.typecheck = "tsc --strict --noEmit";
+  }
 
   if (a.includeContentful) {
     scripts["types:contentful"] =
@@ -424,7 +437,10 @@ public/generated-sitemap-*.xml
 };
 
 export const getPnpmWorkspace = (): string => {
-  return `overrides:
+  return `# Only resolve package versions published at least 7 days ago (minutes).
+minimumReleaseAge: 10080
+
+overrides:
   '@babel/helpers@<7.26.10': '>=7.26.10'
   '@babel/runtime@<7.26.10': '>=7.26.10'
   'brace-expansion@>=1.0.0 <=1.1.11': '>=1.1.12'
@@ -437,7 +453,15 @@ export const getPnpmWorkspace = (): string => {
 `;
 };
 
-export const getMakefile = (_a: ProjectAnswers): string => {
+export const getMakefile = (a: ProjectAnswers): string => {
+  if (a.includeClaudePipeline) {
+    return `SHELL := /bin/bash
+
+sitemap:
+\tnode scripts/make_sitemap.js
+`;
+  }
+
   return `SHELL := /bin/bash
 .SILENT: release
 
@@ -464,7 +488,11 @@ import nextJest from "next/jest.js";
 
 const customJestConfig: Config.InitialOptions = {
   verbose: true,
-  testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
+  testPathIgnorePatterns: [
+    "<rootDir>/.next/",
+    "<rootDir>/node_modules/",
+    "<rootDir>/e2e/",
+  ],
   setupFiles: ["<rootDir>/.jest/setEnvVars.ts"],
   setupFilesAfterEnv: ["<rootDir>/.jest/setupTests.ts"],
   moduleDirectories: ["node_modules", "<rootDir>"],

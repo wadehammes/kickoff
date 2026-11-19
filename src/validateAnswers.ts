@@ -4,6 +4,7 @@ const REQUIRED_KEYS: (keyof ProjectAnswers)[] = [
   "agentTooling",
   "bgColor",
   "devPort",
+  "includeClaudePipeline",
   "includeContentful",
   "includeGA",
   "includeI18n",
@@ -100,10 +101,15 @@ export const validateProjectAnswers = (
     "includeGA",
     "includeResend",
     "includeRecaptcha",
+    "includeClaudePipeline",
   ] as const) {
     if (typeof o[key] !== "boolean") {
       return `${key} must be a boolean`;
     }
+  }
+
+  if (o.includeClaudePipeline && o.agentTooling !== "claude") {
+    return 'includeClaudePipeline requires agentTooling "claude"';
   }
 
   return o as unknown as ProjectAnswers;

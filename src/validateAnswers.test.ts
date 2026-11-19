@@ -6,6 +6,7 @@ const valid: ProjectAnswers = {
   agentTooling: "cursor",
   bgColor: "#ffffff",
   devPort: 3000,
+  includeClaudePipeline: false,
   includeContentful: true,
   includeGA: false,
   includeI18n: false,
@@ -52,6 +53,21 @@ describe("validateProjectAnswers", () => {
   it("rejects bad agentTooling", () => {
     expect(
       typeof validateProjectAnswers({ ...valid, agentTooling: "codex" }),
+    ).toBe("string");
+  });
+
+  it("accepts includeClaudePipeline with Claude tooling", () => {
+    const r = validateProjectAnswers({
+      ...valid,
+      agentTooling: "claude",
+      includeClaudePipeline: true,
+    });
+    expect(typeof r).toBe("object");
+  });
+
+  it("rejects includeClaudePipeline without Claude tooling", () => {
+    expect(
+      typeof validateProjectAnswers({ ...valid, includeClaudePipeline: true }),
     ).toBe("string");
   });
 

@@ -24,7 +24,7 @@ Every generated project includes:
 | Forms | react-hook-form ^7 |
 | Schema | schema-dts (JSON-LD) |
 | Deployment | Vercel |
-| CI | GitHub Actions (PRs to `staging`) |
+| CI | GitHub Actions (PRs to `staging`, or `main` with the Claude pipeline) |
 
 Optional add-ons selected during prompts:
 
@@ -33,6 +33,7 @@ Optional add-ons selected during prompts:
 - **Resend** — transactional email
 - **reCAPTCHA** — react-google-recaptcha
 - **Agent hooks** — Cursor (`.cursor/`) or Claude Code (`.claude/`) handbook-enforcement hooks
+- **Hands-off Claude pipeline** (Claude Code only) — trunk-based flow where Claude opens PRs and machine checks replace human review: `@claude` workflow, Claude review gate (fails on blocking findings), auto-merge for `claude/*` PRs, CODEOWNERS on sensitive paths, Playwright + axe against Vercel previews, production smoke test with automatic rollback, and a quality-gate Stop hook. Replaces the `staging` / `make release` flow.
 
 ## Requirements
 
@@ -76,11 +77,11 @@ alias kickoff="node /path/to/kickoff/dist/index.js"
 
 ## Greenfield prerequisites (outside the codebase)
 
-When you spin up a **new** client project—not day-to-day work inside an existing repo—do these in order so GitHub Actions, releases, Vercel, and Contentful line up with the scaffold expectations:
+When you spin up a **new** client project—not day-to-day work inside an existing repo—do these in order so GitHub Actions, releases, Vercel, and Contentful line up with the scaffold expectations. With the **hands-off Claude pipeline**, steps 2–5 differ (trunk-based `main`, a ruleset with CODEOWNERS, Claude GitHub App and Actions secrets, Vercel Deployment Checks); follow the generated project README instead.
 
 1. **GitHub repository** — Create an empty repo for the new site (no conflicting default branch/commit if you plan to overwrite history with the scaffold).
 2. **`staging` as default branch** — Create `staging`, set it as the **default branch** under repository settings so PRs target it (CI runs on PRs into `staging`).
-3. **Branch protection** — For `staging` and `main`, add rules appropriate to your team: require pull requests before merge, required status checks (include the CI workflow once it exists), block force-push, restrict who can dismiss reviews, etc.
+3. **Branch protection** — For `staging` and `main`, add rules appropriate to your team: require pull requests before merge, required status checks (include the CI workflow once it exists), block force-push, restrict who can dismiss reviews, etc. The `create-release` workflow pushes release tags to `main`, so add **GitHub Actions** to the `main` ruleset's bypass list.
 4. **Initial GitHub Release** — Manually create a **`v0.0.0`** (or earliest) **Release** once the repo exists. The generated **`create-release`** workflow builds on tagged releases/changelog tooling; seeding avoids first-tag quirks.
 5. **Run kickoff and update the repo** — Run `kickoff` locally, then commit and push the scaffold to `staging` (and ensure `main` exists if your flow expects it—you can align `main` with your branching policy).
 6. **Contentful** — Create a space/environment, add content types, and gather tokens so you can fill **Contentful** entries in **`.env.local.example`** (see **After generation** and the generated project README).
@@ -114,6 +115,8 @@ Running `kickoff` starts an interactive prompt:
 ```
 
 Choose **Cursor** for `.cursor/hooks.json`, hook scripts, and `rules/handbook.mdc`. Choose **Claude Code** for `.claude/settings.json` and hook scripts. Both sets enforce the same handbook rules (no added comments, CSS conventions, `pnpm scaffold` for new components, handbook sync).
+
+Choosing **Claude Code** adds one more prompt: **Include hands-off Claude → GitHub → Vercel pipeline?** (see Optional add-ons).
 
 After answering, the scaffold is written to `./<project-name>/` (or the current directory if selected).
 
@@ -153,11 +156,12 @@ Example `answers.json`:
   "includeGA": false,
   "includeResend": false,
   "includeRecaptcha": false,
-  "agentTooling": "cursor"
+  "agentTooling": "cursor",
+  "includeClaudePipeline": false
 }
 ```
 
-`agentTooling` is `"cursor"` (`.cursor/` hooks + rules) or `"claude"` (`.claude/settings.json` hooks).
+`agentTooling` is `"cursor"` (`.cursor/` hooks + rules) or `"claude"` (`.claude/settings.json` hooks). `includeClaudePipeline: true` requires `agentTooling: "claude"`.
 
 `--dry-run` still applies the same non-empty directory rules as a real run; use `--force` if you need to preview writes into an existing directory.
 
@@ -188,9 +192,9 @@ pnpm dev
 ├── .github/
 │   ├── labeler.yml
 │   └── workflows/
-│       ├── ci.yml              # Runs on PRs to staging
+│       ├── ci.yml              # Runs on PRs to staging (pipeline: PRs + pushes to main)
 │       ├── labeler.yml
-│       └── release.yml         # Triggered by v* tags
+│       └── release.yml         # Triggered by v* tags (omitted with the Claude pipeline)
 ├── .jest/
 │   ├── setEnvVars.ts
 │   └── setupTests.ts
@@ -307,7 +311,9 @@ pnpm dev
 └── tsconfig.json
 ```
 
-Generated projects also include **either** `.cursor/` (hooks + rules) **or** `.claude/` (settings + hooks), depending on `agentTooling`. TypeScript is pinned to **^7.0.2** in generated `package.json`.
+Generated projects also include **either** `.cursor/` (hooks + rules) **or** `.claude/` (settings + hooks), depending on `agentTooling`. TypeScript is pinned to **^7.0.2** in generated `package.json`. `pnpm-workspace.yaml` sets `minimumReleaseAge: 10080`, so installs only resolve package versions published at least 7 days ago.
+
+With `includeClaudePipeline`, the project also gets `.github/workflows/{claude,claude-review,auto-merge,preview-e2e,production-smoke}.yml`, `.github/CODEOWNERS`, `.github/pull_request_template.md`, `.claude/hooks/quality-gate.sh` plus `permissions` in `.claude/settings.json`, `playwright.config.ts`, and `e2e/smoke.spec.ts`; `release.yml`, the Makefile `release` target, and `scripts/verify-vercel-*` are omitted.
 
 Omit Contentful-specific paths (`src/contentful/`, draft API routes) when `includeContentful` is false. Omit `src/i18n/` and `src/app/[locale]/` when i18n is off.
 
@@ -365,9 +371,10 @@ See `.env.local.example` in the generated project for the full list. For deploym
 
 ### Generated projects
 
-- **CI**: GitHub Actions runs TSC, Biome, Stylelint, Jest, and Knip on every PR targeting `staging`.
+- **CI**: GitHub Actions runs TSC, Biome, Stylelint, Jest, and Knip on every PR targeting `staging` (Claude pipeline: PRs and pushes to `main`).
+- **Claude pipeline**: Claude review gate, Preview E2E, and Vercel status are required checks; `claude/*` PRs auto-merge; Production Smoke rolls back on failure. Setup lives in the generated README and `docs/handbook/platform.md`.
 - **Local pre-push**: `pnpm lint:all` runs changed-file Biome (`lint:check` since `origin/staging`), Stylelint fix, `tsc:ci`, and `knip:ci`.
-- **Release**: Push a `v*` tag to trigger a GitHub Release and reset the `main` branch.
+- **Release**: Push a `v*` tag to trigger a GitHub Release and reset the `main` branch (not generated with the Claude pipeline; every merge to `main` deploys).
 - **Deployment**: Configure Vercel to deploy from `staging` (preview) and `main` (production); keep env in sync with **`vercel env pull`** when you change Vercel settings.
 
 ### This repo (kickoff)

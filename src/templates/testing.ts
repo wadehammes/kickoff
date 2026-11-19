@@ -339,3 +339,77 @@ SvgMock.displayName = "SvgMock";
 export default SvgMock;
 `;
 };
+
+// ---------------------------------------------------------------------------
+// playwright.config.ts (includeClaudePipeline)
+// ---------------------------------------------------------------------------
+
+export const getPlaywrightConfig = (a: ProjectAnswers): string => {
+  return `import { defineConfig, devices } from "@playwright/test";
+
+const rawBaseUrl = process.env.BASE_URL ?? "http://localhost:${a.devPort}";
+const baseURL = rawBaseUrl.startsWith("http")
+  ? rawBaseUrl
+  : \`https://\${rawBaseUrl}\`;
+const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+const isCI = Boolean(process.env.CI);
+
+export default defineConfig({
+  forbidOnly: isCI,
+  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  reporter: isCI ? "github" : "list",
+  retries: isCI ? 2 : 0,
+  testDir: "./e2e",
+  use: {
+    baseURL,
+    extraHTTPHeaders: bypassSecret
+      ? {
+          "x-vercel-protection-bypass": bypassSecret,
+          "x-vercel-set-bypass-cookie": "true",
+        }
+      : {},
+    trace: "retain-on-failure",
+  },
+});
+`;
+};
+
+// ---------------------------------------------------------------------------
+// e2e/smoke.spec.ts (includeClaudePipeline)
+// ---------------------------------------------------------------------------
+
+export const getE2eSmokeSpec = (): string => {
+  return `import AxeBuilder from "@axe-core/playwright";
+import { expect, test } from "@playwright/test";
+
+const BLOCKING_IMPACTS = ["critical", "serious"];
+
+test.describe("home page @smoke", () => {
+  test("responds and renders", async ({ page }) => {
+    const response = await page.goto("/");
+
+    expect(response?.ok()).toBe(true);
+    await expect(page.locator("body")).toBeVisible();
+  });
+
+  test("returns 404 for unknown routes", async ({ page }) => {
+    const response = await page.goto("/this-page-does-not-exist");
+
+    expect(response?.status()).toBe(404);
+  });
+});
+
+test.describe("accessibility", () => {
+  test("home page has no serious axe violations", async ({ page }) => {
+    await page.goto("/");
+
+    const results = await new AxeBuilder({ page }).analyze();
+    const blockingViolations = results.violations.filter((violation) =>
+      BLOCKING_IMPACTS.includes(violation.impact ?? ""),
+    );
+
+    expect(blockingViolations).toEqual([]);
+  });
+});
+`;
+};

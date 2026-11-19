@@ -21,6 +21,7 @@ import {
   getAppRobots,
   getArrayHelpers,
   getArrayHelpersSpec,
+  getAutoMergeWorkflow,
   getBaseFactory,
   getBasePageObject,
   getBiomeConfig,
@@ -31,7 +32,10 @@ import {
   getClaude,
   getClaudeHooksLib,
   getClaudeHooksReadme,
+  getClaudeReviewWorkflow,
   getClaudeSettingsJson,
+  getClaudeWorkflow,
+  getCodeowners,
   getCollapsibleComponent,
   getCollapsibleCSS,
   getCommonInterfaces,
@@ -65,6 +69,7 @@ import {
   getDevWithPreview,
   getDisableDraftRoute,
   getDraftRoute,
+  getE2eSmokeSpec,
   getEditorConfig,
   getEnvironmentHelpers,
   getEnvironmentHelpersSpec,
@@ -113,10 +118,15 @@ import {
   getNpmrc,
   getPackageJson,
   getParseContentfulAsset,
+  getPlaywrightConfig,
   getPnpmWorkspace,
   getPostcssConfig,
+  getPreviewE2eWorkflow,
   getPreviewLocal,
+  getProductionSmokeWorkflow,
   getProxyTs,
+  getPullRequestTemplate,
+  getQualityGateSh,
   getReadme,
   getRefreshContentAccess,
   getRefreshContentAccessSpec,
@@ -150,6 +160,7 @@ import {
   getVercelDeploymentStatusSpec,
   getVerifyVercelForReleaseSh,
   getVerifyVercelRelease,
+  QUALITY_GATE_HOOK_SCRIPT_NAME,
 } from "./templates/index.js";
 import type { ProjectAnswers } from "./types.js";
 
@@ -252,7 +263,7 @@ export const generateProject = async (
     await write(".cursor/hooks/README.md", getCursorHooksReadme());
     await write(".cursor/rules/handbook.mdc", getCursorRulesHandbook(a));
   } else {
-    await write(".claude/settings.json", getClaudeSettingsJson());
+    await write(".claude/settings.json", getClaudeSettingsJson(a));
     await write(".claude/hooks/_lib.sh", getClaudeHooksLib(), {
       executable: true,
     });
@@ -263,15 +274,38 @@ export const generateProject = async (
         { executable: true },
       );
     }
-    await write(".claude/hooks/README.md", getClaudeHooksReadme());
+    if (a.includeClaudePipeline) {
+      await write(
+        `.claude/hooks/${QUALITY_GATE_HOOK_SCRIPT_NAME}`,
+        getQualityGateSh(),
+        { executable: true },
+      );
+    }
+    await write(".claude/hooks/README.md", getClaudeHooksReadme(a));
   }
 
   // ── public/ ────────────────────────────────────────────────────────────────
   await write("public/sitemap-index.xml", getSitemapIndex(a));
 
   // ── .github/ ───────────────────────────────────────────────────────────────
-  await write(".github/workflows/ci.yml", getCIWorkflow());
-  await write(".github/workflows/release.yml", getReleaseWorkflow());
+  await write(".github/workflows/ci.yml", getCIWorkflow(a));
+  if (a.includeClaudePipeline) {
+    await write(".github/workflows/claude.yml", getClaudeWorkflow());
+    await write(
+      ".github/workflows/claude-review.yml",
+      getClaudeReviewWorkflow(),
+    );
+    await write(".github/workflows/auto-merge.yml", getAutoMergeWorkflow());
+    await write(".github/workflows/preview-e2e.yml", getPreviewE2eWorkflow());
+    await write(
+      ".github/workflows/production-smoke.yml",
+      getProductionSmokeWorkflow(a),
+    );
+    await write(".github/CODEOWNERS", getCodeowners());
+    await write(".github/pull_request_template.md", getPullRequestTemplate());
+  } else {
+    await write(".github/workflows/release.yml", getReleaseWorkflow());
+  }
   await write(".github/dependabot.yml", getDependabotConfig());
   await write(".github/labeler.yml", getLabelerYml());
   await write(".github/workflows/labeler.yml", getLabelerWorkflow());
@@ -284,13 +318,21 @@ export const generateProject = async (
   await write("scripts/scaffold.sh", getScaffoldSh());
   await write("scripts/make_sitemap.js", getMakeSitemapJs(a));
   await write("scripts/tsconfig.json", getScriptsTsConfig());
-  await write("scripts/verify-vercel-release.ts", getVerifyVercelRelease());
-  await write(
-    "scripts/verify-vercel-for-release.sh",
-    getVerifyVercelForReleaseSh(),
-  );
+  if (!a.includeClaudePipeline) {
+    await write("scripts/verify-vercel-release.ts", getVerifyVercelRelease());
+    await write(
+      "scripts/verify-vercel-for-release.sh",
+      getVerifyVercelForReleaseSh(),
+    );
+  }
   await write("scripts/lib/preview-local.ts", getPreviewLocal());
   await write("scripts/dev-with-preview.ts", getDevWithPreview(a));
+
+  // ── e2e/ (Claude pipeline) ─────────────────────────────────────────────────
+  if (a.includeClaudePipeline) {
+    await write("playwright.config.ts", getPlaywrightConfig(a));
+    await write("e2e/smoke.spec.ts", getE2eSmokeSpec());
+  }
 
   // ── src/@types/ ────────────────────────────────────────────────────────────
   await write("src/@types/react.d.ts", getTypesReactDts());
