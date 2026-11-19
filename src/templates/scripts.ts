@@ -679,8 +679,20 @@ if ! git rev-parse --verify "\${BASE_REF}^{commit}" >/dev/null 2>&1; then
   exit 1
 fi
 
-# shellcheck source=/dev/null
-source "\${ROOT}/.cursor/hooks/_lib.sh"
+handbook_chapters_for_path() {
+  case "$1" in
+    src/app/api/*) echo "api-routes.md" ;;
+    src/contentful/*) echo "contentful.md" ;;
+    src/components/* | src/ui/*) echo "components.md" ;;
+    src/tests/factories/*) echo "factories.md" ;;
+    src/tests/* | *.spec.ts | *.spec.tsx | *.test.ts | *.test.tsx) echo "conventions.md" ;;
+    src/utils/* | src/lib/* | src/interfaces/* | src/types/* | src/copy/*) echo "source-layout.md" ;;
+    src/hooks/* | src/api/*) echo "patterns.md" ;;
+    *.css) echo "conventions.md" ;;
+    .jest/* | jest.config.* | next.config.* | vercel.json) echo "platform.md" ;;
+    *) echo "architecture.md" ;;
+  esac
+}
 
 changed="$(git diff --name-only "\${BASE_REF}"...HEAD 2>/dev/null || true)"
 
