@@ -1,9 +1,11 @@
+import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
   rmSync,
+  writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -343,6 +345,51 @@ describe("generateProject", () => {
     );
     expect(platform).toContain("Hands-off Claude pipeline");
     expect(platform).not.toContain("make release");
+  });
+
+  it("handbook-sync-check runs in a Claude project and suggests chapters", async () => {
+    const root = await runInTemp(
+      baseAnswers({ agentTooling: "claude", projectName: "sync-site" }),
+    );
+    const git = (...args: string[]) =>
+      spawnSync("git", ["-c", "user.email=t@t", "-c", "user.name=t", ...args], {
+        cwd: root,
+        encoding: "utf-8",
+      });
+    git("init", "-q");
+    git("add", "-A");
+    git("commit", "-qm", "init");
+
+    writeFileSync(
+      path.join(root, "src/components/Button/Button.component.tsx"),
+      "export const Button = () => null;\nexport default Button;\n",
+    );
+    git("commit", "-qam", "change component");
+    const failing = spawnSync(
+      "bash",
+      ["scripts/handbook-sync-check.sh", "HEAD~1"],
+      {
+        cwd: root,
+        encoding: "utf-8",
+      },
+    );
+    expect(failing.status).toBe(1);
+    expect(failing.stderr).toContain("components.md");
+
+    writeFileSync(
+      path.join(root, "docs/handbook/components.md"),
+      "# Components\n",
+    );
+    git("commit", "-qam", "update handbook");
+    const passing = spawnSync(
+      "bash",
+      ["scripts/handbook-sync-check.sh", "HEAD~2"],
+      {
+        cwd: root,
+        encoding: "utf-8",
+      },
+    );
+    expect(passing.status).toBe(0);
   });
 
   it("generates knip config, svg mock, and CI knip step", async () => {
