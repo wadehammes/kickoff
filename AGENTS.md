@@ -24,7 +24,7 @@ src/
     ├── docs.ts           ← CLAUDE.md, README, handbook index/llms/core chapters (generated projects)
     ├── handbook-agent.ts ← glossary, decisions, agent-workflow, api-routes, factories, data-storage
     ├── github.ts         ← CI, release, dependabot, labeler workflows; Claude pipeline workflows, CODEOWNERS, PR template
-    ├── i18n.ts           ← routing, request, locale layout/pages
+    ├── i18n.ts           ← routing, request, proxy, [locale] root layout/pages, per-locale copy, LanguageSwitcher
     ├── lib.ts            ← schema.ts, generateSitemap.ts
     ├── next.ts           ← next.config.ts
     ├── public.ts         ← sitemap-index.xml
@@ -34,7 +34,7 @@ src/
     ├── types.ts          ← KeysMatch, PropsWithChildrenOnly
     └── utils.ts          ← array/string/url/environment/contentful/style/factory helpers, constants, interfaces
 
-fixtures/scaffold-e2e/     ← Answer JSON for scaffold E2E (cursor-static, claude-static, claude-pipeline)
+fixtures/scaffold-e2e/     ← Answer JSON for scaffold E2E (cursor-static, claude-static, claude-pipeline, claude-pipeline-i18n, cursor-contentful-all)
 .cursor/                   ← Cursor hooks for this repo (see .cursor/hooks/README.md)
 ```
 
@@ -79,6 +79,11 @@ The generated code must follow the same conventions documented in the handbook. 
 
 Kickoff ships **`.cursor/hooks.json`** and scripts under **`.cursor/hooks/`** that enforce conventions while editing the tool itself. See **`.cursor/hooks/README.md`**. Session start injects **`AGENTS.md`** (this file). Generated projects get their own hook set via `agentTooling` (`cursor` or `claude`) from `src/templates/agents.ts`.
 
+## Testing generation scenarios
+
+- `src/generationMatrix.test.ts` generates every tooling × option combination (96 projects) in seconds and checks structural invariants. Add an invariant there when you fix a class of generator bug.
+- `fixtures/scaffold-e2e/*.json` covers each option at least once for the slow end-to-end run. Add a fixture when a new option or combination needs a real install, build, or browser test.
+
 ## Scripts
 
 ```sh
@@ -87,7 +92,8 @@ pnpm dev                # tsc --watch
 pnpm lint               # biome check
 pnpm lint:fix           # biome check --fix
 pnpm test               # vitest (generator integration tests)
-pnpm test:scaffold-e2e  # generate fixture projects and run their CI scripts
+pnpm test:scaffold-e2e  # generate fixture projects, run their CI scripts, build/serve/smoke non-CMS fixtures
+SCAFFOLD_E2E_PLAYWRIGHT=1 pnpm test:scaffold-e2e  # also run generated Playwright suites
 node dist/index.js      # run the CLI (interactive; or --answers / --dry-run / --help)
 ```
 

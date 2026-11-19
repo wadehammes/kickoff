@@ -442,14 +442,20 @@ public/generated-sitemap-*.xml
 `;
 };
 
-export const getPnpmWorkspace = (): string => {
+export const getPnpmWorkspace = (a: ProjectAnswers): string => {
+  const swcEntry = a.includeI18n
+    ? `  # next-intl pulls in @swc/core; its native binary ships via optional deps, so skip its install script.
+  "@swc/core": false
+`
+    : "";
+
   return `# Only resolve package versions published at least 7 days ago (minutes).
 minimumReleaseAge: 10080
 
 allowBuilds:
   esbuild: true
   "@parcel/watcher": true
-
+${swcEntry}
 overrides:
   '@babel/helpers@<7.26.10': '>=7.26.10'
   '@babel/runtime@<7.26.10': '>=7.26.10'
@@ -603,7 +609,10 @@ export const getKnipConfig = (a: ProjectAnswers): string => {
         "src/lib/schema.ts": ["exports"],
       },
       rules: {
+        dependencies: "warn",
+        devDependencies: "warn",
         duplicates: "off",
+        files: "warn",
       },
       tags: ["-lintignore"],
       workspaces: {

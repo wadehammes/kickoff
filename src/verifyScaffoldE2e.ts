@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { type ChildProcess, execSync, spawn } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
@@ -22,6 +22,11 @@ const SCAFFOLD_CHECKS = [
   "test:ci",
   "knip:ci",
 ] as const;
+
+const SERVER_PORT = 3999;
+const SERVER_BASE_URL = `http://localhost:${SERVER_PORT}`;
+const SERVER_START_TIMEOUT_MS = 60_000;
+const RUN_PLAYWRIGHT = process.env.SCAFFOLD_E2E_PLAYWRIGHT === "1";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -84,6 +89,94 @@ const runInProject = (
   });
 };
 
+const startServer = (root: string): ChildProcess =>
+  spawn("pnpm", ["exec", "next", "start", "-p", String(SERVER_PORT)], {
+    cwd: root,
+    detached: true,
+    env: process.env,
+    stdio: "ignore",
+  });
+
+const stopServer = (server: ChildProcess): void => {
+  if (server.pid !== undefined) {
+    try {
+      process.kill(-server.pid, "SIGTERM");
+    } catch {
+      server.kill("SIGTERM");
+    }
+  }
+};
+
+const waitForServer = async (): Promise<void> => {
+  const deadline = Date.now() + SERVER_START_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    try {
+      await fetch(SERVER_BASE_URL);
+      return;
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  }
+  throw new Error(
+    `next start did not respond within ${SERVER_START_TIMEOUT_MS}ms`,
+  );
+};
+
+const expectPage = async (
+  pathname: string,
+  status: number,
+  lang?: string,
+): Promise<void> => {
+  const response = await fetch(`${SERVER_BASE_URL}${pathname}`, {
+    redirect: "manual",
+  });
+  const body = await response.text();
+  if (response.status !== status) {
+    throw new Error(
+      `GET ${pathname}: expected ${status}, got ${response.status}`,
+    );
+  }
+  if (lang !== undefined && !body.includes(`<html lang="${lang}"`)) {
+    throw new Error(`GET ${pathname}: expected <html lang="${lang}">`);
+  }
+  console.log(`    GET ${pathname} -> ${status}`);
+};
+
+const smokeTestBuild = async (
+  root: string,
+  answers: ProjectAnswers,
+): Promise<void> => {
+  console.log("  pnpm build");
+  execSync("pnpm build", { cwd: root, env: process.env, stdio: "inherit" });
+
+  console.log(`  next start (port ${SERVER_PORT})`);
+  const server = startServer(root);
+  try {
+    await waitForServer();
+    await expectPage("/", 200, "en");
+    await expectPage("/kickoff-e2e-missing-page", 404);
+    if (answers.includeI18n) {
+      await expectPage("/es", 200, "es");
+    }
+
+    if (answers.includeClaudePipeline && RUN_PLAYWRIGHT) {
+      console.log("  playwright install chromium");
+      execSync(
+        `pnpm exec playwright install ${process.env.CI ? "--with-deps " : ""}chromium`,
+        { cwd: root, env: process.env, stdio: "inherit" },
+      );
+      console.log("  pnpm test:e2e");
+      execSync("pnpm test:e2e", {
+        cwd: root,
+        env: { ...process.env, BASE_URL: SERVER_BASE_URL },
+        stdio: "inherit",
+      });
+    }
+  } finally {
+    stopServer(server);
+  }
+};
+
 const loadFixture = (fixturePath: string): ProjectAnswers => {
   const raw = JSON.parse(readFileSync(fixturePath, "utf-8")) as unknown;
   const validated = validateProjectAnswers(raw);
@@ -120,6 +213,12 @@ const verifyFixture = async (
     for (const check of SCAFFOLD_CHECKS) {
       console.log(`  pnpm ${check}`);
       runInProject(tmpRoot, check);
+    }
+
+    if (answers.includeContentful) {
+      console.log("  skip build: next build needs a real Contentful space");
+    } else {
+      await smokeTestBuild(tmpRoot, answers);
     }
 
     console.log(`✔ ${fixtureName}`);

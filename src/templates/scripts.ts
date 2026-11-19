@@ -542,8 +542,8 @@ child.on("exit", (code, signal) => process.exit(signal ? 1 : (code ?? 0)));
  */
 
 import { spawn } from "node:child_process";
-import https from "node:https";
 import http from "node:http";
+import https from "node:https";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -572,7 +572,7 @@ const PING_TIMEOUT_MS = 5_000;
 const SERVER_READY_TIMEOUT_MS = 120_000;
 
 const pingDevServer = (origin: string): Promise<void> => {
-  const base = origin.replace(//$/, "");
+  const base = origin.replace(/\\/$/, "");
   const isHttps = base.startsWith("https");
   const lib = isHttps ? https : http;
 
@@ -608,7 +608,9 @@ const waitUntilReady = async (origin: string): Promise<void> => {
       await new Promise((r) => setTimeout(r, PING_INTERVAL_MS));
     }
   }
-  throw new Error(\`No response from \${origin} within \${SERVER_READY_TIMEOUT_MS}ms\`);
+  throw new Error(
+    \`No response from \${origin} within \${SERVER_READY_TIMEOUT_MS}ms\`,
+  );
 };
 
 const main = async (): Promise<void> => {
@@ -641,7 +643,10 @@ const main = async (): Promise<void> => {
   try {
     await waitUntilReady(origin);
   } catch (e) {
-    console.error("[dev:preview] Dev server not reachable; skipping draft open.", e);
+    console.error(
+      "[dev:preview] Dev server not reachable; skipping draft open.",
+      e,
+    );
     return;
   }
 
@@ -650,7 +655,11 @@ const main = async (): Promise<void> => {
   try {
     openBrowser(url);
   } catch (e) {
-    console.error("[dev:preview] Could not open browser; open manually:", url, e);
+    console.error(
+      "[dev:preview] Could not open browser; open manually:",
+      url,
+      e,
+    );
   }
 };
 

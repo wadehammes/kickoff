@@ -99,6 +99,20 @@ describe("generateProject", () => {
     expect(existsSync(path.join(root, "src/app/[locale]/layout.tsx"))).toBe(
       true,
     );
+    expect(existsSync(path.join(root, "src/app/[slug]"))).toBe(false);
+    expect(existsSync(path.join(root, "src/app/page.tsx"))).toBe(false);
+    expect(
+      readFileSync(path.join(root, "src/app/[locale]/layout.tsx"), "utf-8"),
+    ).toContain("<html lang={locale}>");
+    expect(readFileSync(path.join(root, "src/proxy.ts"), "utf-8")).toContain(
+      "createMiddleware(routing)",
+    );
+    expect(readFileSync(path.join(root, "next.config.ts"), "utf-8")).toContain(
+      "withNextIntl(nextConfig)",
+    );
+    expect(
+      readFileSync(path.join(root, "src/copy/global.ts"), "utf-8"),
+    ).toContain("Record<Locale, GlobalCopy>");
 
     const pkg = JSON.parse(
       readFileSync(path.join(root, "package.json"), "utf-8"),

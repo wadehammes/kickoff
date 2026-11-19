@@ -5,12 +5,16 @@ import type { ProjectAnswers } from "../types.js";
 // ---------------------------------------------------------------------------
 
 export const getNavigationComponent = (a: ProjectAnswers): string => {
+  const nextLinkImport = a.includeI18n ? "" : `import Link from "next/link";\n`;
+  const localeLinkImport = a.includeI18n
+    ? `import { Link } from "src/i18n/routing";\n`
+    : "";
+
   return `"use client";
 
 import classNames from "classnames";
-import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import styles from "./Navigation.module.css";
+${nextLinkImport}import { useCallback, useEffect, useState } from "react";
+${localeLinkImport}import styles from "./Navigation.module.css";
 
 export const Navigation = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -98,14 +102,19 @@ export const getNavigationCSS = (): string => {
 // ---------------------------------------------------------------------------
 
 export const getFooterComponent = (a: ProjectAnswers): string => {
-  return `import styles from "./Footer.module.css";
+  const switcherImport = a.includeI18n
+    ? `import { LanguageSwitcher } from "src/components/LanguageSwitcher/LanguageSwitcher.component";\n`
+    : "";
+  const switcher = a.includeI18n ? "\n      <LanguageSwitcher />" : "";
+
+  return `${switcherImport}import styles from "./Footer.module.css";
 
 export const Footer = () => (
   <footer className={styles.footer}>
     <div className="container">
       <span className={styles.copyright}>
         &copy; {new Date().getFullYear()} ${a.siteName}
-      </span>
+      </span>${switcher}
     </div>
   </footer>
 );
