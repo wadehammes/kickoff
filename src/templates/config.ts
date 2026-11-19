@@ -156,7 +156,7 @@ export const getPackageJson = (
   ]);
 
   const scripts: Record<string, string> = {
-    build: "next build && make sitemap",
+    build: "next build",
     dev: `next dev -p ${a.devPort}`,
     "dev:debug": `NODE_OPTIONS='--inspect' next dev -p ${a.devPort}`,
     "dev:preview": "tsx scripts/dev-with-preview.ts",
@@ -510,8 +510,6 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 ${usesVercel(a) ? ".vercel\n" : ""}.env*.local
-
-public/generated-sitemap-*.xml
 `;
 };
 
@@ -543,14 +541,6 @@ overrides:
 };
 
 export const getMakefile = (a: ProjectAnswers): string => {
-  if (a.includeClaudePipeline) {
-    return `SHELL := /bin/bash
-
-sitemap:
-\tnode scripts/make_sitemap.js
-`;
-  }
-
   return `SHELL := /bin/bash
 .SILENT: release
 
@@ -563,9 +553,6 @@ ${usesVercel(a) ? "\t\tbash scripts/verify-vercel-for-release.sh && \\\n" : ""}\
 \t\techo "Tag name must start with v (eg, v0.0.1)"; \\
 \t\texit 1; \\
 \tfi
-
-sitemap:
-\tnode scripts/make_sitemap.js
 `;
 };
 
@@ -639,7 +626,6 @@ export const getKnipConfig = (a: ProjectAnswers): string => {
     "src/app/fonts.ts",
     "src/hooks/useIsBrowser.ts",
     "src/interfaces/**",
-    "src/lib/generateSitemap.ts",
     "src/tests/factories/**",
     "src/tests/mocks/mockNextNavigation.ts",
     "src/types/KeysMatch.ts",
@@ -672,13 +658,15 @@ export const getKnipConfig = (a: ProjectAnswers): string => {
       entry: ["jest.config.ts", "scripts/cursor-handbook-guard.runner.spec.ts"],
       ignoreExportsUsedInFile: true,
       ignore,
-      ignoreBinaries: ["make"],
       ignoreDependencies,
       ignoreIssues: {
         "src/api/helpers.ts": ["types", "enumMembers"],
         "src/components/**": ["exports"],
         "src/lib/schema.ts": ["exports"],
         "src/lib/toast/appToast.ts": ["exports"],
+        ...(a.includeContentful
+          ? { "src/contentful/getPages.ts": ["exports"] }
+          : {}),
       },
       rules: {
         dependencies: "warn",

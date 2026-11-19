@@ -11,7 +11,6 @@ export * from "./handbook-agent.js";
 export * from "./i18n.js";
 export * from "./lib.js";
 export * from "./next.js";
-export * from "./public.js";
 export * from "./scripts.js";
 export * from "./styles.js";
 export * from "./testing.js";

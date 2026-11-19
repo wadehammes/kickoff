@@ -71,7 +71,7 @@ ${preconnectCtf}        <link
           rel="sitemap"
           type="application/xml"
           title="Sitemap"
-          href="/sitemap-index.xml"
+          href="/sitemap.xml"
         />
       </head>
       <body>
@@ -318,11 +318,117 @@ const robots = (): MetadataRoute.Robots => {
       userAgent: "*",
       allow: "/",
     },
-    sitemap: "${a.prodUrl}/sitemap-index.xml",
+    sitemap: "${a.prodUrl}/sitemap.xml",
   };
 };
 
 export default robots;
+`;
+};
+
+// ---------------------------------------------------------------------------
+// src/app/sitemap.ts  (served by Next.js at /sitemap.xml)
+// ---------------------------------------------------------------------------
+
+export const getAppSitemap = (a: ProjectAnswers): string => {
+  const imports = [
+    'import type { MetadataRoute } from "next";',
+    ...(a.includeContentful
+      ? ['import { fetchPages } from "src/contentful/getPages";']
+      : []),
+    ...(a.includeI18n
+      ? ['import { type Locale, routing } from "src/i18n/routing";']
+      : []),
+    ...(a.includeContentful
+      ? ['import { HOME_PAGE_SLUG } from "src/utils/constants";']
+      : []),
+    'import { envUrl } from "src/utils/environment.helpers";',
+  ].join("\n");
+
+  const cmsRoutes = a.includeContentful
+    ? `
+const fetchCmsRoutes = async (): Promise<SitemapRoute[]> => {
+  const pages = await fetchPages({ preview: false });
+
+  return pages
+    .filter((page) => page.enableIndexing)
+    .map((page) => ({
+      lastModified: page.updatedAt,
+      route: page.pageSlug === HOME_PAGE_SLUG ? "/" : \`/\${page.pageSlug}\`,
+    }));
+};
+`
+    : "";
+
+  const collectRoutes = a.includeContentful
+    ? `const collectRoutes = async (): Promise<SitemapRoute[]> => {
+  const cmsRoutes = await fetchCmsRoutes();
+  const cmsPaths = new Set(cmsRoutes.map((entry) => entry.route));
+  const staticRoutes = STATIC_ROUTES.filter(
+    (route) => !cmsPaths.has(route),
+  ).map((route) => ({ lastModified: new Date(), route }));
+
+  return [...staticRoutes, ...cmsRoutes];
+};`
+    : `const collectRoutes = async (): Promise<SitemapRoute[]> =>
+  STATIC_ROUTES.map((route) => ({ lastModified: new Date(), route }));`;
+
+  const toEntries = a.includeI18n
+    ? `const localizedUrl = ({
+  locale,
+  route,
+}: {
+  locale: Locale;
+  route: string;
+}): string => {
+  const prefix = locale === routing.defaultLocale ? "" : \`/\${locale}\`;
+  const path = route === "/" ? "" : route;
+
+  return \`\${envUrl()}\${prefix}\${path}\`;
+};
+
+const toEntries = ({
+  lastModified,
+  route,
+}: SitemapRoute): MetadataRoute.Sitemap => {
+  const languages = Object.fromEntries(
+    routing.locales.map((locale) => [locale, localizedUrl({ locale, route })]),
+  );
+
+  return routing.locales.map((locale) => ({
+    alternates: { languages },
+    lastModified,
+    url: localizedUrl({ locale, route }),
+  }));
+};`
+    : `const toEntries = ({
+  lastModified,
+  route,
+}: SitemapRoute): MetadataRoute.Sitemap => [
+  {
+    lastModified,
+    url: \`\${envUrl()}\${route === "/" ? "" : route}\`,
+  },
+];`;
+
+  return `${imports}
+
+/** Routes that are not generated from content. Add new pages here so search engines find them. */
+const STATIC_ROUTES = ["/"];
+
+interface SitemapRoute {
+  lastModified: Date | string;
+  route: string;
+}
+${cmsRoutes}
+${collectRoutes}
+
+${toEntries}
+
+const sitemap = async (): Promise<MetadataRoute.Sitemap> =>
+  (await collectRoutes()).flatMap(toEntries);
+
+export default sitemap;
 `;
 };
 

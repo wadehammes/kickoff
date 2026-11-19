@@ -186,7 +186,7 @@ ${preconnectCtf}        <link
           rel="sitemap"
           type="application/xml"
           title="Sitemap"
-          href="/sitemap-index.xml"
+          href="/sitemap.xml"
         />
       </head>
       <body>

@@ -24,7 +24,7 @@ src/
     ├── index.ts          ← Barrel re-export
     ├── agents.ts         ← .cursor/ and .claude/ hooks, rules, commands, READMEs for generated projects
     ├── api.ts            ← src/api/ helpers and urls
-    ├── app.ts            ← src/app/ layout, pages, routes, error, manifest
+    ├── app.ts            ← src/app/ layout, pages, routes, error, manifest, robots, sitemap
     ├── components.ts     ← Navigation, Footer, ExitDraftModeLink, NotFoundPage
     ├── config.ts         ← package.json, tsconfig, biome, jest, postcss, env...
     ├── contentful.ts     ← client, helpers, cache, parsers, richText
@@ -32,10 +32,9 @@ src/
     ├── handbook-agent.ts ← glossary, decisions, agent-workflow, api-routes, factories, data-storage
     ├── github.ts         ← CI, release, dependabot, labeler workflows; Claude pipeline workflows, CODEOWNERS, PR template
     ├── i18n.ts           ← routing, request, proxy, [locale] root layout/pages, per-locale copy, LanguageSwitcher
-    ├── lib.ts            ← schema.ts, generateSitemap.ts
+    ├── lib.ts            ← schema.ts
     ├── next.ts           ← next.config.ts
-    ├── public.ts         ← sitemap-index.xml
-    ├── scripts.ts        ← scaffold.sh, make_sitemap.js, verify-vercel...
+    ├── scripts.ts        ← scaffold.sh, verify-vercel...
     ├── styles.ts         ← globals.css, variables.css, runtime-variables
     ├── testing.ts        ← BasePageObject, BaseFactory, mocks, setupTests, RichTextDocument factory, Playwright config + e2e smoke spec
     ├── types.ts          ← KeysMatch, PropsWithChildrenOnly
