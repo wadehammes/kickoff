@@ -158,6 +158,7 @@ const smokeTestBuild = async (
     await expectPage("/kickoff-e2e-missing-page", 404);
     if (answers.includeI18n) {
       await expectPage("/es", 200, "es");
+      await expectPage("/es/kickoff-e2e-missing-page", 404, "es");
     }
 
     if (answers.includeClaudePipeline && RUN_PLAYWRIGHT) {
