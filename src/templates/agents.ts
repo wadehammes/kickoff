@@ -847,6 +847,8 @@ const PIPELINE_PERMISSIONS = {
     "Bash(git add:*)",
     "Bash(git commit:*)",
     "Bash(git switch:*)",
+    "Bash(git fetch:*)",
+    "Bash(git revert:*)",
     "Bash(git push origin claude/*)",
     "Bash(gh pr create:*)",
     "Bash(gh pr view:*)",

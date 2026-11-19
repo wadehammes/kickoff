@@ -162,7 +162,7 @@ const collectFindings = () => {
 
   const matching = (pattern) => changed.filter((file) => pattern.test(file));
 
-  const codeChanged = matching(/^src\/.*\.(ts|tsx|css)$/);
+  const codeChanged = matching(/^src\/(?!copy\/).*\.(ts|tsx|css)$/);
   const opsChanged = matching(
     /^(package\.json|jest\.config\.ts|next\.config\.ts|biome\.json|knip\.json|stylelint\.config\.mjs|pnpm-workspace\.yaml|Makefile|\.tool-versions|\.jest\/.*|\.github\/.*|scripts\/.*|i18next\.config\.ts)$/,
   );

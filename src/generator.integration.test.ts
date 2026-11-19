@@ -278,6 +278,8 @@ describe("generateProject", () => {
       ".github/workflows/auto-merge.yml",
       ".github/workflows/preview-e2e.yml",
       ".github/workflows/production-smoke.yml",
+      ".github/workflows/claude-fix.yml",
+      "docs/working-with-claude.md",
       ".github/CODEOWNERS",
       ".github/pull_request_template.md",
       ".claude/hooks/quality-gate.sh",
@@ -314,6 +316,17 @@ describe("generateProject", () => {
     );
     expect(smoke).toContain("BASE_URL: https://example.com");
     expect(smoke).toContain("rollback");
+    expect(smoke).toContain("gh issue create");
+
+    const fix = readFileSync(
+      path.join(root, ".github/workflows/claude-fix.yml"),
+      "utf-8",
+    );
+    expect(fix).toContain("workflows: [CI, Claude Review Gate]");
+    expect(fix).toContain(
+      "startsWith(github.event.workflow_run.head_branch, 'claude/')",
+    );
+    expect(fix).toContain("<!-- claude-fix-escalated -->");
 
     const pkg = JSON.parse(
       readFileSync(path.join(root, "package.json"), "utf-8"),
@@ -330,15 +343,18 @@ describe("generateProject", () => {
       readFileSync(path.join(root, ".claude/settings.json"), "utf-8"),
     ) as {
       hooks: { Stop: { hooks: { command: string }[] }[] };
-      permissions: { deny: string[] };
+      permissions: { allow: string[]; deny: string[] };
     };
     expect(settings.permissions.deny).toContain("Edit(./.github/**)");
+    expect(settings.permissions.allow).toContain("Bash(git revert:*)");
     expect(
       settings.hooks.Stop.map((entry) => entry.hooks[0]?.command),
     ).toContain(".claude/hooks/quality-gate.sh");
 
     const claudeMd = readFileSync(path.join(root, "CLAUDE.md"), "utf-8");
     expect(claudeMd).toContain("Hands-off pipeline");
+    expect(claudeMd).toContain("Working with non-technical requesters");
+    expect(claudeMd).toContain("src/copy/");
     const platform = readFileSync(
       path.join(root, "docs/handbook/platform.md"),
       "utf-8",
