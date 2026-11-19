@@ -176,7 +176,6 @@ export const getTsConfig = (): string => {
     ]
   },
   "include": [
-    "cssprops.d.ts",
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
@@ -568,11 +567,8 @@ export default async () => {
 
 export const getKnipConfig = (a: ProjectAnswers): string => {
   const ignore = [
-    ".claude/hooks/**",
-    ".cursor/hooks/**",
     "scripts/**",
     "src/app/fonts.ts",
-    "src/copy/**",
     "src/hooks/useIsBrowser.ts",
     "src/interfaces/**",
     "src/lib/generateSitemap.ts",
@@ -591,11 +587,13 @@ export const getKnipConfig = (a: ProjectAnswers): string => {
     ignore.push("src/components/ExitDraftModeLink/**");
   }
 
+  if (!a.includeI18n) {
+    ignore.push("src/copy/**");
+  }
+
   const ignoreDependencies = [
     "@faker-js/faker",
-    "@svgr/webpack",
     "jest-mock",
-    "styled-components",
     "csstype",
     "react-is",
   ];
@@ -627,17 +625,6 @@ export const getKnipConfig = (a: ProjectAnswers): string => {
     null,
     2,
   )}\n`;
-};
-
-export const getCssPropsDeclaration = (): string => {
-  return `import type { CSSProp } from "styled-components";
-
-declare module "react" {
-  interface Attributes {
-    css?: CSSProp;
-  }
-}
-`;
 };
 
 export const getNextEnvDeclaration = (): string => {

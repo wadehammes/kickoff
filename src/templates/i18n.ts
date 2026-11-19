@@ -294,10 +294,9 @@ export default Home;
 
 export const getLocaleSlugPage = (): string => {
   return `import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import type { Locale } from "src/i18n/routing";
-
-export const dynamicParams = false;
 
 interface PageParams {
   locale: Locale;
@@ -310,6 +309,11 @@ interface PageProps {
 
 export const generateStaticParams = async (): Promise<PageParams[]> => [];
 
+const isKnownPage = async ({ locale, slug }: PageParams): Promise<boolean> =>
+  (await generateStaticParams()).some(
+    (page) => page.locale === locale && page.slug === slug,
+  );
+
 export const generateMetadata = async ({
   params,
 }: PageProps): Promise<Metadata> => {
@@ -321,6 +325,10 @@ export const generateMetadata = async ({
 const Page = async ({ params }: PageProps) => {
   const { locale, slug } = await params;
   setRequestLocale(locale);
+
+  if (!(await isKnownPage({ locale, slug }))) {
+    notFound();
+  }
 
   return (
     <div className="page-container">

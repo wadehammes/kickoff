@@ -52,7 +52,6 @@ import {
   getContentfulPagination,
   getContentfulUtilHelpers,
   getCopyGlobal,
-  getCssPropsDeclaration,
   getCursorHandbookGuardRunnerSpec,
   getCursorHookScriptNames,
   getCursorHooksJson,
@@ -262,7 +261,6 @@ export const generateProject = async (
   await write("Makefile", getMakefile(a));
   await write("jest.config.ts", getJestConfig());
   await write("knip.json", getKnipConfig(a));
-  await write("cssprops.d.ts", getCssPropsDeclaration());
   await write("next-env.d.ts", getNextEnvDeclaration());
   await write("next.config.ts", getNextConfig(a));
   await write(".env.local.example", getEnvLocalExample(a));

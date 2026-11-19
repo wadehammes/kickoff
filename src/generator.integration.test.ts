@@ -443,9 +443,10 @@ describe("generateProject", () => {
     };
 
     expect(knip.ignore).toContain("scripts/**");
-    expect(knip.ignoreDependencies).toEqual(
-      expect.arrayContaining(["@svgr/webpack", "jest-mock"]),
-    );
+    expect(knip.ignoreDependencies).toContain("jest-mock");
+    expect(knip.ignoreDependencies).not.toContain("@svgr/webpack");
+    expect(knip.ignoreDependencies).not.toContain("styled-components");
+    expect(existsSync(path.join(root, "cssprops.d.ts"))).toBe(false);
     expect(existsSync(path.join(root, "src/tests/mocks/svgMock.tsx"))).toBe(
       true,
     );
