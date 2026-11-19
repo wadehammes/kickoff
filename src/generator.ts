@@ -116,13 +116,19 @@ import {
   getHandbookSyncCheckSh,
   getHandbookTestRules,
   getHandbookTestRulesSpec,
+  getI18nCopyGlobal,
+  getI18nProxyTs,
   getI18nRequest,
+  getI18nRootLayout,
+  getI18nRootNotFound,
   getI18nRouting,
   getJestConfig,
   getKeysMatch,
   getKnipConfig,
   getLabelerWorkflow,
   getLabelerYml,
+  getLanguageSwitcherComponent,
+  getLanguageSwitcherCSS,
   getLocaleLayout,
   getLocalePage,
   getLocaleSlugPage,
@@ -250,7 +256,7 @@ export const generateProject = async (
   await write(".npmrc", getNpmrc());
   await write(".browserslistrc", getBrowserslistrc());
   await write(".gitignore", getGitignore());
-  await write("pnpm-workspace.yaml", getPnpmWorkspace());
+  await write("pnpm-workspace.yaml", getPnpmWorkspace(a));
   await write("Makefile", getMakefile(a));
   await write("jest.config.ts", getJestConfig());
   await write("knip.json", getKnipConfig(a));
@@ -347,7 +353,7 @@ export const generateProject = async (
     await write(".github/workflows/claude.yml", getClaudeWorkflow());
     await write(
       ".github/workflows/claude-review.yml",
-      getClaudeReviewWorkflow(),
+      getClaudeReviewWorkflow(a),
     );
     await write(".github/workflows/claude-fix.yml", getClaudeFixWorkflow());
     await write(".github/workflows/auto-merge.yml", getAutoMergeWorkflow());
@@ -401,32 +407,42 @@ export const generateProject = async (
   // ── e2e/ (Claude pipeline) ─────────────────────────────────────────────────
   if (a.includeClaudePipeline) {
     await write("playwright.config.ts", getPlaywrightConfig(a));
-    await write("e2e/smoke.spec.ts", getE2eSmokeSpec());
+    await write("e2e/smoke.spec.ts", getE2eSmokeSpec(a));
   }
 
   // ── src/@types/ ────────────────────────────────────────────────────────────
   await write("src/@types/react.d.ts", getTypesReactDts());
 
   // ── src/app/ ───────────────────────────────────────────────────────────────
-  await write("src/app/layout.tsx", getAppLayout(a));
-  await write("src/app/page.tsx", getAppPage());
+  // With i18n, every page lives under [locale] and [locale]/layout.tsx renders <html>.
+  const pagesDir = a.includeI18n ? "src/app/[locale]" : "src/app";
+
+  await write(
+    "src/app/layout.tsx",
+    a.includeI18n ? getI18nRootLayout() : getAppLayout(a),
+  );
+  await write(
+    "src/app/not-found.tsx",
+    a.includeI18n ? getI18nRootNotFound() : getAppNotFound(),
+  );
   await write("src/app/providers.tsx", getAppProviders());
   await write("src/app/fonts.ts", getAppFonts());
-  await write("src/app/error.tsx", getAppError());
-  await write("src/app/error.module.css", getAppErrorCSS());
-  await write("src/app/loading.tsx", getAppLoading());
-  await write("src/app/not-found.tsx", getAppNotFound());
+  await write(`${pagesDir}/error.tsx`, getAppError());
+  await write(`${pagesDir}/error.module.css`, getAppErrorCSS());
+  await write(`${pagesDir}/loading.tsx`, getAppLoading());
   await write("src/app/robots.ts", getAppRobots(a));
   await write("src/app/manifest.ts", getAppManifest(a));
   await write("src/app/fonts/.gitkeep", "");
   await write("src/app/global-error.tsx", getGlobalError());
-  await write("src/app/refresh-content/page.tsx", getRefreshContentPage(a));
+  await write(`${pagesDir}/refresh-content/page.tsx`, getRefreshContentPage(a));
 
-  // ── src/app/[slug]/ ──────────────────────────────────────────────────────────
-  await write(
-    "src/app/[slug]/page.tsx",
-    a.includeContentful ? getSlugPage() : getSlugPageWithoutContentful(),
-  );
+  if (!a.includeI18n) {
+    await write("src/app/page.tsx", getAppPage());
+    await write(
+      "src/app/[slug]/page.tsx",
+      a.includeContentful ? getSlugPage() : getSlugPageWithoutContentful(),
+    );
+  }
 
   // ── src/app/api/ ───────────────────────────────────────────────────────────
   if (a.includeContentful) {
@@ -537,7 +553,10 @@ export const generateProject = async (
   await write("src/api/urls.ts", getApiUrls());
 
   // ── src/copy/ ───────────────────────────────────────────────────────────────
-  await write("src/copy/global.ts", getCopyGlobal(a));
+  await write(
+    "src/copy/global.ts",
+    a.includeI18n ? getI18nCopyGlobal(a) : getCopyGlobal(a),
+  );
 
   // ── src/hooks/ ───────────────────────────────────────────────────────────────
   await write("src/hooks/useIsBrowser.ts", getUseIsBrowser());
@@ -640,7 +659,7 @@ export const generateProject = async (
   await write("src/utils/factory.helpers.ts", getFactoryHelpers());
 
   // ── src/proxy.ts ───────────────────────────────────────────────────────────────
-  await write("src/proxy.ts", getProxyTs());
+  await write("src/proxy.ts", a.includeI18n ? getI18nProxyTs() : getProxyTs());
 
   // ── i18n (conditional) ───────────────────────────────────────────────────────
   if (a.includeI18n) {
@@ -650,6 +669,14 @@ export const generateProject = async (
     await write("src/app/[locale]/page.tsx", getLocalePage());
     await write("src/app/[locale]/[slug]/page.tsx", getLocaleSlugPage());
     await write("src/app/[locale]/not-found.tsx", getAppNotFound());
+    await write(
+      "src/components/LanguageSwitcher/LanguageSwitcher.component.tsx",
+      getLanguageSwitcherComponent(),
+    );
+    await write(
+      "src/components/LanguageSwitcher/LanguageSwitcher.module.css",
+      getLanguageSwitcherCSS(),
+    );
   }
 };
 

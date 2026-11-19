@@ -21,7 +21,7 @@ Terms agents see in this scaffold. Paths are under **\`src/\`** unless noted.
 | **Getter** | Contentful (or other) read function that returns raw entries — parsers shape UI props. |
 | **Parser** | Maps CMS entry → typed component props ([contentful.md](contentful.md) when CMS enabled). |
 | **Draft mode** | Preview unpublished CMS content via \`/api/draft\` when Contentful is scaffolded. |
-| **Generated types** | \`src/contentful/types/\` — output of \`pnpm types:contentful\`; do not hand-edit. |
+${a.includeContentful ? "| **Generated types** | `src/contentful/types/` — output of `pnpm types:contentful`; do not hand-edit. |" : "| **Generated types** | None in this project; Contentful was not scaffolded. |"}
 
 ## Client API surface
 

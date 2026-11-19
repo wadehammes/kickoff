@@ -28,7 +28,7 @@ Every generated project includes:
 
 Optional add-ons selected during prompts:
 
-- **i18n** — next-intl with `[locale]` App Router structure
+- **i18n** — English at `/` and Spanish at `/es` with next-intl routing: every page lives under `src/app/[locale]/`, copy in `src/copy/` is typed `Record<Locale, …>` so a missing language fails the typecheck, and the footer gets a language switcher
 - **Google Analytics** — @next/third-parties GA
 - **Resend** — transactional email
 - **reCAPTCHA** — react-google-recaptcha
@@ -49,7 +49,7 @@ cd /path/to/kickoff
 pnpm install
 pnpm build
 pnpm test   # generator integration tests (Vitest)
-pnpm test:scaffold-e2e   # E2E: scaffold fixtures + run generated project CI checks
+pnpm test:scaffold-e2e   # E2E: scaffold fixtures, run their CI checks, build, serve, and smoke test
 npm link
 ```
 
@@ -341,7 +341,8 @@ Hook shell for generated projects is maintained under **`scaffold-assets/`** (`c
 | `pnpm lint:css` / `pnpm lint:css:fix` | Stylelint on CSS in this repo |
 | `pnpm lint:all` | Biome (changed files), Stylelint fix, `tsc`, and knip |
 | `pnpm test` | Vitest (generator + validation tests) |
-| `pnpm test:scaffold-e2e` | E2E: generate `fixtures/scaffold-e2e/*.json` projects and run their `tsc:ci`, `lint:ci`, `lint:css`, `test:ci`, `knip:ci` |
+| `pnpm test` | Unit and integration tests, including `src/generationMatrix.test.ts`: generates all 96 tooling × option combinations and checks routes, `<html>` layouts, imports, referenced pnpm scripts, JSON, and TypeScript syntax |
+| `pnpm test:scaffold-e2e` | E2E: generate `fixtures/scaffold-e2e/*.json` projects, run their `tsc:ci`, `lint:ci`, `lint:css`, `test:ci`, `knip:ci`, then (without Contentful) `pnpm build`, `next start`, and HTTP smoke checks. Set `SCAFFOLD_E2E_PLAYWRIGHT=1` to also run the generated Playwright suite for pipeline fixtures (CI does) |
 
 **CI** (`.github/workflows/ci.yml` on PRs to `main`):
 

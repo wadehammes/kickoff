@@ -1,0 +1,18 @@
+{
+  "agentTooling": "cursor",
+  "bgColor": "#ffffff",
+  "devPort": 3003,
+  "includeClaudePipeline": false,
+  "includeContentful": true,
+  "includeGA": true,
+  "includeI18n": true,
+  "includeRecaptcha": true,
+  "includeResend": true,
+  "primaryColor": "#000000",
+  "prodUrl": "https://www.e2e-cursor.example",
+  "projectName": "e2e-cursor-contentful-all",
+  "siteName": "E2E Cursor Contentful All",
+  "stagingUrl": "https://staging.e2e-cursor.example",
+  "textColor": "#000000",
+  "useCurrentDir": true
+}

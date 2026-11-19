@@ -16,7 +16,20 @@ Follow documented patterns.
 **Keep the handbook accurate:** Whenever a change would make the handbook wrong or incomplete—new flows (CI, env, tags), moved files, scaffold or convention changes, Contentful/parser patterns, or anything a future reader would be misled by—update the relevant **\`docs/handbook/*.md\`** in the **same PR** when practical, or in a small follow-up right away. Do not leave docs stale on purpose.
 
 You can skip a full handbook pass for **narrow** edits (typos, single obvious lines, mechanical fixes) that do not change behavior or documented expectations.
-${a.includeClaudePipeline ? getClaudePipelineInstructions() : ""}`;
+${a.includeI18n ? getClaudeI18nInstructions() : ""}${a.includeClaudePipeline ? getClaudePipelineInstructions() : ""}`;
+};
+
+const getClaudeI18nInstructions = (): string => {
+  return `
+## English and Spanish
+
+This site ships in English (\`/\`) and Spanish (\`/es\`). See **\`docs/handbook/platform.md\`** — **Languages**.
+
+- Every copy change updates **both** languages in the same PR. Copy objects are typed \`Record<Locale, ...>\`, so a missing language fails the typecheck, but a stale translation does not; keeping them in sync is on you.
+- Translate in the site's voice rather than word for word. Keep proper nouns, product names, and URLs unchanged.
+- Flag legal or compliance copy (EEO, pay transparency, privacy) in the PR summary so a fluent speaker can review the Spanish.
+- Use \`Link\`, \`usePathname\`, and \`useRouter\` from \`src/i18n/routing\`, not \`next/link\`, so links keep the visitor's language.
+`;
 };
 
 const getClaudePipelineInstructions = (): string => {
@@ -604,9 +617,7 @@ If you are unsure, copy a nearby file that already does the right thing and run 
 - **Do not re-export types (or values) from another module.** Import from the module that defines them. Never re-export types from a component file so consumers can import from a single place — have them import from the defining module directly.
 - **Use a single params object for function parameters.** For any function that takes more than one argument or an optional argument, pass a single object parameter so call sites are self-documenting and order-independent.
 - **Use semantic parameter and variable names.** Pick a name that describes what the value *is* — its domain meaning, format, or source — not its lifecycle state. Avoid generic placeholders like \`raw\`, \`data\`, \`val\`, \`tmp\`, \`result\`, \`thing\`. Prefer \`encodedValue\`, \`apiResponse\`, \`candidateSlug\`, \`trimmedDescription\`.
-- **Contentful types**: Content types are generated into \`src/contentful/types/\` (run \`pnpm types:contentful\` with Contentful env vars set). Do not edit generated types by hand — for any reason.
-- **Contentful ordering**: Do not sort or alphabetize Contentful data in the app. Order at fetch time via the Contentful API \`order\` parameter.
-- **App-level types**: Shared slugs, navigation IDs, and similar **constants** live in \`src/utils/constants.ts\`. Feature-scoped interfaces live under \`src/interfaces/\`. Prefer colocating types with a feature when they are not cross-cutting.
+${a.includeContentful ? "- **Contentful types**: Content types are generated into `src/contentful/types/` (run `pnpm types:contentful` with Contentful env vars set). Do not edit generated types by hand — for any reason.\n- **Contentful ordering**: Do not sort or alphabetize Contentful data in the app. Order at fetch time via the Contentful API `order` parameter.\n" : ""}- **App-level types**: Shared slugs, navigation IDs, and similar **constants** live in \`src/utils/constants.ts\`. Feature-scoped interfaces live under \`src/interfaces/\`. Prefer colocating types with a feature when they are not cross-cutting.
 - **API and forms**: When adding new API or form payloads, define interfaces in the relevant module, next to \`src/api/urls.ts\`, or alongside the route handler under \`src/app/api/\`.
 - **Site constants**: App-wide slugs, Contentful entry IDs, and similar **data constants** belong in \`src/utils/constants.ts\`, not scattered as magic strings.
 
@@ -770,7 +781,7 @@ export const getHandbookContentful = (a: ProjectAnswers): string => {
   if (!a.includeContentful) {
     return `# Contentful integration
 
-This project was scaffolded **without** Contentful—there is no \`src/contentful/\` tree and no \`pnpm types:contentful\` script.
+This project was scaffolded **without** Contentful—there is no \`src/contentful/\` tree and no Contentful type-generation script.
 
 To adopt Contentful later, add the SDK and codegen dependencies, restore env keys in \`next.config.ts\`, copy the \`src/contentful/\` patterns from a Contentful-enabled kickoff run (or another project handbook), and run type generation against your space.
 `;
@@ -1069,7 +1080,7 @@ Run **\`pnpm lint:all\`** locally for the same checks as a full pre-push pass (\
 
 ### Knip
 
-**[knip](https://knip.dev/)** runs in CI to flag unused files, exports, and dependencies. Config: [knip.json](../../knip.json). Generated Contentful types, **\`scripts/\`**, and starter scaffold files under **\`src/ui/\`**, **\`src/tests/factories/\`**, and related paths are ignored until you wire them up; fix or explicitly ignore new false positives rather than disabling checks globally.
+**[knip](https://knip.dev/)** runs in CI to flag unused files, exports, and dependencies. Config: [knip.json](../../knip.json). Generated Contentful types, **\`scripts/\`**, and starter scaffold files under **\`src/ui/\`**, **\`src/tests/factories/\`**, and related paths are ignored until you wire them up. Unused **files** and **dependencies** are reported as warnings, not failures, because a fresh scaffold ships starter code and packages (Contentful, Resend, reCAPTCHA) before anything uses them; unused exports, unlisted dependencies, and unresolved imports still fail CI; fix or explicitly ignore new false positives rather than disabling checks globally.
 
 ## Package scripts (local workflow)
 
@@ -1119,9 +1130,28 @@ ${notableContentful}- **ENVIRONMENT** — drives URLs in helpers such as \`envUr
 
 ${draftSection}
 ${agentHooksSection}${a.includeClaudePipeline ? getHandbookPipelineSection(a) : getHandbookReleaseSection()}
-## \`src/proxy.ts\`
+${a.includeI18n ? getHandbookLanguagesSection() : ""}## \`src/proxy.ts\`
 
-\`src/proxy.ts\` attaches **\`x-pathname\`** to request headers for downstream use. If you add **Next.js middleware**, import and call \`proxy\` from there so the behavior is applied on each request.
+${
+  a.includeI18n
+    ? "`src/proxy.ts` runs **next-intl** locale routing (`createMiddleware(routing)`): it detects the visitor's language and rewrites `/` to the default locale. Its `matcher` skips `api`, `_next`, `_vercel`, and files with an extension. If you add more request handling, wrap the next-intl handler rather than replacing it."
+    : "`src/proxy.ts` attaches **`x-pathname`** to request headers for downstream use. If you add **Next.js middleware**, import and call `proxy` from there so the behavior is applied on each request."
+}
+`;
+};
+
+const getHandbookLanguagesSection = (): string => {
+  return `## Languages (English and Spanish)
+
+The site is served in English at \`/\` and Spanish at \`/es\` using **next-intl** for routing only (\`localePrefix: "as-needed"\`, so \`/en\` redirects to \`/\`).
+
+- **Routing**: \`src/i18n/routing.ts\` defines \`locales\`, \`defaultLocale\`, the \`Locale\` type, and locale-aware \`Link\` / \`usePathname\` / \`useRouter\`. \`src/i18n/request.ts\` is loaded by the next-intl plugin in \`next.config.ts\`.
+- **Pages**: every page lives under \`src/app/[locale]/\`. \`src/app/[locale]/layout.tsx\` renders \`<html lang={locale}>\` and calls \`setRequestLocale\` for static rendering; \`src/app/layout.tsx\` only passes children through. \`src/app/not-found.tsx\` handles paths outside any locale.
+- **Copy**: text lives in \`src/copy/\` as \`Record<Locale, …>\` objects (e.g. \`GLOBAL_COPY[locale].homeTitle\`), not next-intl message JSON. A missing language fails \`pnpm tsc:ci\`; a stale translation does not, so every copy change updates both languages.
+- **Metadata**: pages set \`alternates.languages\` so search engines see both versions.
+- **Language switcher**: \`LanguageSwitcher\` in the footer links to the current page in each language.
+- **Adding a language**: add it to \`locales\`, add an entry to every \`Record<Locale, …>\` copy object (the typecheck lists them), and add its label to \`LanguageSwitcher\`.
+
 `;
 };
 

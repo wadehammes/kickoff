@@ -701,7 +701,18 @@ export default defineConfig({
 // e2e/smoke.spec.ts (includeClaudePipeline)
 // ---------------------------------------------------------------------------
 
-export const getE2eSmokeSpec = (): string => {
+export const getE2eSmokeSpec = (a: ProjectAnswers): string => {
+  const spanishSmoke = a.includeI18n
+    ? `
+
+  test("serves the Spanish home page", async ({ page }) => {
+    const response = await page.goto("/es");
+
+    expect(response?.ok()).toBe(true);
+    await expect(page.locator("html")).toHaveAttribute("lang", "es");
+  });`
+    : "";
+
   return `import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
@@ -719,7 +730,7 @@ test.describe("home page @smoke", () => {
     const response = await page.goto("/this-page-does-not-exist");
 
     expect(response?.status()).toBe(404);
-  });
+  });${spanishSmoke}
 });
 
 test.describe("accessibility", () => {

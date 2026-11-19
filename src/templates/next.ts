@@ -56,8 +56,17 @@ export const getNextConfig = (a: ProjectAnswers): string => {
       ${optimizePackages.join(",\n      ")},
     ]`;
 
-  return `import type { NextConfig } from "next";
+  const intlImport = a.includeI18n
+    ? `import createNextIntlPlugin from "next-intl/plugin";\n`
+    : "";
+  const exportLine = a.includeI18n
+    ? `const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
+export default withNextIntl(nextConfig);`
+    : "export default nextConfig;";
+
+  return `import type { NextConfig } from "next";
+${intlImport}
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   productionBrowserSourceMaps: false,
@@ -231,6 +240,6 @@ const securityHeaders = [
   },
 ];
 
-export default nextConfig;
+${exportLine}
 `;
 };
