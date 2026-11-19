@@ -292,6 +292,7 @@ describe("generateProject", () => {
       ".github/workflows/auto-merge.yml",
       ".github/workflows/preview-e2e.yml",
       ".github/workflows/production-smoke.yml",
+      ".github/workflows/staging-smoke.yml",
       ".github/workflows/claude-fix.yml",
       "docs/working-with-claude.md",
       ".github/CODEOWNERS",
@@ -331,6 +332,16 @@ describe("generateProject", () => {
     expect(smoke).toContain("BASE_URL: https://example.com");
     expect(smoke).toContain("rollback");
     expect(smoke).toContain("gh issue create");
+
+    const staging = readFileSync(
+      path.join(root, ".github/workflows/staging-smoke.yml"),
+      "utf-8",
+    );
+    expect(staging).toContain("vercel.deployment.ready");
+    expect(staging).toContain(
+      'alias set "$DEPLOYMENT_URL" staging.example.com',
+    );
+    expect(staging).toContain("BASE_URL: https://staging.example.com");
 
     const fix = readFileSync(
       path.join(root, ".github/workflows/claude-fix.yml"),

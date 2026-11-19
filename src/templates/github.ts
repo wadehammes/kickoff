@@ -486,6 +486,67 @@ ${NODE_SETUP_STEPS}      - name: Install Playwright browser
 };
 
 // ---------------------------------------------------------------------------
+// .github/workflows/staging-smoke.yml
+// ---------------------------------------------------------------------------
+
+export const getStagingSmokeWorkflow = (a: ProjectAnswers): string => {
+  const stagingHost = new URL(a.stagingUrl).host;
+
+  return `name: Staging Smoke
+on:
+  repository_dispatch:
+    types:
+      - vercel.deployment.ready
+
+permissions:
+  contents: read
+  issues: write
+  statuses: write
+
+concurrency:
+  group: staging-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: Staging Smoke
+    if: github.event.client_payload.environment == 'production'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report status to the commit (required Vercel Deployment Check)
+        uses: ${VERCEL_DISPATCH_STATUS_ACTION}
+        with:
+          name: Staging Smoke
+      - name: Checkout deployed commit
+        uses: ${CHECKOUT_ACTION}
+        with:
+          ref: \${{ github.event.client_payload.git.sha }}
+${NODE_SETUP_STEPS}      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Point ${stagingHost} at this build
+        env:
+          DEPLOYMENT_URL: \${{ github.event.client_payload.url }}
+          VERCEL_TEAM_SLUG: \${{ vars.VERCEL_TEAM_SLUG }}
+          VERCEL_TOKEN: \${{ secrets.VERCEL_TOKEN }}
+        run: npx --yes vercel@${VERCEL_CLI_VERSION} alias set "$DEPLOYMENT_URL" ${stagingHost} --token "$VERCEL_TOKEN" --scope "$VERCEL_TEAM_SLUG" --non-interactive
+      - name: Smoke test staging
+        run: pnpm test:e2e --grep @smoke
+        env:
+          BASE_URL: ${a.stagingUrl}
+          VERCEL_AUTOMATION_BYPASS_SECRET: \${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      - name: Open an issue for the team
+        if: failure()
+        env:
+          GH_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: \${{ github.server_url }}/\${{ github.repository }}/actions/runs/\${{ github.run_id }}
+          SHA: \${{ github.event.client_payload.git.sha }}
+        run: |
+          body="$(printf 'The latest change failed its check on ${stagingHost}, so it was not released. ${a.prodUrl} is unchanged.\\n\\n- Change: %s\\n- Check run: %s\\n\\nTo fix: ask Claude to undo or fix the change, or ask an engineer to look at the failed check.' "$SHA" "$RUN_URL")"
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "Latest change failed on staging and was not released" --body "$body"
+`;
+};
+
+// ---------------------------------------------------------------------------
 // .github/workflows/production-smoke.yml
 // ---------------------------------------------------------------------------
 
