@@ -639,8 +639,18 @@ export const getCursorBlockCoAuthoredByCommitSh = (): string =>
 export const getCursorBlockGeneratedTypesSh = (): string =>
   readScaffoldAsset(cursorHooksExtraDir, "block-generated-types.sh");
 
-export const getBlockDestructiveGitSh = (): string =>
-  readScaffoldAsset(claudeHooksAssetDir, "block-destructive-git.sh");
+export const getBlockDestructiveGitSh = (trunkBased = false): string => {
+  const script = readScaffoldAsset(
+    claudeHooksAssetDir,
+    "block-destructive-git.sh",
+  );
+  return trunkBased
+    ? script.replace(
+        "Branches here are stacked — push a feature branch with gh stack push and open a PR into staging.",
+        "Push a claude/* branch and open a PR into main.",
+      )
+    : script;
+};
 
 export const getBlockCoAuthoredByCommitSh = (): string =>
   readScaffoldAsset(claudeHooksAssetDir, "block-co-authored-by-commit.sh");
@@ -771,6 +781,88 @@ export const getCursorHooksJson = (a: ProjectAnswers): string => {
   )}\n`;
 };
 
+export const QUALITY_GATE_HOOK_SCRIPT_NAME = "quality-gate.sh";
+
+/**
+ * Claude Code Stop hook for the hands-off pipeline: runs the CI checks when the
+ * working tree has changes and blocks the stop (up to 3 times in a row) until they pass.
+ */
+export const getQualityGateSh = (): string => {
+  return `#!/usr/bin/env bash
+set -uo pipefail
+
+# Stop: when the working tree changed, run the CI checks and block the stop with
+# the failures so Claude fixes them. Gives up after 3 consecutive blocked stops.
+
+input="$(cat)"
+root="$(printf '%s' "$input" | jq -r '.cwd // empty')"
+[ -n "$root" ] && cd "$root"
+
+attempts_file="$(git rev-parse --git-dir)/claude-quality-gate-attempts"
+
+if [ -z "$(git status --porcelain 2>/dev/null)" ]; then
+  rm -f "$attempts_file"
+  exit 0
+fi
+
+attempts="$(cat "$attempts_file" 2>/dev/null || echo 0)"
+
+failures=""
+for script in tsc:ci lint:ci lint:css test:ci knip:ci; do
+  if ! output="$(pnpm --silent "$script" 2>&1)"; then
+    failures="$(printf '%s\\n\\n--- pnpm %s ---\\n%s' "$failures" "$script" "$(printf '%s' "$output" | tail -n 40)")"
+  fi
+done
+
+if [ -z "$failures" ]; then
+  rm -f "$attempts_file"
+  exit 0
+fi
+
+if [ "$attempts" -ge 3 ]; then
+  rm -f "$attempts_file"
+  printf 'Quality gate still failing after 3 attempts; stopping. CI will block the PR.%s\\n' "$failures" >&2
+  exit 0
+fi
+
+echo $((attempts + 1)) > "$attempts_file"
+
+reason="$(printf 'Quality gate: CI checks fail on the current working tree. Fix every failure below before finishing (do not weaken tests, lint rules, or checks).%s' "$failures")"
+jq -n --arg r "$reason" '{ decision: "block", reason: $r }'
+exit 0
+`;
+};
+
+const PIPELINE_PERMISSIONS = {
+  allow: [
+    "Bash(pnpm install)",
+    "Bash(pnpm scaffold:*)",
+    "Bash(pnpm tsc:ci)",
+    "Bash(pnpm lint:*)",
+    "Bash(pnpm test:ci:*)",
+    "Bash(pnpm knip:*)",
+    "Bash(git status:*)",
+    "Bash(git diff:*)",
+    "Bash(git log:*)",
+    "Bash(git add:*)",
+    "Bash(git commit:*)",
+    "Bash(git switch:*)",
+    "Bash(git push origin claude/*)",
+    "Bash(gh pr create:*)",
+    "Bash(gh pr view:*)",
+    "Bash(gh pr checks:*)",
+  ],
+  deny: [
+    "Read(./.env)",
+    "Read(./.env.*)",
+    "Edit(./.env*)",
+    "Edit(./.github/**)",
+    "Bash(git push --force:*)",
+    "Bash(git push -f:*)",
+    "Bash(git push origin main:*)",
+  ],
+};
+
 export const getClaudeSettingsJson = (a: ProjectAnswers): string => {
   const hook = (command: string) => ({
     hooks: [{ type: "command", command }],
@@ -778,6 +870,7 @@ export const getClaudeSettingsJson = (a: ProjectAnswers): string => {
 
   return `${JSON.stringify(
     {
+      ...(a.includeClaudePipeline ? { permissions: PIPELINE_PERMISSIONS } : {}),
       hooks: {
         SessionStart: [hook(".claude/hooks/session-handbook-routing.sh")],
         PreToolUse: [
@@ -828,6 +921,9 @@ export const getClaudeSettingsJson = (a: ProjectAnswers): string => {
           hook(".claude/hooks/handbook-drift-check.mjs"),
           ...(a.includeContentful
             ? [hook(".claude/hooks/block-generated-types.sh")]
+            : []),
+          ...(a.includeClaudePipeline
+            ? [hook(`.claude/hooks/${QUALITY_GATE_HOOK_SCRIPT_NAME}`)]
             : []),
         ],
       },
@@ -907,7 +1003,20 @@ Shared team files under \`.cursor/\` are tracked in git (\`hooks.json\`, \`hooks
 `;
 };
 
-export const getClaudeHooksReadme = (): string => {
+export const getClaudeHooksReadme = (a: ProjectAnswers): string => {
+  const pipelineRow = a.includeClaudePipeline
+    ? `| \`${QUALITY_GATE_HOOK_SCRIPT_NAME}\` | \`Stop\` | When files changed, runs \`tsc:ci\`, \`lint:ci\`, \`lint:css\`, \`test:ci\`, \`knip:ci\` and blocks the stop until they pass (max 3 attempts). |
+`
+    : "";
+
+  const pipelinePermissions = a.includeClaudePipeline
+    ? `
+## Permissions (hands-off pipeline)
+
+\`settings.json\` pre-allows the package scripts, local git, pushes to \`claude/*\` branches, and \`gh pr\` create/view/checks so headless sessions do not stall on prompts. It denies reading or editing \`.env*\`, editing \`.github/\`, force pushes, and pushes to \`main\`. These rules steer Claude; the real gate is the GitHub ruleset and CODEOWNERS (see \`docs/handbook/platform.md\`).
+`
+    : "";
+
   return `# Claude Code hooks
 
 Project hooks that keep agent work aligned with \`docs/handbook/\`. Adapted from rhythm-marketing for Claude Code's \`.claude/settings.json\` format.
@@ -932,7 +1041,7 @@ Shared team files under \`.claude/\` are tracked in git (\`settings.json\`, \`ho
 | \`handbook-sync-nudge.sh\` | \`PostToolUse\` | Advisory reminder to update the matching handbook chapter. |
 | \`check-css-nesting.sh\` | \`PostToolUse\` | Advisory when CSS nests selectors 4+ levels deep. |
 | \`handbook-drift-check.sh\` | \`Stop\` | One follow-up if \`src/\` changed without a handbook update. |
-
+${pipelineRow}${pipelinePermissions}
 ## Requirements
 
 - \`bash\`, \`jq\`, \`git\` on \`PATH\`
@@ -948,7 +1057,7 @@ export type AgentHookScriptName =
 
 export const getAgentHookScriptContent = (
   name: AgentHookScriptName,
-  options?: { tooling?: "cursor" | "claude" },
+  options?: { tooling?: "cursor" | "claude"; trunkBased?: boolean },
 ): string => {
   switch (name) {
     case "session-handbook-routing.sh":
@@ -988,7 +1097,7 @@ export const getAgentHookScriptContent = (
     case "block-destructive-git.sh":
       return options?.tooling === "cursor"
         ? getCursorBlockDestructiveGitSh()
-        : getBlockDestructiveGitSh();
+        : getBlockDestructiveGitSh(options?.trunkBased);
     case "block-co-authored-by-commit.sh":
       return options?.tooling === "cursor"
         ? getCursorBlockCoAuthoredByCommitSh()

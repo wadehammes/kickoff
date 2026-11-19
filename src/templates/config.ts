@@ -1,5 +1,9 @@
 import type { ProjectAnswers } from "../types.js";
 
+/** Branch PRs target: `main` for the trunk-based Claude pipeline, otherwise `staging`. */
+export const getBaseBranch = (a: ProjectAnswers): "main" | "staging" =>
+  a.includeClaudePipeline ? "main" : "staging";
+
 export const getPackageJson = (a: ProjectAnswers): string => {
   const deps: Record<string, string> = {
     "@base-ui/react": "^1.9.0",
@@ -81,6 +85,11 @@ export const getPackageJson = (a: ProjectAnswers): string => {
     devDeps["cf-content-types-generator"] = "^3.0.1";
   }
 
+  if (a.includeClaudePipeline) {
+    devDeps["@axe-core/playwright"] = "^4.14.0";
+    devDeps["@playwright/test"] = "^1.65.0";
+  }
+
   const scripts: Record<string, string> = {
     build: "next build && make sitemap",
     dev: `next dev -p ${a.devPort}`,
@@ -89,8 +98,7 @@ export const getPackageJson = (a: ProjectAnswers): string => {
     lint: "biome check",
     "lint:ci": "biome ci --reporter=github",
     "lint:fix": "biome check --fix",
-    "lint:check":
-      "biome check --changed --since origin/staging --no-errors-on-unmatched --verbose --write --diagnostic-level=error",
+    "lint:check": `biome check --changed --since origin/${getBaseBranch(a)} --no-errors-on-unmatched --verbose --write --diagnostic-level=error`,
     "lint:css": 'stylelint "**/*.css"',
     "lint:css:fix": 'stylelint "**/*.css" --fix',
     "lint:all":
@@ -105,6 +113,12 @@ export const getPackageJson = (a: ProjectAnswers): string => {
     "tsc:ci": "tsc --strict",
     "handbook:check": "bash scripts/handbook-sync-check.sh",
   };
+
+  if (a.includeClaudePipeline) {
+    delete scripts["test:scripts"];
+    scripts["test:e2e"] = "playwright test";
+    scripts.typecheck = "tsc --strict --noEmit";
+  }
 
   if (a.includeContentful) {
     scripts["types:contentful"] =
@@ -429,7 +443,10 @@ public/generated-sitemap-*.xml
 };
 
 export const getPnpmWorkspace = (): string => {
-  return `allowBuilds:
+  return `# Only resolve package versions published at least 7 days ago (minutes).
+minimumReleaseAge: 10080
+
+allowBuilds:
   esbuild: true
   "@parcel/watcher": true
 
@@ -446,7 +463,15 @@ overrides:
 `;
 };
 
-export const getMakefile = (_a: ProjectAnswers): string => {
+export const getMakefile = (a: ProjectAnswers): string => {
+  if (a.includeClaudePipeline) {
+    return `SHELL := /bin/bash
+
+sitemap:
+\tnode scripts/make_sitemap.js
+`;
+  }
+
   return `SHELL := /bin/bash
 .SILENT: release
 
@@ -477,6 +502,7 @@ const customJestConfig: Config.InitialOptions = {
     "<rootDir>/.next/",
     "<rootDir>/node_modules/",
     "<rootDir>/scripts/",
+    "<rootDir>/e2e/",
   ],
   setupFiles: ["<rootDir>/.jest/setEnvVars.ts"],
   setupFilesAfterEnv: ["<rootDir>/.jest/setupTests.ts"],

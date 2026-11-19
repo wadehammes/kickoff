@@ -23,18 +23,18 @@ src/
     ├── contentful.ts     ← client, helpers, cache, parsers, richText
     ├── docs.ts           ← CLAUDE.md, README, handbook index/llms/core chapters (generated projects)
     ├── handbook-agent.ts ← glossary, decisions, agent-workflow, api-routes, factories, data-storage
-    ├── github.ts         ← CI, release, dependabot, labeler workflows
+    ├── github.ts         ← CI, release, dependabot, labeler workflows; Claude pipeline workflows, CODEOWNERS, PR template
     ├── i18n.ts           ← routing, request, locale layout/pages
     ├── lib.ts            ← schema.ts, generateSitemap.ts
     ├── next.ts           ← next.config.ts
     ├── public.ts         ← sitemap-index.xml
     ├── scripts.ts        ← scaffold.sh, make_sitemap.js, verify-vercel...
     ├── styles.ts         ← globals.css, variables.css, runtime-variables
-    ├── testing.ts        ← BasePageObject, BaseFactory, mocks, setupTests, RichTextDocument factory
+    ├── testing.ts        ← BasePageObject, BaseFactory, mocks, setupTests, RichTextDocument factory, Playwright config + e2e smoke spec
     ├── types.ts          ← KeysMatch, PropsWithChildrenOnly
     └── utils.ts          ← array/string/url/environment/contentful/style/factory helpers, constants, interfaces
 
-fixtures/scaffold-e2e/     ← Answer JSON for scaffold E2E (cursor-static, claude-static)
+fixtures/scaffold-e2e/     ← Answer JSON for scaffold E2E (cursor-static, claude-static, claude-pipeline)
 .cursor/                   ← Cursor hooks for this repo (see .cursor/hooks/README.md)
 ```
 
@@ -51,6 +51,7 @@ Examples:
 - Change import paths (e.g. `src/utils/helpers` → `src/utils/environment.helpers`) → update any handbook chapter that references it
 - Add a new prompt/option → update `getHandbookPlatform` scripts table and `getReadme`, and root `README.md` (prompts, `--answers` example, structure tree)
 - Add or change agent hooks → update `src/templates/agents.ts`, handbook `platform.md`, and root `README.md` (optional add-ons, structure notes)
+- Change the Claude pipeline (`includeClaudePipeline`: workflows in `github.ts`, quality gate in `agents.ts`, Playwright in `testing.ts`) → update `getHandbookPipelineSection` / `getPipeline*` helpers in `docs.ts`, `getClaudePipelineInstructions` (generated `CLAUDE.md`), root `README.md`, and `fixtures/scaffold-e2e/claude-pipeline.json` if answers change
 
 ## Conventions the scaffolded code must follow
 

@@ -224,6 +224,12 @@ const main = async () => {
           name: "agentTooling",
           type: "select",
         },
+        {
+          initial: false,
+          message: `Include hands-off ${chalk.cyan("Claude → GitHub → Vercel")} pipeline? ${chalk.dim("(review gate, auto-merge, CODEOWNERS, Playwright preview/production checks, auto-rollback)")}`,
+          name: "includeClaudePipeline",
+          type: (prev: string) => (prev === "claude" ? "confirm" : null),
+        },
       ],
       {
         onCancel: () => {
@@ -238,7 +244,10 @@ const main = async () => {
       process.exit(0);
     }
 
-    const validated = validateProjectAnswers(answers as unknown);
+    const validated = validateProjectAnswers({
+      ...answers,
+      includeClaudePipeline: answers.includeClaudePipeline ?? false,
+    });
     if (typeof validated === "string") {
       console.error(chalk.red("✖ Invalid answers:"), validated);
       process.exit(1);

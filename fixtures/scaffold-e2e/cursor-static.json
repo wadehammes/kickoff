@@ -2,6 +2,7 @@
   "agentTooling": "cursor",
   "bgColor": "#ffffff",
   "devPort": 3000,
+  "includeClaudePipeline": false,
   "includeContentful": false,
   "includeGA": false,
   "includeI18n": false,

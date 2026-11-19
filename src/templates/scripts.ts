@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ProjectAnswers } from "../types.js";
+import { getBaseBranch } from "./config.js";
 
 const scriptsScaffoldAssetDir = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -664,14 +665,14 @@ main().catch((err: unknown) => {
 // scripts/handbook-sync-check.sh
 // ---------------------------------------------------------------------------
 
-export const getHandbookSyncCheckSh = (): string => {
+export const getHandbookSyncCheckSh = (a: ProjectAnswers): string => {
   return `#!/usr/bin/env bash
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-BASE_REF="\${1:-origin/staging}"
+BASE_REF="\${1:-origin/${getBaseBranch(a)}}"
 
 if ! git rev-parse --verify "\${BASE_REF}^{commit}" >/dev/null 2>&1; then
   echo "handbook-sync-check: base ref '\${BASE_REF}' not found (fetch remotes first)." >&2

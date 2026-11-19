@@ -1,6 +1,6 @@
 import type { ProjectAnswers } from "../types.js";
 
-export const getHandbookGlossary = (_a: ProjectAnswers): string => {
+export const getHandbookGlossary = (a: ProjectAnswers): string => {
   return `# Glossary
 
 Terms agents see in this scaffold. Paths are under **\`src/\`** unless noted.
@@ -44,7 +44,7 @@ Terms agents see in this scaffold. Paths are under **\`src/\`** unless noted.
 
 | Term | Meaning |
 | ---- | ------- |
-| **\`staging\`** | Default integration branch; PRs target \`staging\`, not \`main\`. |
+${a.includeClaudePipeline ? "| **`main`** | Trunk branch; PRs (Claude's from `claude/*` branches) target `main`, and each merge deploys to production. |" : "| **`staging`** | Default integration branch; PRs target `staging`, not `main`. |"}
 | **Handbook** | \`docs/handbook/*.md\` — source of truth with code; route via [llms.md](llms.md). |
 
 Pattern choices: [decisions.md](decisions.md). API map: [api-routes.md](api-routes.md).
@@ -178,7 +178,7 @@ Dedupe state: **\`.cursor/hooks-state/\`** (gitignored); fingerprint includes **
 **preToolUse:** **\`enforce-handbook-edit.sh\`** runs Jest via \`scripts/cursor-handbook-guard.runner.spec.ts\` and blocks only **new** violations (\`newHandbookViolations\` in \`handbookEditGuard.ts\` + \`handbookTestRules.ts\`). Rule \`nested-describe\` ignores multiline \`import { … }\` binding lines.`
       : `## Claude stop / drift
 
-Claude uses **\`handbook-drift-check\`** on stop when code changes without handbook updates. Same finish discipline: [llms.md](llms.md), **\`pnpm handbook:check\`**.`;
+Claude uses **\`handbook-drift-check\`** on stop when code changes without handbook updates.${a.includeClaudePipeline ? " The **`quality-gate.sh`** Stop hook also runs `tsc:ci`, `lint:ci`, `lint:css`, `test:ci`, and `knip:ci` and blocks finishing until they pass (see [platform.md](platform.md) — **Hands-off Claude pipeline**)." : ""} Same finish discipline: [llms.md](llms.md), **\`pnpm handbook:check\`**.`;
 
   return `# Agent workflow
 

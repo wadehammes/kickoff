@@ -18,6 +18,7 @@ const baseAnswers = (
   agentTooling: "cursor",
   bgColor: "#ffffff",
   devPort: 3000,
+  includeClaudePipeline: false,
   includeContentful: true,
   includeGA: false,
   includeI18n: false,
@@ -208,6 +209,140 @@ describe("generateProject", () => {
     expect(existsSync(path.join(root, "scripts/git-commit.sh"))).toBe(true);
     expect(existsSync(path.join(root, ".githooks/commit-msg"))).toBe(true);
     expect(existsSync(path.join(root, ".cursor/hooks.json"))).toBe(false);
+  });
+
+  it("keeps server-only secrets out of next.config env", async () => {
+    const root = await runInTemp(
+      baseAnswers({
+        includeRecaptcha: true,
+        includeResend: true,
+        projectName: "secret-site",
+      }),
+    );
+    const nextConfig = readFileSync(path.join(root, "next.config.ts"), "utf-8");
+    for (const secret of [
+      "VERCEL_API_TOKEN",
+      "RESEND_API_KEY",
+      "RECAPTCHA_SECRET_KEY",
+      "CONTENTFUL_PREVIEW_API_KEY",
+      "CONTENTFUL_PREVIEW_SECRET",
+    ]) {
+      expect(nextConfig).not.toContain(secret);
+    }
+    expect(nextConfig).toContain("RECAPTCHA_SITE_KEY");
+  });
+
+  it("pins dependency resolution to releases at least 7 days old", async () => {
+    const root = await runInTemp(baseAnswers({ projectName: "age-site" }));
+    const workspace = readFileSync(
+      path.join(root, "pnpm-workspace.yaml"),
+      "utf-8",
+    );
+    expect(workspace).toContain("minimumReleaseAge: 10080");
+  });
+
+  it("keeps the staging release flow when includeClaudePipeline is false", async () => {
+    const root = await runInTemp(
+      baseAnswers({ agentTooling: "claude", projectName: "staging-site" }),
+    );
+    const ci = readFileSync(
+      path.join(root, ".github/workflows/ci.yml"),
+      "utf-8",
+    );
+    expect(ci).toContain("- staging");
+    expect(existsSync(path.join(root, ".github/workflows/release.yml"))).toBe(
+      true,
+    );
+    expect(existsSync(path.join(root, ".github/CODEOWNERS"))).toBe(false);
+    expect(existsSync(path.join(root, "playwright.config.ts"))).toBe(false);
+    const settings = JSON.parse(
+      readFileSync(path.join(root, ".claude/settings.json"), "utf-8"),
+    ) as { permissions?: unknown };
+    expect(settings.permissions).toBeUndefined();
+  });
+
+  it("generates the hands-off pipeline when includeClaudePipeline is true", async () => {
+    const root = await runInTemp(
+      baseAnswers({
+        agentTooling: "claude",
+        includeClaudePipeline: true,
+        projectName: "pipeline-site",
+      }),
+    );
+
+    for (const file of [
+      ".github/workflows/claude.yml",
+      ".github/workflows/claude-review.yml",
+      ".github/workflows/auto-merge.yml",
+      ".github/workflows/preview-e2e.yml",
+      ".github/workflows/production-smoke.yml",
+      ".github/CODEOWNERS",
+      ".github/pull_request_template.md",
+      ".claude/hooks/quality-gate.sh",
+      "playwright.config.ts",
+      "e2e/smoke.spec.ts",
+    ]) {
+      expect(existsSync(path.join(root, file)), file).toBe(true);
+    }
+    for (const file of [
+      ".github/workflows/release.yml",
+      "scripts/verify-vercel-release.ts",
+      "scripts/verify-vercel-for-release.sh",
+    ]) {
+      expect(existsSync(path.join(root, file)), file).toBe(false);
+    }
+
+    const ci = readFileSync(
+      path.join(root, ".github/workflows/ci.yml"),
+      "utf-8",
+    );
+    expect(ci).toContain("- main");
+    expect(ci).not.toContain("- staging");
+
+    const review = readFileSync(
+      path.join(root, ".github/workflows/claude-review.yml"),
+      "utf-8",
+    );
+    expect(review).toContain("--json-schema");
+    expect(review).toContain("steps.review.outputs.structured_output");
+
+    const smoke = readFileSync(
+      path.join(root, ".github/workflows/production-smoke.yml"),
+      "utf-8",
+    );
+    expect(smoke).toContain("BASE_URL: https://example.com");
+    expect(smoke).toContain("rollback");
+
+    const pkg = JSON.parse(
+      readFileSync(path.join(root, "package.json"), "utf-8"),
+    ) as {
+      devDependencies: Record<string, string>;
+      scripts: Record<string, string>;
+    };
+    expect(pkg.scripts["test:e2e"]).toBe("playwright test");
+    expect(pkg.scripts.typecheck).toBeDefined();
+    expect(pkg.scripts["lint:check"]).toContain("origin/main");
+    expect(pkg.devDependencies["@playwright/test"]).toBeDefined();
+
+    const settings = JSON.parse(
+      readFileSync(path.join(root, ".claude/settings.json"), "utf-8"),
+    ) as {
+      hooks: { Stop: { hooks: { command: string }[] }[] };
+      permissions: { deny: string[] };
+    };
+    expect(settings.permissions.deny).toContain("Edit(./.github/**)");
+    expect(
+      settings.hooks.Stop.map((entry) => entry.hooks[0]?.command),
+    ).toContain(".claude/hooks/quality-gate.sh");
+
+    const claudeMd = readFileSync(path.join(root, "CLAUDE.md"), "utf-8");
+    expect(claudeMd).toContain("Hands-off pipeline");
+    const platform = readFileSync(
+      path.join(root, "docs/handbook/platform.md"),
+      "utf-8",
+    );
+    expect(platform).toContain("Hands-off Claude pipeline");
+    expect(platform).not.toContain("make release");
   });
 
   it("generates knip config, svg mock, and CI knip step", async () => {

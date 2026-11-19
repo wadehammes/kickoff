@@ -7,27 +7,13 @@ export const getNextConfig = (a: ProjectAnswers): string => {
     envLines.unshift(
       `    CONTENTFUL_CONTENT_DELIVERY_API_KEY:
       process.env.CONTENTFUL_CONTENT_DELIVERY_API_KEY,`,
-      "    CONTENTFUL_PREVIEW_API_KEY: process.env.CONTENTFUL_PREVIEW_API_KEY,",
-      "    CONTENTFUL_PREVIEW_SECRET: process.env.CONTENTFUL_PREVIEW_SECRET,",
       "    CONTENTFUL_SPACE_ID: process.env.CONTENTFUL_SPACE_ID,",
     );
   }
   if (a.includeGA)
     envLines.push("    GA_MEASUREMENT_ID: process.env.GA_MEASUREMENT_ID,");
-  if (a.includeRecaptcha) {
+  if (a.includeRecaptcha)
     envLines.push("    RECAPTCHA_SITE_KEY: process.env.RECAPTCHA_SITE_KEY,");
-    envLines.push(
-      "    RECAPTCHA_SECRET_KEY: process.env.RECAPTCHA_SECRET_KEY,",
-    );
-  }
-  if (a.includeResend) {
-    envLines.push("    RESEND_API_KEY: process.env.RESEND_API_KEY,");
-    envLines.push(
-      "    RESEND_GENERAL_AUDIENCE_ID: process.env.RESEND_GENERAL_AUDIENCE_ID,",
-    );
-  }
-  envLines.push("    VERCEL_API_TOKEN: process.env.VERCEL_API_TOKEN,");
-  envLines.push("    VERCEL_TEAM_ID: process.env.VERCEL_TEAM_ID,");
 
   const remotePatternsBlock = a.includeContentful
     ? `[
