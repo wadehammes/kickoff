@@ -1,144 +1,84 @@
 # kickoff
 
-> CLI scaffolding tool for Next.js + Contentful + TypeScript projects.
+A command-line tool that generates a complete Next.js and TypeScript project, ready for a team or an AI agent to build on.
 
-`kickoff` generates a complete, production-ready project scaffold based on battle-tested patterns from real projects. One command gets you a fully configured repo with Contentful CMS integration, TypeScript, Biome linting, Jest testing, CSS Modules, CI/CD, a full handbook, and more.
+You answer a few questions (or pass a JSON file), and kickoff writes out a repo with the framework, tooling, CI, Vercel helpers, and a project handbook that agents read before changing anything. Optional modules add a CMS, i18n, analytics, email, reCAPTCHA, and a hands-off pipeline where Claude opens pull requests and automated checks stand in for human review.
 
-## Stack
+## Quick start
 
-Every generated project includes:
-
-| Concern | Technology |
-|---|---|
-| Framework | Next.js ^16 (App Router) |
-| Language | TypeScript ^7, strict mode |
-| CMS | Contentful ^11, draft mode, type generation |
-| Package manager | pnpm 12.18.0 (`packageManager` in kickoff and generated `package.json`) |
-| Node | Written to `.tool-versions` at scaffold time (matches your local Node + pnpm) |
-| Linting | Biome 2.6.6 + Stylelint ^18 |
-| Testing | Jest ^30 + Testing Library + ts-jest |
-| Styling | CSS Modules + PostCSS Preset Env |
-| UI primitives | @base-ui/react |
-| SVG (Turbopack) | @svgr/webpack |
-| Data fetching | @tanstack/react-query ^5 |
-| Dead code | knip ^6 |
-| Schema | schema-dts (JSON-LD) |
-| Deployment | Vercel |
-| CI | GitHub Actions (PRs to `staging`, or `main` with the Claude pipeline) |
-
-Optional add-ons selected during prompts:
-
-- **i18n** — English at `/` and Spanish at `/es` with next-intl routing: every page lives under `src/app/[locale]/`, copy in `src/copy/` is typed `Record<Locale, …>` so a missing language fails the typecheck, and the footer gets a language switcher
-- **Google Analytics** — @next/third-parties GA
-- **Resend** — transactional email
-- **reCAPTCHA** — react-google-recaptcha
-- **Agent hooks** — Cursor (`.cursor/`) or Claude Code (`.claude/`) handbook-enforcement hooks
-- **Hands-off Claude pipeline** (Claude Code only) — trunk-based flow where Claude opens PRs and machine checks replace human review: `@claude` workflow, Claude review gate (fails on blocking findings), auto-merge for `claude/*` PRs, CODEOWNERS on sensitive paths, Playwright + axe against Vercel previews, a staging smoke test on `stagingUrl` that gates production via Vercel Deployment Checks, production smoke test with automatic rollback (plus a plain-language GitHub issue), Claude Fix (retries failing checks twice, then asks an engineer), a quality-gate Stop hook, and guidance for non-technical requesters (`CLAUDE.md` rules, `src/copy/` + `public/images/` content conventions, `docs/working-with-claude.md`). Replaces the `staging` / `make release` flow.
-
-## Requirements
-
-- Node 18+ (to run the CLI itself)
-- pnpm installed globally
-
-## Installation
-
-### Link from source (recommended until published)
+kickoff isn't published to npm yet. Clone it, build it, and link it:
 
 ```sh
-cd /path/to/kickoff
+git clone https://github.com/wadehammes/kickoff.git
+cd kickoff
 pnpm install
 pnpm build
-pnpm test   # generator integration tests (Vitest)
-pnpm test:scaffold-e2e   # E2E: scaffold fixtures, run their CI checks, build, serve, and smoke test
 npm link
 ```
 
-Then run from anywhere:
+Then, from wherever you want the new project:
 
 ```sh
 kickoff
 ```
 
-To unlink: `npm unlink -g kickoff`
+You need Node 24 and pnpm 12 (see [`.tool-versions`](.tool-versions)). `corepack enable` or mise/asdf will pick up the right versions.
 
-### Run directly without linking
+## What you get
 
-```sh
-node /path/to/kickoff/dist/index.js
-```
+Every generated project includes:
 
-### Shell alias
+| Area | What's included |
+| --- | --- |
+| Framework | Next.js 16 (App Router), React 19, strict TypeScript 7 |
+| Styling | CSS Modules, PostCSS Preset Env, design tokens from your brand colors |
+| UI | Base UI primitives, SVGs as components, React Query for client data |
+| Quality | Biome (lint and format), Stylelint, Jest with Testing Library, knip for dead code |
+| SEO and security | Sitemap, robots, web manifest, JSON-LD helpers, security headers with a Content Security Policy |
+| Deployment | Vercel, plus a token-protected page for triggering a redeploy |
+| CI | GitHub Actions with every action pinned to a commit, Dependabot, PR labeling |
+| Dependencies | pnpm 12, installs limited to package versions published at least 7 days ago |
+| Agent tooling | A handbook in `docs/handbook/` with a routing page for agents, `CLAUDE.md`, and hooks for Cursor or Claude Code that block edits breaking the conventions |
+| Upgrades | `pnpm next:upgrade` and `pnpm next:agents-md`, which wrap the official Next.js codemods |
 
-Add to your `~/.zshrc` or `~/.bashrc`:
+## Options
 
-```sh
-alias kickoff="node /path/to/kickoff/dist/index.js"
-```
+| Option | Adds |
+| --- | --- |
+| Contentful | Contentful client, getters and parsers, draft mode routes, and type generation (`pnpm types:contentful`) |
+| i18n | English at `/` and Spanish at `/es` with next-intl. Copy in `src/copy/` is typed per language, so a missing translation fails the typecheck. Includes a language switcher. |
+| Google Analytics | GA through `@next/third-parties` |
+| Resend | The Resend email package and env vars |
+| reCAPTCHA | `react-google-recaptcha` and env vars |
+| Agent tooling | Cursor (`.cursor/` hooks and rules) or Claude Code (`.claude/` settings and hooks) |
+| Claude pipeline | The hands-off pipeline below. Requires Claude Code tooling. |
 
-## Greenfield prerequisites (outside the codebase)
+## The hands-off Claude pipeline
 
-When you spin up a **new** client project—not day-to-day work inside an existing repo—do these in order so GitHub Actions, releases, Vercel, and Contentful line up with the scaffold expectations. With the **hands-off Claude pipeline**, steps 2–5 differ (trunk-based `main`, a ruleset with CODEOWNERS, Claude GitHub App and Actions secrets, Vercel Deployment Checks); follow the generated project README instead.
+With `includeClaudePipeline`, the project is set up so that people who aren't engineers can ask Claude for changes and have them ship without anyone reviewing routine PRs:
 
-1. **GitHub repository** — Create an empty repo for the new site (no conflicting default branch/commit if you plan to overwrite history with the scaffold).
-2. **`staging` as default branch** — Create `staging`, set it as the **default branch** under repository settings so PRs target it (CI runs on PRs into `staging`).
-3. **Branch protection** — For `staging` and `main`, add rules appropriate to your team: require pull requests before merge, required status checks (include the CI workflow once it exists), block force-push, restrict who can dismiss reviews, etc. The `create-release` workflow pushes release tags to `main`, so add **GitHub Actions** to the `main` ruleset's bypass list.
-4. **Initial GitHub Release** — Manually create a **`v0.0.0`** (or earliest) **Release** once the repo exists. The generated **`create-release`** workflow builds on tagged releases/changelog tooling; seeding avoids first-tag quirks.
-5. **Run kickoff and update the repo** — Run `kickoff` locally, then commit and push the scaffold to `staging` (and ensure `main` exists if your flow expects it—you can align `main` with your branching policy).
-6. **Contentful** — Create a space/environment, add content types, and gather tokens so you can fill **Contentful** entries in **`.env.local.example`** (see **After generation** and the generated project README).
-7. **Vercel project and env** — Create a Vercel project linked to this GitHub repo. Map preview vs production (PRs/`staging` → preview, **`main`** → production). In **Settings → Environment Variables**, add **every** variable named in **`.env.local.example`**, for each scope you use (Preview / Development / Production), using the same names as the example file.
-8. **Pull env into the repo** — From the project directory, run **`npx vercel link`** once so the CLI is tied to that Vercel project, then **`npx vercel env pull .env.local`** to download values into **`.env.local`** (gitignored). Run **pull** again whenever Vercel env changes.
+1. Someone asks Claude for a change at claude.ai/code, in the Claude mobile app, or with `@claude` on a GitHub issue.
+2. Claude works on a `claude/*` branch and opens a PR.
+3. Required checks run: lint, typecheck and tests; a Claude review gate that fails on blocking issues; and Playwright with accessibility tests against the Vercel preview. If a check fails, Claude tries to fix it twice before asking an engineer.
+4. The PR merges itself, unless it touches protected files listed in CODEOWNERS (CI, config, dependencies, API routes). Those wait for an engineer's approval.
+5. Vercel holds the production build while a staging smoke test runs on your staging domain. Production only switches over if it passes.
+6. A production smoke test runs after launch. If it fails, the site rolls back automatically and the team gets a GitHub issue.
 
-After the repo exists, operators and collaborators use the **generated** project `README.md` for the full host-by-host checklist wording.
+A monthly workflow also runs the official Next.js upgrade codemod and opens a PR for an engineer to approve. The generated `docs/working-with-claude.md` explains all of this to requesters, and the generated README lists the GitHub and Vercel settings to configure.
 
-## Usage
+## Using kickoff
 
-Running `kickoff` starts an interactive prompt:
+### Interactive
 
-```
-🚀 kickoff — Next.js + TypeScript project scaffolder
+Run `kickoff` and answer the prompts: project name, site name, production and staging URLs, dev port, brand colors, the options above, and agent tooling. Choosing Claude Code adds the pipeline question. The project is written to `./<project-name>/`, or to the current directory if you choose that.
 
-? Project name (kebab-case): my-new-site
-? Scaffold into the current directory instead of a new subfolder? No
-? Site display name: My New Site
-? Production URL: https://www.mynewsite.com
-? Staging URL: https://staging.mynewsite.com
-? Dev port: 3000
-? Primary color hex: #000000
-? Background color hex: #ffffff
-? Text color hex: #000000
-? Include Contentful CMS? (no = static / API-only; skips CMS layer, draft routes, types codegen) Yes
-? Include i18n (next-intl)? No
-? Include Google Analytics? Yes
-? Include Resend email? No
-? Include reCAPTCHA? No
-? Agent tooling (project hooks for handbook enforcement)? Cursor
-```
+### Non-interactive
 
-Choose **Cursor** for `.cursor/hooks.json`, hook scripts, and `rules/handbook.mdc` — including consolidated **`stop`** (`session-stop-checks.sh`), **`enforce-handbook-edit.sh`** (Jest guard via `handbookEditGuard.ts` on `src/**` / `e2e/**` edits), query-hook mock blocks, git safety on shell, and related checks. Choose **Claude Code** for `.claude/settings.json` and hook scripts. Both sets enforce the same handbook rules (no added comments, CSS conventions, `pnpm scaffold` for new components, handbook sync).
-
-Choosing **Claude Code** adds one more prompt: **Include hands-off Claude → GitHub → Vercel pipeline?** (see Optional add-ons).
-
-After answering, the scaffold is written to `./<project-name>/` (or the current directory if selected).
-
-### Non-interactive (CI / scripts)
-
-Pass a JSON file whose keys match `ProjectAnswers` in this repo’s [`src/types.ts`](src/types.ts) (all fields required; use JSON booleans and numbers, not strings):
+Pass a JSON file with every answer. kickoff rejects missing or unknown keys, and values must be real JSON booleans and numbers.
 
 ```sh
 kickoff --answers ./answers.json
 ```
-
-Useful flags:
-
-| Flag | Meaning |
-|------|--------|
-| `--answers <path>` | Skip prompts; load answers from JSON |
-| `--force` | Allow writing when the target directory already has files |
-| `--dry-run` | Print paths that would be written; no files created |
-| `--verbose` | Log each file as it is written |
-| `-h`, `--help` | Show usage |
-
-Example `answers.json`:
 
 ```json
 {
@@ -151,259 +91,112 @@ Example `answers.json`:
   "primaryColor": "#000000",
   "bgColor": "#ffffff",
   "textColor": "#000000",
-  "includeContentful": true,
+  "includeContentful": false,
   "includeI18n": false,
   "includeGA": false,
   "includeResend": false,
   "includeRecaptcha": false,
-  "agentTooling": "cursor",
-  "includeClaudePipeline": false
+  "agentTooling": "claude",
+  "includeClaudePipeline": true
 }
 ```
 
-`agentTooling` is `"cursor"` (`.cursor/` hooks + rules) or `"claude"` (`.claude/settings.json` hooks). `includeClaudePipeline: true` requires `agentTooling: "claude"`.
+The full shape is `ProjectAnswers` in [`src/types.ts`](src/types.ts). `includeClaudePipeline` requires `agentTooling: "claude"`.
 
-`--dry-run` still applies the same non-empty directory rules as a real run; use `--force` if you need to preview writes into an existing directory.
+| Flag | Meaning |
+| --- | --- |
+| `--answers <path>` | Load answers from JSON instead of prompting |
+| `--force` | Write into a directory that already has files |
+| `--dry-run` | Print the files that would be written, without writing them |
+| `--verbose` | Log each file as it's written |
+| `-h`, `--help` | Show usage |
+
+### After generating
 
 ```sh
-cd <project-name>
-
-# Env: copy the example, then either fill by hand or sync from Vercel (after link + env pull)
-cp .env.local.example .env.local
-
-# Optional — if vars live in Vercel already:
-# npx vercel link
-# npx vercel env pull .env.local
-
-# Install dependencies
+cd my-new-site
+cp .env.local.example .env.local   # or: npx vercel link && npx vercel env pull .env.local
 pnpm install
-
-# Generate Contentful TypeScript types
-pnpm types:contentful
-
-# Start the dev server
+pnpm next:agents-md                # index the Next.js docs into CLAUDE.md
 pnpm dev
 ```
 
-## Generated project structure
+With Contentful, run `pnpm types:contentful` after filling in the Contentful env vars.
+
+## Setting up a new site
+
+The generated project's README has the full checklist for its setup. In short:
+
+Standard projects use a `staging` default branch and tagged releases:
+
+1. Create the GitHub repo and a `staging` branch as the default. Protect `staging` and `main`, and let GitHub Actions bypass the `main` rules so the release workflow can push to it.
+2. Publish a `v0.0.0` release.
+3. Generate the project, then push it to `staging`.
+4. Create the Vercel project, add every variable from `.env.local.example`, and run `npx vercel env pull .env.local` locally.
+5. Release with `make release tag=vX.Y.Z`.
+
+Claude pipeline projects are trunk-based on `main`:
+
+1. Create the repo with `main` as the default branch, turn on auto-merge, and push the generated project.
+2. Add a ruleset on `main` with the required checks, Code Owners review, and no bypass. Set the CODEOWNERS team.
+3. Install the Claude GitHub App and add the Actions secrets, variables, and `needs-engineer` label from the generated README.
+4. Create the Vercel project with Deployment Checks (including Staging Smoke), the production and staging domains, Deployment Protection with an automation bypass secret, and separate production secret values.
+
+## Working in a generated project
+
+| Command | What it does |
+| --- | --- |
+| `pnpm dev` | Start the dev server |
+| `pnpm build` | Production build and sitemap |
+| `pnpm lint:all` | Biome on changed files, Stylelint, typecheck, and knip |
+| `pnpm test:ci` | Jest |
+| `pnpm scaffold MyComponent` | Create a component with its CSS module, interfaces, spec, page object, and test factory |
+| `pnpm handbook:check` | Fail if code changed without a matching handbook update |
+| `pnpm next:upgrade` | Upgrade Next.js and React to the latest minor with the official codemod |
+| `pnpm next:agents-md` | Refresh the Next.js docs index in `CLAUDE.md` |
+| `pnpm test:e2e` | Playwright smoke and accessibility tests (pipeline projects) |
+| `pnpm types:contentful` | Regenerate Contentful types (Contentful projects) |
+
+The main folders:
 
 ```
-<project-name>/
-├── .github/
-│   ├── labeler.yml
-│   └── workflows/
-│       ├── ci.yml              # Runs on PRs to staging (pipeline: PRs + pushes to main)
-│       ├── labeler.yml
-│       └── release.yml         # Triggered by v* tags (omitted with the Claude pipeline)
-├── .jest/
-│   ├── setEnvVars.ts
-│   └── setupTests.ts
-├── docs/
-│   └── handbook/               # Project handbook (core chapters + LLM routing: glossary, decisions, agent-workflow, api-routes, factories, data-storage, llms.md)
-├── public/
-│   └── sitemap-index.xml
-├── scripts/
-│   ├── lib/
-│   │   └── preview-local.ts
-│   ├── cursor-handbook-guard.runner.spec.ts   # Cursor preToolUse handbook guard (Jest)
-│   ├── dev-with-preview.ts     # Opens draft mode after dev starts
-│   ├── git-commit.sh           # Required wrapper for agent commits (Cursor)
-│   ├── handbook-sync-check.sh
-│   ├── make_sitemap.js
-│   ├── scaffold.sh             # Component scaffolder
-│   ├── tsconfig.json
-│   ├── verify-vercel-for-release.sh
-│   ├── verify-vercel-release.test.mjs
-│   ├── verify-vercel-release.ts
-│   └── watch-release.sh
-├── src/
-│   ├── @types/
-│   │   └── react.d.ts
-│   ├── app/                    # Next.js App Router
-│   │   ├── [slug]/
-│   │   ├── api/
-│   │   │   ├── disable-draft/
-│   │   │   ├── draft/
-│   │   │   └── refresh-content/deploy/   # Deploy hook trigger + status
-│   │   ├── refresh-content/
-│   │   ├── error.tsx
-│   │   ├── global-error.tsx
-│   │   ├── layout.tsx
-│   │   ├── loading.tsx
-│   │   ├── manifest.ts
-│   │   ├── not-found.tsx
-│   │   ├── page.tsx
-│   │   ├── providers.tsx
-│   │   └── robots.ts
-│   ├── api/                    # Fetch helpers and typed API surface
-│   │   ├── deploy.types.ts
-│   │   ├── helpers.ts
-│   │   └── urls.ts
-│   ├── components/
-│   │   ├── Button/
-│   │   ├── DeployButton/
-│   │   ├── DeployPage/
-│   │   ├── ExitDraftModeLink/
-│   │   ├── Footer/
-│   │   ├── Navigation/
-│   │   ├── NotFoundPage/
-│   │   └── Toast/
-│   ├── contentful/             # Client, helpers, cache, parsers
-│   │   ├── types/              # Generated — do not edit
-│   │   ├── cacheConfig.ts
-│   │   ├── cacheKeys.ts
-│   │   ├── client.ts
-│   │   ├── contentfulPagination.ts
-│   │   ├── helpers.ts
-│   │   ├── parseContentfulAsset.ts
-│   │   └── richText.tsx
-│   ├── copy/
-│   │   └── global.ts           # Static copy strings
-│   ├── hooks/
-│   │   ├── mutations/
-│   │   ├── queries/
-│   │   ├── useDeployMonitor.ts
-│   │   └── useIsBrowser.ts
-│   ├── interfaces/
-│   │   └── common.interfaces.ts
-│   ├── lib/
-│   │   ├── deployProgressStorage.ts
-│   │   ├── generateSitemap.ts
-│   │   ├── refreshContentAccess.ts
-│   │   ├── schema.ts
-│   │   ├── toast/appToast.ts
-│   │   └── vercelDeploymentStatus.ts
-│   ├── styles/
-│   │   ├── globals.css
-│   │   ├── runtime-variables.json
-│   │   └── variables.css
-│   ├── ui/                     # Base UI wrappers (Collapsible, FieldErrorMessage)
-│   ├── tests/
-│   │   ├── factories/
-│   │   │   ├── BaseFactory.ts
-│   │   │   └── RichTextDocument.factory.ts
-│   │   ├── mocks/
-│   │   ├── utils/
-│   │   │   ├── handbookEditGuard.ts      # Handbook rules on edited file content
-│   │   │   └── handbookTestRules.ts      # React Query / test conventions scan
-│   │   ├── basePageObject.po.ts
-│   │   └── test-utils.tsx
-│   ├── types/
-│   │   └── KeysMatch.ts
-│   ├── utils/
-│   │   ├── array.helpers.ts + spec
-│   │   ├── constants.ts
-│   │   ├── contentful.helpers.ts
-│   │   ├── environment.helpers.ts + spec
-│   │   ├── factory.helpers.ts
-│   │   ├── string.helpers.ts + spec
-│   │   ├── style.helpers.ts
-│   │   └── url.helpers.ts + spec
-│   └── proxy.ts
-├── .browserslistrc
-├── .editorconfig
-├── .env.local.example
-├── .gitignore
-├── .npmrc
-├── .tool-versions
-├── biome.json
-├── CLAUDE.md                   # Agent instructions
-├── cssprops.d.ts
-├── jest.config.ts
-├── knip.json
-├── Makefile
-├── next.config.ts
-├── package.json
-├── pnpm-workspace.yaml
-├── postcss.config.json
-├── README.md
-├── stylelint.config.mjs
-└── tsconfig.json
+docs/handbook/      project handbook; agents start at llms.md
+src/app/            routes (under src/app/[locale]/ with i18n)
+src/components/     components, each with styles, spec and page object
+src/copy/           page text and repeated content, kept out of components
+src/contentful/     CMS client, getters and parsers (Contentful only)
+src/lib/, src/utils/  shared helpers
+src/tests/          page objects, factories, mocks
+e2e/                Playwright tests (pipeline only)
+.github/            CI and, with the pipeline, the Claude workflows and CODEOWNERS
+.claude/, .cursor/  agent hooks and settings
 ```
-
-Generated projects also include **either** `.cursor/` (hooks + rules; Cursor adds `session-stop-checks.sh`, `_stop_checks.sh`, `enforce-handbook-edit.sh`, and related scripts) **or** `.claude/` (settings + hooks), depending on `agentTooling`. TypeScript is pinned to **^7.0.2** in generated `package.json`; **`pnpm handbook:check`** runs handbook drift detection locally. `pnpm-workspace.yaml` sets `minimumReleaseAge: 10080`, so installs only resolve package versions published at least 7 days ago.
-
-With `includeClaudePipeline`, the project also gets `.github/workflows/{claude,claude-review,claude-fix,auto-merge,preview-e2e,staging-smoke,production-smoke}.yml`, `docs/working-with-claude.md`, `.github/CODEOWNERS`, `.github/pull_request_template.md`, `.claude/hooks/quality-gate.sh` plus `permissions` in `.claude/settings.json`, `playwright.config.ts`, and `e2e/smoke.spec.ts`; `release.yml`, the Makefile `release` target, and `scripts/verify-vercel-*` are omitted.
-
-Omit Contentful-specific paths (`src/contentful/`, draft API routes) when `includeContentful` is false. Omit `src/i18n/` and `src/app/[locale]/` when i18n is off.
 
 ## Developing kickoff
 
-This repo and every **generated** project pin the same **`packageManager`** (**pnpm 12.18.0** in root `package.json` and scaffolded `package.json`). Use [Corepack](https://nodejs.org/api/corepack.html) (`corepack enable`) or [mise/asdf](.tool-versions) so local `pnpm` matches.
-
-Hook shell for generated projects is maintained under **`scaffold-assets/`** (`cursor-hooks/`, `cursor-hooks-extra/`, `claude-hooks/`, `src-tests-utils/`, `scripts/`) and loaded from [`src/templates/agents.ts`](src/templates/agents.ts) via `readScaffoldAsset` (avoid embedding large bash in template literals). **`scripts/rebuild-agents-hooks.mjs`** can refresh hook wiring when refactoring `agents.ts`.
-
-| Script | Description |
-|---|---|
-| `pnpm build` | Compile kickoff to `dist/` |
-| `pnpm dev` | TypeScript watch |
-| `pnpm lint` / `pnpm lint:fix` | Biome on this repo |
-| `pnpm lint:css` / `pnpm lint:css:fix` | Stylelint on CSS in this repo |
-| `pnpm lint:all` | Biome (changed files), Stylelint fix, `tsc`, and knip |
-| `pnpm test` | Vitest (generator + validation tests) |
-| `pnpm test` | Unit and integration tests, including `src/generationMatrix.test.ts`: generates all 96 tooling × option combinations and checks routes, `<html>` layouts, imports, referenced pnpm scripts, JSON, and TypeScript syntax |
-| `pnpm test:scaffold-e2e` | E2E: generate `fixtures/scaffold-e2e/*.json` projects, run their `tsc:ci`, `lint:ci`, `lint:css`, `test:ci`, `knip:ci`, then (without Contentful) `pnpm build`, `next start`, and HTTP smoke checks. Set `SCAFFOLD_E2E_PLAYWRIGHT=1` to also run the generated Playwright suite for pipeline fixtures (CI does) |
-
-**CI** (`.github/workflows/ci.yml` on PRs to `main`):
-
-- **Build/Lint** — `pnpm build`, `pnpm lint:ci`, `pnpm test`
-- **Scaffold E2E** — `pnpm build`, `pnpm test:scaffold-e2e`
-
-Fixture answers live in [`fixtures/scaffold-e2e/`](fixtures/scaffold-e2e/) (`cursor-static.json`, `claude-static.json`).
-
-## Component scaffolding
-
-Once inside a generated project, create a new component with:
-
-```sh
-pnpm scaffold MyComponent
+```
+src/index.ts             CLI entry: prompts or --answers, then generateProject
+src/generator.ts         writes every file
+src/templates/*.ts       file contents for generated projects
+scaffold-assets/         hook scripts and test helpers copied into generated projects
+fixtures/scaffold-e2e/   answer files for the end-to-end run
 ```
 
-This creates:
-- `src/components/MyComponent/MyComponent.component.tsx`
-- `src/components/MyComponent/MyComponent.module.css`
-- `src/components/MyComponent/MyComponent.interfaces.ts`
-- `src/components/MyComponent/MyComponent.spec.tsx`
-- `src/components/MyComponent/MyComponent.po.tsx`
-- `src/tests/factories/MyComponent.factory.ts`
+Templates and the generated handbook (`src/templates/docs.ts`) have to stay in sync. [`AGENTS.md`](AGENTS.md) covers that rule and the conventions generated code follows.
 
-## Environment variables
+| Command | What it does |
+| --- | --- |
+| `pnpm build` | Compile to `dist/` |
+| `pnpm dev` | Compile in watch mode |
+| `pnpm lint` / `pnpm lint:fix` | Biome |
+| `pnpm test` | Unit and integration tests, plus a matrix that generates all 96 combinations of tooling and options and checks each one |
+| `pnpm test:scaffold-e2e` | Generate each fixture project, install it, run its CI checks, then build, serve and smoke-test the ones without Contentful |
 
-See `.env.local.example` in the generated project for the full list. For deployments and local parity, add **every** name from that file in the Vercel project’s **Environment Variables**, then run **`npx vercel link`** and **`npx vercel env pull .env.local`** in the repo (see **Greenfield prerequisites** above). Key variables:
+The matrix test (`src/generationMatrix.test.ts`) runs in seconds. For every combination it checks for colliding routes, pages without exactly one `<html>` layout, imports that don't resolve, references to `pnpm` scripts that don't exist, invalid JSON, and TypeScript syntax errors. When you fix a class of generator bug, add a check there.
 
+The end-to-end run is slower and covers each option at least once with a real install. Set `SCAFFOLD_E2E_PLAYWRIGHT=1` to also run the generated Playwright suites for pipeline fixtures. CI does this on every PR to `main`, alongside the build, lint and unit tests.
 
-| Variable | Description |
-|---|---|
-| `CONTENTFUL_SPACE_ID` | Your Contentful space ID |
-| `CONTENTFUL_CONTENT_DELIVERY_API_KEY` | CDA token |
-| `CONTENTFUL_PREVIEW_API_KEY` | Preview API token |
-| `CONTENTFUL_PREVIEW_SECRET` | Secret for draft mode |
-| `CONTENTFUL_CMA_TOKEN` | CMA token for type generation |
-| `ENVIRONMENT` | `staging` \| `production` |
-| `ENABLE_EXPERIMENTAL_COREPACK` | Set to `1` in Vercel so installs use Corepack and the `packageManager` version in `package.json` ([Vercel Corepack](https://vercel.com/changelog/corepack-experimental-is-now-available)) |
-
-## CI / CD
-
-### Generated projects
-
-- **CI**: GitHub Actions runs TSC, Biome, Stylelint, Jest, and Knip on every PR targeting `staging` (Claude pipeline: PRs and pushes to `main`).
-- **Claude pipeline**: Claude review gate, Preview E2E, and Vercel status are required checks; `claude/*` PRs auto-merge; Production Smoke rolls back on failure. Setup lives in the generated README and `docs/handbook/platform.md`.
-- **Local pre-push**: `pnpm lint:all` runs changed-file Biome (`lint:check` since `origin/staging`), Stylelint fix, `tsc:ci`, and `knip:ci`.
-- **Release**: Push a `v*` tag to trigger a GitHub Release and reset the `main` branch (not generated with the Claude pipeline; every merge to `main` deploys).
-- **Deployment**: Configure Vercel to deploy from `staging` (preview) and `main` (production); keep env in sync with **`vercel env pull`** when you change Vercel settings.
-
-### This repo (kickoff)
-
-- **CI**: PRs to `main` run unit tests plus scaffold E2E (see **Developing kickoff**).
-- **Release**: `make release tag=v1.0.0` pushes a tag and creates a GitHub release.
-
-## Releasing kickoff itself
-
-```sh
-make release tag=v1.0.0
-```
-
-Pushes the tag → triggers `.github/workflows/release.yml` → creates a GitHub release.
+To release kickoff, run `make release tag=vX.Y.Z`. It pushes the tag, and the release workflow creates the GitHub release.
 
 ## License
 

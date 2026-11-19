@@ -1,5 +1,8 @@
 import type { ProjectAnswers } from "../types.js";
 
+/** Official Next.js codemod CLI used by the next:upgrade and next:agents-md scripts. */
+const NEXT_CODEMOD_VERSION = "16.4.6";
+
 /** Branch PRs target: `main` for the trunk-based Claude pipeline, otherwise `staging`. */
 export const getBaseBranch = (a: ProjectAnswers): "main" | "staging" =>
   a.includeClaudePipeline ? "main" : "staging";
@@ -112,6 +115,8 @@ export const getPackageJson = (a: ProjectAnswers): string => {
       "node --import tsx --test scripts/verify-vercel-release.test.mjs",
     "tsc:ci": "tsc --strict",
     "handbook:check": "bash scripts/handbook-sync-check.sh",
+    "next:agents-md": `pnpm dlx @next/codemod@${NEXT_CODEMOD_VERSION} agents-md --output CLAUDE.md`,
+    "next:upgrade": `pnpm dlx @next/codemod@${NEXT_CODEMOD_VERSION} upgrade minor --yes`,
   };
 
   if (a.includeClaudePipeline) {

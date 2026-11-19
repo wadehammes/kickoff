@@ -49,8 +49,8 @@ Examples:
 - Change the factory pattern → update `getHandbookConventions` and `getHandbookComponents`
 - Add a new feature file to the scaffold → update the relevant handbook chapter and `getHandbookArchitecture`
 - Change import paths (e.g. `src/utils/helpers` → `src/utils/environment.helpers`) → update any handbook chapter that references it
-- Add a new prompt/option → update `getHandbookPlatform` scripts table and `getReadme`, and root `README.md` (prompts, `--answers` example, structure tree)
-- Add or change agent hooks → update `src/templates/agents.ts`, handbook `platform.md`, and root `README.md` (optional add-ons, structure notes)
+- Add a new prompt/option → update `getHandbookPlatform` scripts table and `getReadme`, and root `README.md` (Options table, `--answers` example, Working in a generated project)
+- Add or change agent hooks → update `src/templates/agents.ts`, handbook `platform.md`, and root `README.md` (What you get, Options)
 - Change the Claude pipeline (`includeClaudePipeline`: workflows in `github.ts`, quality gate in `agents.ts`, Playwright in `testing.ts`) → update `getHandbookPipelineSection` / `getPipeline*` helpers in `docs.ts`, `getClaudePipelineInstructions` (generated `CLAUDE.md`), `getWorkingWithClaudeGuide` (`docs/working-with-claude.md` for non-technical requesters), root `README.md`, and `fixtures/scaffold-e2e/claude-pipeline.json` if answers change
 
 ## Conventions the scaffolded code must follow

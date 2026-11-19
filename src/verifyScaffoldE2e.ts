@@ -27,6 +27,7 @@ const SERVER_PORT = 3999;
 const SERVER_BASE_URL = `http://localhost:${SERVER_PORT}`;
 const SERVER_START_TIMEOUT_MS = 60_000;
 const RUN_PLAYWRIGHT = process.env.SCAFFOLD_E2E_PLAYWRIGHT === "1";
+const NEXT_DOCS_INDEX_MARKER = "<!-- NEXT-AGENTS-MD-START -->";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -209,6 +210,22 @@ const verifyFixture = async (
       env: process.env,
       stdio: "inherit",
     });
+
+    console.log("  pnpm next:agents-md");
+    execSync("pnpm next:agents-md", {
+      cwd: tmpRoot,
+      env: process.env,
+      stdio: "inherit",
+    });
+    if (
+      !readFileSync(path.join(tmpRoot, "CLAUDE.md"), "utf-8").includes(
+        NEXT_DOCS_INDEX_MARKER,
+      )
+    ) {
+      throw new Error(
+        "pnpm next:agents-md did not add the docs index to CLAUDE.md",
+      );
+    }
 
     for (const check of SCAFFOLD_CHECKS) {
       console.log(`  pnpm ${check}`);

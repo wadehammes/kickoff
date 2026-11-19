@@ -197,6 +197,9 @@ cp .env.local.example .env.local
 
 # Install dependencies
 pnpm install
+
+# Index the Next.js docs for AI agents (writes a block into CLAUDE.md)
+pnpm next:agents-md
 ${gettingStartedExtra}# Start dev server on port ${a.devPort}
 pnpm dev
 \`\`\`
@@ -217,6 +220,8 @@ pnpm dev
 | \`pnpm lint:css:fix\` | Auto-fix Stylelint issues |
 | \`pnpm lint:all\` | \`lint:check\`, Stylelint fix, \`tsc:ci\`, and \`knip:ci\` |
 | \`pnpm knip\` / \`pnpm knip:ci\` | Dead-code / unused export analysis ([knip.json](../../knip.json)) |
+| \`pnpm next:upgrade\` | Upgrade Next.js and React to the latest minor with the official codemod |
+| \`pnpm next:agents-md\` | Refresh the Next.js docs index in \`CLAUDE.md\` |
 | \`pnpm test:ci\` | Run Jest test suite |
 ${a.includeClaudePipeline ? "| `pnpm test:e2e` | Playwright tests in `e2e/` against `BASE_URL` (default: local dev server) |\n| `pnpm typecheck` | TypeScript check used by Vercel Deployment Checks |\n" : ""}${scriptsTypesRow}| \`pnpm scaffold MyComponent\` | Scaffold a new component with all standard files |
 
@@ -1094,6 +1099,7 @@ Run **\`pnpm lint:all\`** locally for the same checks as a full pre-push pass (\
 | \`pnpm lint:css\` / \`pnpm lint:css:fix\` | Stylelint. |
 | \`pnpm lint:all\` | \`lint:check\`, Stylelint fix, \`tsc:ci\`, and \`knip:ci\`. |
 | \`pnpm knip\` / \`pnpm knip:ci\` | Dead-code / unused export analysis ([knip.json](../../knip.json)). |
+| \`pnpm next:upgrade\` / \`pnpm next:agents-md\` | Official Next.js codemods: upgrade, and refresh the docs index in \`CLAUDE.md\` (see **Upgrading Next.js**). |
 | \`pnpm test:ci\` | Jest (CI-style). |
 ${a.includeClaudePipeline ? "| `pnpm test:e2e` | Playwright (`e2e/`) against `BASE_URL`. |\n| `pnpm typecheck` | TypeScript check for Vercel Deployment Checks. |\n" : ""}| \`pnpm scaffold\` | New component folder under \`src/components/\` (see [components.md](components.md)). |
 ${scriptRowsExtra}
@@ -1131,13 +1137,29 @@ ${notableContentful}- **ENVIRONMENT** — drives URLs in helpers such as \`envUr
 
 ${draftSection}
 ${agentHooksSection}${a.includeClaudePipeline ? getHandbookPipelineSection(a) : getHandbookReleaseSection()}
-${a.includeI18n ? getHandbookLanguagesSection() : ""}## \`src/proxy.ts\`
+${a.includeI18n ? getHandbookLanguagesSection() : ""}${getHandbookUpgradingSection(a)}## \`src/proxy.ts\`
 
 ${
   a.includeI18n
     ? "`src/proxy.ts` runs **next-intl** locale routing (`createMiddleware(routing)`): it detects the visitor's language and rewrites `/` to the default locale. Its `matcher` skips `api`, `_next`, `_vercel`, and files with an extension. If you add more request handling, wrap the next-intl handler rather than replacing it."
     : "`src/proxy.ts` attaches **`x-pathname`** to request headers for downstream use. If you add **Next.js middleware**, import and call `proxy` from there so the behavior is applied on each request."
 }
+`;
+};
+
+const getHandbookUpgradingSection = (a: ProjectAnswers): string => {
+  const scheduled = a.includeClaudePipeline
+    ? "\n- **Monthly upgrade PR**: `.github/workflows/next-upgrade.yml` runs `pnpm next:upgrade` and `pnpm next:agents-md` on the 1st of each month (or on demand from the Actions tab), has Claude fix anything the upgrade breaks, and opens a `claude/next-upgrade-*` PR. It changes `package.json`, so a code owner approves it; check the Vercel preview first."
+    : "";
+
+  return `## Upgrading Next.js
+
+Use the official codemods instead of editing versions by hand. Both scripts run a pinned version of \`@next/codemod\` with \`pnpm dlx\`.
+
+- **\`pnpm next:upgrade\`** runs \`@next/codemod upgrade minor --yes\`: it bumps Next.js and React to the latest minor release, applies the migration codemods for that jump, and reinstalls. Run \`pnpm lint:all\`, \`pnpm test:ci\` and \`pnpm build\` afterwards and fix anything left over. For a major upgrade, run the codemod with \`major\` and read the upgrade guide first.
+- **\`pnpm next:agents-md\`** writes an index of the Next.js docs bundled in \`node_modules/next/dist/docs\` into \`CLAUDE.md\` (between markers, so rerunning replaces it). Run it after installing and after every upgrade so agents read docs that match the installed version.
+- \`minimumReleaseAge\` in \`pnpm-workspace.yaml\` still applies: if the codemod targets a release less than 7 days old, the install fails. Wait and rerun.${scheduled}
+
 `;
 };
 
