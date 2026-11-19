@@ -245,7 +245,7 @@ ${rows}
 export const getPullRequestTemplate = (): string => {
   return `## Request
 
-<!-- Link to the Slack thread, issue, or ask this PR fulfils. -->
+<!-- Who asked for this, and the request in their words (claude.ai session link or GitHub issue). -->
 
 ## What changed
 
