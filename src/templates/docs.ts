@@ -71,7 +71,7 @@ This site is built and updated by Claude. You describe what you want in plain la
 
 ## How to ask for a change
 
-Ask Claude at **claude.ai/code** in your browser, or in the **Code** tab of the Claude mobile app, and pick this site's repository. If you have GitHub access, you can also comment \`@claude\` on an issue. Be specific about **what** and **where**:
+Ask Claude in the **Code** tab of the Claude desktop app, at **claude.ai/code** in your browser, or in the **Code** tab of the Claude mobile app, and pick this site's repository. They all work the same way. Make sure the session runs in the cloud, not on your computer: cloud sessions need nothing installed. If you have GitHub access, you can also comment \`@claude\` on an issue. Be specific about **what** and **where**:
 
 - "On the home page, change the bonus in the benefits section from 10% to 12%."
 - "Add a team member card for Jane Doe, Senior Recruiter, with this photo and LinkedIn link."
@@ -292,7 +292,7 @@ const getPipelineDeploymentReadme = (a: ProjectAnswers): string => {
 
 ## Hands-off Claude pipeline
 
-Requests go to Claude (claude.ai/code in a browser or the Claude mobile app, or \`@claude\` on an issue or PR). Claude opens a PR from a \`claude/*\` branch; **Lint/Test**, **Claude Review Gate**, **Preview E2E**, and the Vercel build must pass; auto-merge squashes it into \`main\`. Changes to paths in \`.github/CODEOWNERS\` also need a code owner approval. If a check fails, **Claude Fix** retries up to twice before asking an engineer. Non-technical requesters: start with **[docs/working-with-claude.md](docs/working-with-claude.md)**. Details, required settings, and rollback recovery: **[docs/handbook/platform.md](docs/handbook/platform.md)**.
+Requests go to Claude (the Code tab in the Claude desktop or mobile app, claude.ai/code in a browser, or \`@claude\` on an issue or PR). Claude opens a PR from a \`claude/*\` branch; **Lint/Test**, **Claude Review Gate**, **Preview E2E**, and the Vercel build must pass; auto-merge squashes it into \`main\`. Changes to paths in \`.github/CODEOWNERS\` also need a code owner approval. If a check fails, **Claude Fix** retries up to twice before asking an engineer. Non-technical requesters: start with **[docs/working-with-claude.md](docs/working-with-claude.md)**. Details, required settings, and rollback recovery: **[docs/handbook/platform.md](docs/handbook/platform.md)**.
 
 ## Releases
 
@@ -1195,7 +1195,7 @@ If \`main\` is protected, add **GitHub Actions** to the ruleset bypass list so s
 const getHandbookPipelineSection = (a: ProjectAnswers): string => {
   return `## Hands-off Claude pipeline
 
-Claude (claude.ai/code in a browser or the Claude mobile app, or \`@claude\` on GitHub) opens PRs from \`claude/*\` branches. Machine checks replace human review, and merges deploy straight to production.
+Claude (the Code tab in the Claude desktop or mobile app, claude.ai/code in a browser, or \`@claude\` on GitHub) opens PRs from \`claude/*\` branches. Machine checks replace human review, and merges deploy straight to production.
 
 | Stage | What runs | Where |
 |-------|-----------|-------|
