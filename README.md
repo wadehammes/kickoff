@@ -13,15 +13,15 @@ Every generated project includes:
 | Framework | Next.js ^16 (App Router) |
 | Language | TypeScript ^7, strict mode |
 | CMS | Contentful ^11, draft mode, type generation |
-| Package manager | pnpm 10.33.3 |
-| Node | 24.15.0 (via asdf `.tool-versions`) |
-| Linting | Biome 2.5.8 + Stylelint ^17 |
+| Package manager | pnpm 12.18.0 (`packageManager` in kickoff and generated `package.json`) |
+| Node | Written to `.tool-versions` at scaffold time (matches your local Node + pnpm) |
+| Linting | Biome 2.6.6 + Stylelint ^18 |
 | Testing | Jest ^30 + Testing Library + ts-jest |
 | Styling | CSS Modules + PostCSS Preset Env |
 | UI primitives | @base-ui/react |
 | SVG (Turbopack) | @svgr/webpack |
 | Data fetching | @tanstack/react-query ^5 |
-| Forms | react-hook-form ^7 |
+| Dead code | knip ^6 |
 | Schema | schema-dts (JSON-LD) |
 | Deployment | Vercel |
 | CI | GitHub Actions (PRs to `staging`, or `main` with the Claude pipeline) |
@@ -114,7 +114,7 @@ Running `kickoff` starts an interactive prompt:
 ? Agent tooling (project hooks for handbook enforcement)? Cursor
 ```
 
-Choose **Cursor** for `.cursor/hooks.json`, hook scripts, and `rules/handbook.mdc`. Choose **Claude Code** for `.claude/settings.json` and hook scripts. Both sets enforce the same handbook rules (no added comments, CSS conventions, `pnpm scaffold` for new components, handbook sync).
+Choose **Cursor** for `.cursor/hooks.json`, hook scripts, and `rules/handbook.mdc` — including consolidated **`stop`** (`session-stop-checks.sh`), **`enforce-handbook-edit.sh`** (Jest guard via `handbookEditGuard.ts` on `src/**` / `e2e/**` edits), query-hook mock blocks, git safety on shell, and related checks. Choose **Claude Code** for `.claude/settings.json` and hook scripts. Both sets enforce the same handbook rules (no added comments, CSS conventions, `pnpm scaffold` for new components, handbook sync).
 
 Choosing **Claude Code** adds one more prompt: **Include hands-off Claude → GitHub → Vercel pipeline?** (see Optional add-ons).
 
@@ -199,18 +199,23 @@ pnpm dev
 │   ├── setEnvVars.ts
 │   └── setupTests.ts
 ├── docs/
-│   └── handbook/               # 11-chapter project handbook + llms.md
+│   └── handbook/               # Project handbook (core chapters + LLM routing: glossary, decisions, agent-workflow, api-routes, factories, data-storage, llms.md)
 ├── public/
 │   └── sitemap-index.xml
 ├── scripts/
 │   ├── lib/
 │   │   └── preview-local.ts
+│   ├── cursor-handbook-guard.runner.spec.ts   # Cursor preToolUse handbook guard (Jest)
 │   ├── dev-with-preview.ts     # Opens draft mode after dev starts
+│   ├── git-commit.sh           # Required wrapper for agent commits (Cursor)
+│   ├── handbook-sync-check.sh
 │   ├── make_sitemap.js
 │   ├── scaffold.sh             # Component scaffolder
 │   ├── tsconfig.json
 │   ├── verify-vercel-for-release.sh
-│   └── verify-vercel-release.ts
+│   ├── verify-vercel-release.test.mjs
+│   ├── verify-vercel-release.ts
+│   └── watch-release.sh
 ├── src/
 │   ├── @types/
 │   │   └── react.d.ts
@@ -241,7 +246,8 @@ pnpm dev
 │   │   ├── ExitDraftModeLink/
 │   │   ├── Footer/
 │   │   ├── Navigation/
-│   │   └── NotFoundPage/
+│   │   ├── NotFoundPage/
+│   │   └── Toast/
 │   ├── contentful/             # Client, helpers, cache, parsers
 │   │   ├── types/              # Generated — do not edit
 │   │   ├── cacheConfig.ts
@@ -265,6 +271,7 @@ pnpm dev
 │   │   ├── generateSitemap.ts
 │   │   ├── refreshContentAccess.ts
 │   │   ├── schema.ts
+│   │   ├── toast/appToast.ts
 │   │   └── vercelDeploymentStatus.ts
 │   ├── styles/
 │   │   ├── globals.css
@@ -276,6 +283,9 @@ pnpm dev
 │   │   │   ├── BaseFactory.ts
 │   │   │   └── RichTextDocument.factory.ts
 │   │   ├── mocks/
+│   │   ├── utils/
+│   │   │   ├── handbookEditGuard.ts      # Handbook rules on edited file content
+│   │   │   └── handbookTestRules.ts      # React Query / test conventions scan
 │   │   ├── basePageObject.po.ts
 │   │   └── test-utils.tsx
 │   ├── types/
@@ -311,13 +321,17 @@ pnpm dev
 └── tsconfig.json
 ```
 
-Generated projects also include **either** `.cursor/` (hooks + rules) **or** `.claude/` (settings + hooks), depending on `agentTooling`. TypeScript is pinned to **^7.0.2** in generated `package.json`. `pnpm-workspace.yaml` sets `minimumReleaseAge: 10080`, so installs only resolve package versions published at least 7 days ago.
+Generated projects also include **either** `.cursor/` (hooks + rules; Cursor adds `session-stop-checks.sh`, `_stop_checks.sh`, `enforce-handbook-edit.sh`, and related scripts) **or** `.claude/` (settings + hooks), depending on `agentTooling`. TypeScript is pinned to **^7.0.2** in generated `package.json`; **`pnpm handbook:check`** runs handbook drift detection locally. `pnpm-workspace.yaml` sets `minimumReleaseAge: 10080`, so installs only resolve package versions published at least 7 days ago.
 
 With `includeClaudePipeline`, the project also gets `.github/workflows/{claude,claude-review,auto-merge,preview-e2e,production-smoke}.yml`, `.github/CODEOWNERS`, `.github/pull_request_template.md`, `.claude/hooks/quality-gate.sh` plus `permissions` in `.claude/settings.json`, `playwright.config.ts`, and `e2e/smoke.spec.ts`; `release.yml`, the Makefile `release` target, and `scripts/verify-vercel-*` are omitted.
 
 Omit Contentful-specific paths (`src/contentful/`, draft API routes) when `includeContentful` is false. Omit `src/i18n/` and `src/app/[locale]/` when i18n is off.
 
 ## Developing kickoff
+
+This repo and every **generated** project pin the same **`packageManager`** (**pnpm 12.18.0** in root `package.json` and scaffolded `package.json`). Use [Corepack](https://nodejs.org/api/corepack.html) (`corepack enable`) or [mise/asdf](.tool-versions) so local `pnpm` matches.
+
+Hook shell for generated projects is maintained under **`scaffold-assets/`** (`cursor-hooks/`, `cursor-hooks-extra/`, `claude-hooks/`, `src-tests-utils/`, `scripts/`) and loaded from [`src/templates/agents.ts`](src/templates/agents.ts) via `readScaffoldAsset` (avoid embedding large bash in template literals). **`scripts/rebuild-agents-hooks.mjs`** can refresh hook wiring when refactoring `agents.ts`.
 
 | Script | Description |
 |---|---|

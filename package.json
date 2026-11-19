@@ -1,7 +1,7 @@
 {
   "name": "kickoff",
   "version": "1.0.0",
-  "packageManager": "pnpm@10.33.3",
+  "packageManager": "pnpm@12.18.0",
   "description": "CLI scaffolding tool for Next.js + Contentful + TypeScript projects",
   "type": "module",
   "bin": {
@@ -32,6 +32,6 @@
     "@types/node": "^26.6.6",
     "@types/prompts": "^2.4.9",
     "typescript": "^7.0.2",
-    "vitest": "5.1.0"
+    "vitest": "^5.1.0"
   }
 }

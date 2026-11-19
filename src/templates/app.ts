@@ -173,7 +173,7 @@ export const getAppProviders = (): string => {
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
-import { Toaster } from "sonner";
+import { ToastHost } from "src/components/Toast/ToastHost.component";
 
 interface ProvidersProps {
   children: ReactNode;
@@ -186,23 +186,7 @@ const Providers = (props: ProvidersProps) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
-      <Toaster
-        className="toaster"
-        closeButton
-        expand
-        gap={12}
-        position="top-center"
-        toastOptions={{
-          classNames: {
-            closeButton: "toast-close",
-            toast: "toast",
-          },
-          duration: 5_000,
-          unstyled: true,
-        }}
-        visibleToasts={3}
-      />
+      <ToastHost>{children}</ToastHost>
     </QueryClientProvider>
   );
 };

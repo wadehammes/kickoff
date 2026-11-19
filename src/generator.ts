@@ -5,7 +5,7 @@ import fsExtra from "fs-extra";
 const { ensureDir, writeFile } = fsExtra;
 
 import {
-  AGENT_HOOK_SCRIPT_NAMES,
+  type AgentHookScriptName,
   getAgentHookScriptContent,
   getApiHelpers,
   getApiUrls,
@@ -19,6 +19,8 @@ import {
   getAppPage,
   getAppProviders,
   getAppRobots,
+  getAppToast,
+  getAppToastMock,
   getArrayHelpers,
   getArrayHelpersSpec,
   getAutoMergeWorkflow,
@@ -30,6 +32,7 @@ import {
   getButtonCSS,
   getCIWorkflow,
   getClaude,
+  getClaudeHookScriptNames,
   getClaudeHooksLib,
   getClaudeHooksReadme,
   getClaudeReviewWorkflow,
@@ -49,12 +52,16 @@ import {
   getContentfulUtilHelpers,
   getCopyGlobal,
   getCssPropsDeclaration,
+  getCursorHandbookGuardRunnerSpec,
+  getCursorHookScriptNames,
   getCursorHooksJson,
   getCursorHooksLib,
   getCursorHooksReadme,
   getCursorRulesHandbook,
   getDependabotConfig,
   getDeployActiveRoute,
+  getDeployBuildStatsComponent,
+  getDeployBuildStatsRoute,
   getDeployButtonComponent,
   getDeployButtonPO,
   getDeployButtonTest,
@@ -80,20 +87,34 @@ import {
   getFooterComponent,
   getFooterCSS,
   getGenerateSitemap,
+  getGitCommitSh,
+  getGithooksCommitMsg,
   getGitignore,
   getGlobalError,
   getGlobalsCSS,
+  getHandbookAgentWorkflow,
+  getHandbookApiRoutes,
   getHandbookArchitecture,
   getHandbookComponents,
   getHandbookContentful,
   getHandbookConventions,
+  getHandbookDataStorage,
+  getHandbookDecisions,
   getHandbookDistribution,
+  getHandbookDriftCheckMjs,
+  getHandbookEditGuard,
+  getHandbookEditGuardSpec,
+  getHandbookFactories,
+  getHandbookGlossary,
   getHandbookIntegrations,
   getHandbookLlms,
   getHandbookPatterns,
   getHandbookPlatform,
   getHandbookReadme,
   getHandbookSourceLayout,
+  getHandbookSyncCheckSh,
+  getHandbookTestRules,
+  getHandbookTestRulesSpec,
   getI18nRequest,
   getI18nRouting,
   getJestConfig,
@@ -141,17 +162,21 @@ import {
   getSetEnvVars,
   getSetupTests,
   getSitemapIndex,
+  getStopChecksSh,
   getStringHelpers,
   getStringHelpersSpec,
   getStyleHelpers,
   getStylelintConfig,
   getSvgMock,
+  getToastHostComponent,
+  getToastHostCSS,
   getToolVersions,
   getTsConfig,
   getTypesReactDts,
   getUiReadme,
   getUrlHelpers,
   getUrlHelpersSpec,
+  getUseDeployBuildStatsQuery,
   getUseDeployMonitor,
   getUseIsBrowser,
   getUseTriggerDeployMutation,
@@ -160,6 +185,8 @@ import {
   getVercelDeploymentStatusSpec,
   getVerifyVercelForReleaseSh,
   getVerifyVercelRelease,
+  getVerifyVercelReleaseTestMjs,
+  getWatchReleaseSh,
   QUALITY_GATE_HOOK_SCRIPT_NAME,
 } from "./templates/index.js";
 import type { ProjectAnswers } from "./types.js";
@@ -237,6 +264,12 @@ export const generateProject = async (
   // ── docs/handbook/ ─────────────────────────────────────────────────────────
   await write("docs/handbook/README.md", getHandbookReadme(a));
   await write("docs/handbook/llms.md", getHandbookLlms(a));
+  await write("docs/handbook/glossary.md", getHandbookGlossary(a));
+  await write("docs/handbook/decisions.md", getHandbookDecisions(a));
+  await write("docs/handbook/agent-workflow.md", getHandbookAgentWorkflow(a));
+  await write("docs/handbook/api-routes.md", getHandbookApiRoutes(a));
+  await write("docs/handbook/factories.md", getHandbookFactories(a));
+  await write("docs/handbook/data-storage.md", getHandbookDataStorage(a));
   await write("docs/handbook/architecture.md", getHandbookArchitecture(a));
   await write("docs/handbook/conventions.md", getHandbookConventions(a));
   await write("docs/handbook/contentful.md", getHandbookContentful(a));
@@ -249,14 +282,19 @@ export const generateProject = async (
 
   // ── Agent hooks (Cursor or Claude Code) ────────────────────────────────────
   if (a.agentTooling === "cursor") {
-    await write(".cursor/hooks.json", getCursorHooksJson());
+    await write(".cursor/hooks.json", getCursorHooksJson(a));
     await write(".cursor/hooks/_lib.sh", getCursorHooksLib(), {
       executable: true,
     });
-    for (const scriptName of AGENT_HOOK_SCRIPT_NAMES) {
+    await write(".cursor/hooks/_stop_checks.sh", getStopChecksSh(), {
+      executable: true,
+    });
+    for (const scriptName of getCursorHookScriptNames(a)) {
       await write(
         `.cursor/hooks/${scriptName}`,
-        getAgentHookScriptContent(scriptName),
+        getAgentHookScriptContent(scriptName as AgentHookScriptName, {
+          tooling: "cursor",
+        }),
         { executable: true },
       );
     }
@@ -267,10 +305,18 @@ export const generateProject = async (
     await write(".claude/hooks/_lib.sh", getClaudeHooksLib(), {
       executable: true,
     });
-    for (const scriptName of AGENT_HOOK_SCRIPT_NAMES) {
+    await write(
+      ".claude/hooks/handbook-drift-check.mjs",
+      getHandbookDriftCheckMjs(),
+      { executable: true },
+    );
+    for (const scriptName of getClaudeHookScriptNames(a)) {
       await write(
         `.claude/hooks/${scriptName}`,
-        getAgentHookScriptContent(scriptName),
+        getAgentHookScriptContent(scriptName as AgentHookScriptName, {
+          tooling: "claude",
+          trunkBased: a.includeClaudePipeline,
+        }),
         { executable: true },
       );
     }
@@ -282,6 +328,12 @@ export const generateProject = async (
       );
     }
     await write(".claude/hooks/README.md", getClaudeHooksReadme(a));
+    await write("scripts/git-commit.sh", getGitCommitSh(), {
+      executable: true,
+    });
+    await write(".githooks/commit-msg", getGithooksCommitMsg(), {
+      executable: true,
+    });
   }
 
   // ── public/ ────────────────────────────────────────────────────────────────
@@ -316,6 +368,11 @@ export const generateProject = async (
 
   // ── scripts/ ───────────────────────────────────────────────────────────────
   await write("scripts/scaffold.sh", getScaffoldSh());
+  if (!a.includeClaudePipeline) {
+    await write("scripts/watch-release.sh", getWatchReleaseSh(), {
+      executable: true,
+    });
+  }
   await write("scripts/make_sitemap.js", getMakeSitemapJs(a));
   await write("scripts/tsconfig.json", getScriptsTsConfig());
   if (!a.includeClaudePipeline) {
@@ -324,7 +381,16 @@ export const generateProject = async (
       "scripts/verify-vercel-for-release.sh",
       getVerifyVercelForReleaseSh(),
     );
+    await write(
+      "scripts/verify-vercel-release.test.mjs",
+      getVerifyVercelReleaseTestMjs(),
+    );
   }
+  await write("scripts/handbook-sync-check.sh", getHandbookSyncCheckSh(a));
+  await write(
+    "scripts/cursor-handbook-guard.runner.spec.ts",
+    getCursorHandbookGuardRunnerSpec(),
+  );
   await write("scripts/lib/preview-local.ts", getPreviewLocal());
   await write("scripts/dev-with-preview.ts", getDevWithPreview(a));
 
@@ -373,6 +439,10 @@ export const generateProject = async (
     "src/app/api/refresh-content/deploy/active/route.ts",
     getDeployActiveRoute(),
   );
+  await write(
+    "src/app/api/refresh-content/deploy/build-stats/route.ts",
+    getDeployBuildStatsRoute(),
+  );
 
   // ── src/components/ ────────────────────────────────────────────────────────
   await write(
@@ -413,6 +483,15 @@ export const generateProject = async (
     "src/components/DeployPage/DeployPage.module.css",
     getDeployPageCSS(),
   );
+  await write(
+    "src/components/DeployPage/DeployBuildStats.component.tsx",
+    getDeployBuildStatsComponent(),
+  );
+  await write(
+    "src/components/Toast/ToastHost.component.tsx",
+    getToastHostComponent(),
+  );
+  await write("src/components/Toast/ToastHost.module.css", getToastHostCSS());
   await write(
     "src/components/DeployButton/DeployButton.component.tsx",
     getDeployButtonComponent(),
@@ -459,6 +538,11 @@ export const generateProject = async (
   // ── src/hooks/ ───────────────────────────────────────────────────────────────
   await write("src/hooks/useIsBrowser.ts", getUseIsBrowser());
   await write("src/hooks/useDeployMonitor.ts", getUseDeployMonitor());
+  await write(
+    "src/hooks/queries/useDeployBuildStats.query.ts",
+    getUseDeployBuildStatsQuery(),
+  );
+  await write("src/lib/toast/appToast.ts", getAppToast());
   await write(
     "src/hooks/mutations/useTriggerDeploy.mutation.ts",
     getUseTriggerDeployMutation(),
@@ -513,6 +597,17 @@ export const generateProject = async (
   await write("src/tests/mocks/mockMatchMedia.ts", getMockMatchMedia());
   await write("src/tests/mocks/mockNextNavigation.ts", getMockNextNavigation());
   await write("src/tests/mocks/svgMock.tsx", getSvgMock());
+  await write("src/tests/mocks/appToast.mock.ts", getAppToastMock());
+  await write("src/tests/utils/handbookTestRules.ts", getHandbookTestRules());
+  await write(
+    "src/tests/utils/handbookTestRules.spec.ts",
+    getHandbookTestRulesSpec(),
+  );
+  await write("src/tests/utils/handbookEditGuard.ts", getHandbookEditGuard());
+  await write(
+    "src/tests/utils/handbookEditGuard.spec.ts",
+    getHandbookEditGuardSpec(),
+  );
 
   // ── src/tests/factories/ ───────────────────────────────────────────────────
   await write("src/tests/factories/BaseFactory.ts", getBaseFactory());

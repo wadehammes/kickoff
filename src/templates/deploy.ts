@@ -35,6 +35,7 @@ export interface DeployTriggerResponse {
 export interface DeployStatusInput {
   createdAt: number;
   deployHookId: string;
+  jobCreatedAt?: number;
   projectId: string;
   target: DeployTarget;
   token?: string;
@@ -58,6 +59,14 @@ export type DeployActiveResponse =
       deployHookId: string;
       projectId: string;
     };
+
+export interface DeployBuildStatsInput {
+  token?: string;
+}
+
+export type DeployBuildStatsResponse =
+  | { available: false }
+  | { available: true; averageBuildMs: number; sampleSize: number };
 `;
 };
 
@@ -119,6 +128,18 @@ export const resolveDeployHookMetadata = (
   }
 
   return parseDeployHookUrl(hookUrl);
+};
+
+export const resolveDeployProjectId = (): string | null => {
+  for (const target of ["staging", "production"] as const) {
+    const metadata = resolveDeployHookMetadata(target);
+
+    if (metadata) {
+      return metadata.projectId;
+    }
+  }
+
+  return null;
 };
 `;
 };
@@ -453,11 +474,16 @@ export const getVercelDeploymentStatus = (): string => {
   | "unknown";
 
 interface VercelDeploymentSummary {
+  buildingAt?: number;
+  created?: number;
   createdAt?: number;
   meta?: {
     deployHookId?: string;
   };
+  ready?: number;
   readyState?: string;
+  source?: string;
+  state?: string;
   url?: string;
 }
 
@@ -471,21 +497,70 @@ const IN_PROGRESS_READY_STATES = new Set([
   "QUEUED",
 ]);
 
-const listProjectDeployments = async (
+const DEPLOY_HOOK_SOURCE = "git-deploy-hook";
+
+const MATCH_WINDOW_MS = 120_000;
+const DEFAULT_BUILD_STATS_SAMPLE_SIZE = 5;
+
+const deploymentCreatedAt = (
+  deployment: VercelDeploymentSummary,
+): number | null => {
+  const created = deployment.createdAt ?? deployment.created;
+
+  if (typeof created !== "number") {
+    return null;
+  }
+
+  return created;
+};
+
+const deploymentReadyState = (
+  deployment: VercelDeploymentSummary,
+): string | undefined => {
+  return deployment.readyState ?? deployment.state;
+};
+
+const pickNewestDeployment = (
+  deployments: VercelDeploymentSummary[],
+): VercelDeploymentSummary | null => {
+  return (
+    deployments.reduce<VercelDeploymentSummary | null>((newest, deployment) => {
+      const created = deploymentCreatedAt(deployment);
+
+      if (created === null) {
+        return newest;
+      }
+
+      if (!newest) {
+        return deployment;
+      }
+
+      const newestCreated = deploymentCreatedAt(newest);
+
+      if (newestCreated === null || created > newestCreated) {
+        return deployment;
+      }
+
+      return newest;
+    }, null) ?? null
+  );
+};
+
+const fetchProjectDeployments = async (
   projectId: string,
   token: string,
-): Promise<VercelDeploymentSummary[]> => {
-  const url = new URL("https://api.vercel.com/v6/deployments");
+  team: { teamId?: string; slug?: string },
+): Promise<VercelDeploymentSummary[] | null> => {
+  const url = new URL("https://api.vercel.com/v7/deployments");
   url.searchParams.set("projectId", projectId);
   url.searchParams.set("limit", "20");
 
-  const teamId = process.env.VERCEL_TEAM_ID?.trim();
-  const teamSlug = process.env.VERCEL_TEAM_SLUG?.trim();
-
-  if (teamId) {
-    url.searchParams.set("teamId", teamId);
-  } else if (teamSlug) {
-    url.searchParams.set("slug", teamSlug);
+  if (team.teamId) {
+    url.searchParams.set("teamId", team.teamId);
+  } else if (team.slug) {
+    url.searchParams.set("slug", team.slug);
+  } else {
+    return null;
   }
 
   const response = await fetch(url, {
@@ -496,12 +571,39 @@ const listProjectDeployments = async (
   });
 
   if (!response.ok) {
-    return [];
+    return null;
   }
 
   const payload = (await response.json()) as VercelDeploymentsResponse;
 
   return payload.deployments ?? [];
+};
+
+const listProjectDeployments = async (
+  projectId: string,
+  token: string,
+): Promise<VercelDeploymentSummary[] | null> => {
+  const teamId = process.env.VERCEL_TEAM_ID?.trim();
+  const teamSlug = process.env.VERCEL_TEAM_SLUG?.trim();
+  const teamAttempts: Array<{ teamId?: string; slug?: string }> = [];
+
+  if (teamId) {
+    teamAttempts.push({ teamId });
+  }
+
+  if (teamSlug) {
+    teamAttempts.push({ slug: teamSlug });
+  }
+
+  for (const team of teamAttempts) {
+    const deployments = await fetchProjectDeployments(projectId, token, team);
+
+    if (deployments) {
+      return deployments;
+    }
+  }
+
+  return null;
 };
 
 const getVercelApiToken = (): string | null =>
@@ -533,22 +635,46 @@ export const findMatchingDeployment = (
   deployments: VercelDeploymentSummary[],
   deployHookId: string,
   since: number,
+  jobCreatedAt?: number,
 ): VercelDeploymentSummary | null => {
-  const sinceThreshold = since - 60_000;
+  const anchor = Math.min(since, jobCreatedAt ?? since);
+  const sinceThreshold = anchor - MATCH_WINDOW_MS;
 
-  return (
-    deployments.find((deployment) => {
-      if (deployment.meta?.deployHookId !== deployHookId) {
-        return false;
-      }
+  const hookMatches = deployments.filter((deployment) => {
+    if (deployment.meta?.deployHookId !== deployHookId) {
+      return false;
+    }
 
-      if (typeof deployment.createdAt !== "number") {
-        return false;
-      }
+    const created = deploymentCreatedAt(deployment);
 
-      return deployment.createdAt >= sinceThreshold;
-    }) ?? null
-  );
+    if (created === null) {
+      return false;
+    }
+
+    return created >= sinceThreshold;
+  });
+
+  const hookMatch = pickNewestDeployment(hookMatches);
+
+  if (hookMatch) {
+    return hookMatch;
+  }
+
+  const sourceMatches = deployments.filter((deployment) => {
+    if (deployment.source !== DEPLOY_HOOK_SOURCE) {
+      return false;
+    }
+
+    const created = deploymentCreatedAt(deployment);
+
+    if (created === null) {
+      return false;
+    }
+
+    return created >= sinceThreshold;
+  });
+
+  return pickNewestDeployment(sourceMatches);
 };
 
 export const findActiveDeployment = (
@@ -561,11 +687,13 @@ export const findActiveDeployment = (
         return false;
       }
 
-      if (!deployment.readyState) {
+      const readyState = deploymentReadyState(deployment);
+
+      if (!readyState) {
         return false;
       }
 
-      return IN_PROGRESS_READY_STATES.has(deployment.readyState);
+      return IN_PROGRESS_READY_STATES.has(readyState);
     }) ?? null
   );
 };
@@ -590,15 +718,21 @@ export const fetchActiveDeployProgress = async (options: {
   }
 
   const deployments = await listProjectDeployments(options.projectId, token);
-  const deployment = findActiveDeployment(deployments, options.deployHookId);
 
-  if (!deployment || typeof deployment.createdAt !== "number") {
+  if (!deployments) {
+    return { active: false };
+  }
+
+  const deployment = findActiveDeployment(deployments, options.deployHookId);
+  const created = deployment ? deploymentCreatedAt(deployment) : null;
+
+  if (!deployment || created === null) {
     return { active: false };
   }
 
   return {
     active: true,
-    createdAt: deployment.createdAt,
+    createdAt: created,
     deployHookId: options.deployHookId,
     projectId: options.projectId,
   };
@@ -606,6 +740,7 @@ export const fetchActiveDeployProgress = async (options: {
 
 export const fetchDeploymentStatus = async (options: {
   deployHookId: string;
+  jobCreatedAt?: number;
   projectId: string;
   since: number;
 }): Promise<{
@@ -619,21 +754,122 @@ export const fetchDeploymentStatus = async (options: {
   }
 
   const deployments = await listProjectDeployments(options.projectId, token);
+
+  if (!deployments) {
+    return { monitoring: false, status: "unknown" };
+  }
+
   const deployment = findMatchingDeployment(
     deployments,
     options.deployHookId,
     options.since,
+    options.jobCreatedAt,
   );
 
   if (!deployment) {
     return { monitoring: true, status: "pending" };
   }
 
-  const status = mapVercelReadyState(deployment.readyState);
+  const status = mapVercelReadyState(deploymentReadyState(deployment));
 
   return {
     monitoring: true,
     status,
+  };
+};
+
+export const deploymentBuildDurationMs = (
+  deployment: VercelDeploymentSummary,
+): number | null => {
+  if (deploymentReadyState(deployment) !== "READY") {
+    return null;
+  }
+
+  const ready = deployment.ready;
+  const buildStartedAt =
+    deployment.buildingAt ?? deploymentCreatedAt(deployment);
+
+  if (typeof ready !== "number" || typeof buildStartedAt !== "number") {
+    return null;
+  }
+
+  if (ready <= buildStartedAt) {
+    return null;
+  }
+
+  return ready - buildStartedAt;
+};
+
+export const calculateAverageBuildTimeMs = (
+  deployments: VercelDeploymentSummary[],
+  sampleSize = DEFAULT_BUILD_STATS_SAMPLE_SIZE,
+): { averageBuildMs: number; sampleSize: number } | null => {
+  const recentDeployments = [...deployments].sort(
+    (left, right) =>
+      (deploymentCreatedAt(right) ?? 0) - (deploymentCreatedAt(left) ?? 0),
+  );
+
+  const durations: number[] = [];
+
+  for (const deployment of recentDeployments) {
+    const duration = deploymentBuildDurationMs(deployment);
+
+    if (duration === null) {
+      continue;
+    }
+
+    durations.push(duration);
+
+    if (durations.length >= sampleSize) {
+      break;
+    }
+  }
+
+  if (durations.length === 0) {
+    return null;
+  }
+
+  const totalDuration = durations.reduce((sum, duration) => sum + duration, 0);
+
+  return {
+    averageBuildMs: Math.round(totalDuration / durations.length),
+    sampleSize: durations.length,
+  };
+};
+
+export type DeployBuildStatsResult =
+  | { available: false }
+  | { available: true; averageBuildMs: number; sampleSize: number };
+
+export const fetchAverageBuildTime = async (options: {
+  projectId: string;
+  sampleSize?: number;
+}): Promise<DeployBuildStatsResult> => {
+  const token = getVercelApiToken();
+
+  if (!token) {
+    return { available: false };
+  }
+
+  const deployments = await listProjectDeployments(options.projectId, token);
+
+  if (!deployments) {
+    return { available: false };
+  }
+
+  const averageBuild = calculateAverageBuildTimeMs(
+    deployments,
+    options.sampleSize,
+  );
+
+  if (!averageBuild) {
+    return { available: false };
+  }
+
+  return {
+    available: true,
+    averageBuildMs: averageBuild.averageBuildMs,
+    sampleSize: averageBuild.sampleSize,
   };
 };
 `;
@@ -642,6 +878,8 @@ export const fetchDeploymentStatus = async (options: {
 export const getVercelDeploymentStatusSpec = (): string => {
   return `import { afterAll, beforeEach, describe, expect, it } from "@jest/globals";
 import {
+  calculateAverageBuildTimeMs,
+  deploymentBuildDurationMs,
   findActiveDeployment,
   findMatchingDeployment,
   mapVercelReadyState,
@@ -701,6 +939,53 @@ describe("vercelDeploymentStatus", () => {
         deployments[0],
       );
     });
+
+    it("picks the newest matching deployment", () => {
+      const deployments = [
+        {
+          createdAt: 1_000,
+          meta: { deployHookId: "hook-b" },
+          readyState: "READY",
+        },
+        {
+          createdAt: 2_000,
+          meta: { deployHookId: "hook-b" },
+          readyState: "BUILDING",
+        },
+      ];
+
+      expect(findMatchingDeployment(deployments, "hook-b", 1_500)).toEqual(
+        deployments[1],
+      );
+    });
+
+    it("falls back to the newest git-deploy-hook deployment in the window", () => {
+      const deployments = [
+        {
+          createdAt: 2_000,
+          readyState: "BUILDING",
+          source: "git-deploy-hook",
+        },
+      ];
+
+      expect(
+        findMatchingDeployment(deployments, "hook-b", 2_100, 2_000),
+      ).toEqual(deployments[0]);
+    });
+
+    it("uses created when createdAt is missing", () => {
+      const deployments = [
+        {
+          created: 2_000,
+          meta: { deployHookId: "hook-b" },
+          state: "BUILDING",
+        },
+      ];
+
+      expect(findMatchingDeployment(deployments, "hook-b", 1_950)).toEqual(
+        deployments[0],
+      );
+    });
   });
 
   describe("findActiveDeployment", () => {
@@ -723,6 +1008,65 @@ describe("vercelDeploymentStatus", () => {
       );
     });
   });
+
+  describe("calculateAverageBuildTimeMs", () => {
+    it("averages build durations from the last five ready project deployments", () => {
+      const deployments = [
+        {
+          buildingAt: 1_000,
+          createdAt: 1_000,
+          meta: { deployHookId: "hook-b" },
+          ready: 70_000,
+          readyState: "READY",
+        },
+        {
+          buildingAt: 100_000,
+          createdAt: 100_000,
+          meta: { deployHookId: "hook-b" },
+          ready: 130_000,
+          readyState: "READY",
+        },
+        {
+          buildingAt: 200_000,
+          createdAt: 200_000,
+          meta: { deployHookId: "hook-b" },
+          ready: 260_000,
+          readyState: "READY",
+        },
+        {
+          buildingAt: 300_000,
+          createdAt: 300_000,
+          meta: { deployHookId: "hook-a" },
+          ready: 900_000,
+          readyState: "READY",
+        },
+        {
+          buildingAt: 400_000,
+          createdAt: 400_000,
+          meta: { deployHookId: "hook-b" },
+          readyState: "BUILDING",
+        },
+      ];
+
+      expect(deploymentBuildDurationMs(deployments[0])).toBe(69_000);
+      expect(calculateAverageBuildTimeMs(deployments)).toEqual({
+        averageBuildMs: 189_750,
+        sampleSize: 4,
+      });
+    });
+
+    it("returns null when no ready builds are available", () => {
+      expect(
+        calculateAverageBuildTimeMs([
+          {
+            createdAt: 1_000,
+            meta: { deployHookId: "hook-b" },
+            readyState: "BUILDING",
+          },
+        ]),
+      ).toBeNull();
+    });
+  });
 });
 `;
 };
@@ -735,6 +1079,8 @@ export const deployQueryKeys = {
   active: (target: DeployTarget, accessToken?: string) =>
     [...deployQueryKeys.all, "active", target, accessToken ?? ""] as const,
   all: ["deploy"] as const,
+  buildStats: (accessToken?: string) =>
+    [...deployQueryKeys.all, "build-stats", accessToken ?? ""] as const,
   status: (target: DeployTarget, progress: StoredDeployProgress | null) =>
     progress
       ? ([
@@ -769,11 +1115,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useCallback,
   useEffect,
+  useEffectEvent,
   useLayoutEffect,
   useRef,
   useState,
 } from "react";
-import { toast } from "sonner";
 import { ApiError } from "src/api/helpers";
 import { api } from "src/api/urls";
 import { useTriggerDeployMutation } from "src/hooks/mutations/useTriggerDeploy.mutation";
@@ -789,6 +1135,7 @@ import {
   writeDeployProgress,
 } from "src/lib/deployProgressStorage";
 import type { DeployTarget } from "src/lib/refreshContentAccess";
+import { appToast } from "src/lib/toast/appToast";
 import type { DeployMonitorStatus } from "src/lib/vercelDeploymentStatus";
 
 const POLL_INTERVAL_MS = 5_000;
@@ -806,18 +1153,12 @@ interface UseDeployMonitorOptions {
 
 const deployToastId = (target: DeployTarget): string => \`deploy-\${target}\`;
 
-const deployToastHandlers = {
-  error: toast.error,
-  success: toast.success,
-  warning: toast.warning,
-} as const;
-
 const showDeployToast = (
   target: DeployTarget,
   message: string,
-  type: keyof typeof deployToastHandlers,
+  type: "error" | "success" | "warning",
 ) => {
-  deployToastHandlers[type](message, { id: deployToastId(target) });
+  appToast[type](message, { id: deployToastId(target) });
 };
 
 export const useDeployMonitor = ({
@@ -830,6 +1171,7 @@ export const useDeployMonitor = ({
   );
   const terminalNotificationRef = useRef<string | null>(null);
   const pendingStartedAtRef = useRef<number | null>(null);
+  const unmonitoredStartedAtRef = useRef<number | null>(null);
   const progressRef = useRef<StoredDeployProgress | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [displayStatus, setDisplayStatus] =
@@ -848,6 +1190,23 @@ export const useDeployMonitor = ({
     });
   }, [queryClient, target]);
 
+  const releaseUnmonitoredDeploy = useCallback(
+    (startedAt: number) => {
+      unmonitoredStartedAtRef.current = startedAt;
+      clearProgress();
+
+      if (terminalNotificationRef.current !== "unmonitored") {
+        terminalNotificationRef.current = "unmonitored";
+        showDeployToast(
+          target,
+          "Deploy triggered — live status unavailable. Check the Vercel dashboard.",
+          "warning",
+        );
+      }
+    },
+    [clearProgress, target],
+  );
+
   const saveProgress = useCallback((nextProgress: StoredDeployProgress) => {
     setProgress(nextProgress);
     writeDeployProgress(nextProgress);
@@ -865,22 +1224,6 @@ export const useDeployMonitor = ({
     staleTime: 0,
   });
 
-  useEffect(() => {
-    const activeDeploy = activeDeployQuery.data;
-
-    if (!activeDeploy?.active || progress) {
-      return;
-    }
-
-    saveProgress({
-      createdAt: activeDeploy.createdAt,
-      deployHookId: activeDeploy.deployHookId,
-      projectId: activeDeploy.projectId,
-      startedAt: activeDeploy.createdAt,
-      target,
-    });
-  }, [activeDeployQuery.data, progress, saveProgress, target]);
-
   const deployStatusQuery = useQuery({
     enabled: progress !== null,
     queryFn: () => {
@@ -891,6 +1234,7 @@ export const useDeployMonitor = ({
       return api.deploy.status({
         createdAt: progress.startedAt,
         deployHookId: progress.deployHookId,
+        jobCreatedAt: progress.createdAt,
         projectId: progress.projectId,
         target,
         token: accessToken,
@@ -920,11 +1264,31 @@ export const useDeployMonitor = ({
 
       return POLL_INTERVAL_MS;
     },
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false,
     staleTime: 0,
   });
 
+  const syncActiveDeployProgress = useEffectEvent(() => {
+    const activeDeploy = activeDeployQuery.data;
+
+    if (!activeDeploy?.active || progress) {
+      return;
+    }
+
+    saveProgress({
+      createdAt: activeDeploy.createdAt,
+      deployHookId: activeDeploy.deployHookId,
+      projectId: activeDeploy.projectId,
+      startedAt: activeDeploy.createdAt,
+      target,
+    });
+  });
+
   useEffect(() => {
+    syncActiveDeployProgress();
+  }, [activeDeployQuery.data, progress]);
+
+  const updateDisplayStatusFromPoll = useEffectEvent(() => {
     const polledStatus = deployStatusQuery.data?.status;
 
     if (!progress || polledStatus === undefined) {
@@ -932,9 +1296,13 @@ export const useDeployMonitor = ({
     }
 
     setDisplayStatus((current) => furthestDeployStatus(current, polledStatus));
-  }, [deployStatusQuery.data?.status, progress]);
+  });
 
   useEffect(() => {
+    updateDisplayStatusFromPoll();
+  }, [deployStatusQuery.data?.status, progress]);
+
+  const evaluateTerminalDeployStatus = useEffectEvent(() => {
     if (!progress) {
       return;
     }
@@ -952,6 +1320,16 @@ export const useDeployMonitor = ({
         );
       }
 
+      return;
+    }
+
+    if (
+      deployStatusQuery.isSuccess &&
+      statusPayload?.monitoring === false &&
+      terminalNotificationRef.current !== "unmonitored" &&
+      terminalNotificationRef.current !== "estimated"
+    ) {
+      releaseUnmonitoredDeploy(progress.startedAt);
       return;
     }
 
@@ -985,26 +1363,32 @@ export const useDeployMonitor = ({
 
     if (
       elapsedMs >= DEPLOY_ESTIMATED_MS &&
-      (!deployStatusQuery.isSuccess ||
-        !statusPayload?.monitoring ||
-        statusPayload.status === "unknown") &&
+      deployStatusQuery.isSuccess &&
+      statusPayload?.monitoring &&
+      statusPayload.status === "pending" &&
       terminalNotificationRef.current !== "estimated"
     ) {
       terminalNotificationRef.current = "estimated";
       clearProgress();
       showDeployToast(target, "Refresh may be complete", "success");
     }
+  });
+
+  useEffect(() => {
+    evaluateTerminalDeployStatus();
   }, [
-    clearProgress,
     deployStatusQuery.data,
     deployStatusQuery.dataUpdatedAt,
     deployStatusQuery.isSuccess,
     elapsedMs,
     progress,
-    target,
   ]);
 
-  const startedAt = progress?.startedAt ?? pendingStartedAtRef.current ?? null;
+  const startedAt =
+    progress?.startedAt ??
+    pendingStartedAtRef.current ??
+    unmonitoredStartedAtRef.current ??
+    null;
 
   useEffect(() => {
     if (startedAt === null) {
@@ -1025,12 +1409,33 @@ export const useDeployMonitor = ({
     };
   }, [startedAt]);
 
+  const evaluateUnmonitoredElapsed = useEffectEvent(() => {
+    if (unmonitoredStartedAtRef.current === null) {
+      return;
+    }
+
+    if (
+      elapsedMs >= DEPLOY_ESTIMATED_MS &&
+      terminalNotificationRef.current === "unmonitored"
+    ) {
+      terminalNotificationRef.current = "estimated";
+      unmonitoredStartedAtRef.current = null;
+      showDeployToast(target, "Refresh may be complete", "success");
+    }
+  });
+
+  useEffect(() => {
+    evaluateUnmonitoredElapsed();
+  }, [elapsedMs]);
+
   const triggerDeploy = useCallback(() => {
     if (progress || triggerDeployMutation.isPending) {
       return;
     }
 
     pendingStartedAtRef.current = Date.now();
+    unmonitoredStartedAtRef.current = null;
+    terminalNotificationRef.current = null;
     setDisplayStatus("pending");
 
     triggerDeployMutation.mutate(
@@ -1068,6 +1473,7 @@ export const useDeployMonitor = ({
 
 export const getDeployPageComponent = (a: ProjectAnswers): string => {
   return `import { DeployButton } from "src/components/DeployButton/DeployButton.component";
+import { DeployBuildStats } from "src/components/DeployPage/DeployBuildStats.component";
 import styles from "src/components/DeployPage/DeployPage.module.css";
 
 interface DeployPageProps {
@@ -1084,17 +1490,20 @@ export const DeployPage = ({ accessToken }: DeployPageProps) => {
           updates content—no code changes, so you can use without fear!
         </p>
       </header>
-      <div className={styles.buttonGroup}>
-        <DeployButton
-          accessToken={accessToken}
-          label="Refresh ${stagingHost(a)}"
-          target="staging"
-        />
-        <DeployButton
-          accessToken={accessToken}
-          label="Refresh ${prodHost(a)}"
-          target="production"
-        />
+      <div className={styles.deployActions}>
+        <div className={styles.buttonGroup}>
+          <DeployButton
+            accessToken={accessToken}
+            label="Refresh ${stagingHost(a)}"
+            target="staging"
+          />
+          <DeployButton
+            accessToken={accessToken}
+            label="Refresh ${prodHost(a)}"
+            target="production"
+          />
+        </div>
+        <DeployBuildStats accessToken={accessToken} />
       </div>
     </div>
   );
@@ -1138,12 +1547,39 @@ export const getDeployPageCSS = (): string => {
   color: var(--color-text);
 }
 
+.deployActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+  width: 100%;
+}
+
 .buttonGroup {
   display: flex;
   flex-flow: row wrap;
   gap: 1rem;
   align-items: center;
   justify-content: center;
+}
+
+.buildStats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: center;
+  width: 100%;
+  text-align: center;
+}
+
+.buildStatsLine {
+  padding-top: 0.5rem;
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--color-text);
+  opacity: 0.75;
 }
 `;
 };
@@ -1418,7 +1854,7 @@ describe("DeployButton", () => {
     });
   });
 
-  it("keeps in-progress state when monitoring is unavailable", async () => {
+  it("re-enables the button when live monitoring is unavailable after trigger", async () => {
     mockFetch.mockImplementation(async (input) => {
       const url = String(input);
 
@@ -1457,16 +1893,14 @@ describe("DeployButton", () => {
     await user.click(deployButton);
 
     await waitFor(() => {
+      expect(screen.getByRole("button", { name: /starting/i })).toBeDisabled();
+    });
+
+    await waitFor(() => {
       expect(
-        screen.getByRole("button", { name: /in progress/i }),
-      ).toBeDisabled();
+        screen.getByRole("button", { name: /deploy test/i }),
+      ).not.toBeDisabled();
     });
-
-    await act(async () => {
-      jest.advanceTimersByTime(5_000);
-    });
-
-    expect(screen.getByRole("button", { name: /in progress/i })).toBeDisabled();
   });
 
   it("clears in-progress state when deployment becomes ready", async () => {
@@ -1732,12 +2166,21 @@ const parseSince = (value: string | null): number | null => {
   return since;
 };
 
+const parseOptionalTimestamp = (value: string | null): number | undefined => {
+  const parsed = parseSince(value);
+
+  return parsed ?? undefined;
+};
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get("token") ?? undefined;
     const target = parseDeployTarget(searchParams.get("target"));
     const since = parseSince(searchParams.get("since"));
+    const jobCreatedAt = parseOptionalTimestamp(
+      searchParams.get("jobCreatedAt"),
+    );
     const deployHookId = searchParams.get("deployHookId")?.trim();
     const projectId = searchParams.get("projectId")?.trim();
 
@@ -1773,6 +2216,7 @@ export async function GET(request: NextRequest) {
 
     const result = await fetchDeploymentStatus({
       deployHookId: hookMetadata.deployHookId,
+      jobCreatedAt,
       projectId: hookMetadata.projectId,
       since,
     });
@@ -1789,6 +2233,106 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+`;
+};
+
+export const getDeployBuildStatsRoute = (): string => {
+  return `import { type NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
+
+import {
+  isRefreshContentAuthorized,
+  resolveDeployProjectId,
+} from "src/lib/refreshContentAccess";
+import { fetchAverageBuildTime } from "src/lib/vercelDeploymentStatus";
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const token = searchParams.get("token") ?? undefined;
+    if (!isRefreshContentAuthorized(token)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const projectId = resolveDeployProjectId();
+
+    if (!projectId) {
+      return NextResponse.json(
+        { error: "Deploy hook not configured" },
+        { status: 503 },
+      );
+    }
+
+    const result = await fetchAverageBuildTime({ projectId });
+
+    return NextResponse.json(result, {
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "Failed to fetch deploy build stats" },
+      { status: 500 },
+    );
+  }
+}
+`;
+};
+
+export const getDeployBuildStatsComponent = (): string => {
+  return `"use client";
+
+import styles from "src/components/DeployPage/DeployPage.module.css";
+import { useDeployBuildStats } from "src/hooks/queries/useDeployBuildStats.query";
+import { formatDeployElapsed } from "src/lib/deployProgressStorage";
+
+interface DeployBuildStatsProps {
+  accessToken?: string;
+}
+
+export const DeployBuildStats = ({ accessToken }: DeployBuildStatsProps) => {
+  const { data: stats } = useDeployBuildStats({ accessToken });
+
+  if (!stats?.available) {
+    return null;
+  }
+
+  return (
+    <div className={styles.buildStats}>
+      <p className={styles.buildStatsLine}>
+        Avg build {formatDeployElapsed(stats.averageBuildMs)} (last{" "}
+        {stats.sampleSize})
+      </p>
+    </div>
+  );
+};
+
+export default DeployBuildStats;
+`;
+};
+
+export const getUseDeployBuildStatsQuery = (): string => {
+  return `import { useQuery } from "@tanstack/react-query";
+import { api } from "src/api/urls";
+import { deployQueryKeys } from "src/hooks/queries/deployQueryKeys";
+
+const BUILD_STATS_STALE_MS = 5 * 60 * 1_000;
+
+interface UseDeployBuildStatsOptions {
+  accessToken?: string;
+}
+
+export const useDeployBuildStats = ({
+  accessToken,
+}: UseDeployBuildStatsOptions) => {
+  return useQuery({
+    queryFn: () => api.deploy.buildStats({ token: accessToken }),
+    queryKey: deployQueryKeys.buildStats(accessToken),
+    staleTime: BUILD_STATS_STALE_MS,
+  });
+};
 `;
 };
 
