@@ -295,7 +295,9 @@ export const getContentfulGetPages = (): string => {
  * \`pnpm types:contentful\` generates models under \`src/contentful/types/\`.
  */
 
-export const fetchPages = async (_opts: { preview: boolean }) => {
+export const fetchPages = async (_opts: {
+  preview: boolean;
+}): Promise<ParsedPage[]> => {
   return [];
 };
 
