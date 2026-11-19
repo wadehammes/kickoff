@@ -32,6 +32,7 @@ import {
   getButtonCSS,
   getCIWorkflow,
   getClaude,
+  getClaudeFixWorkflow,
   getClaudeHookScriptNames,
   getClaudeHooksLib,
   getClaudeHooksReadme,
@@ -187,6 +188,7 @@ import {
   getVerifyVercelRelease,
   getVerifyVercelReleaseTestMjs,
   getWatchReleaseSh,
+  getWorkingWithClaudeGuide,
   QUALITY_GATE_HOOK_SCRIPT_NAME,
 } from "./templates/index.js";
 import type { ProjectAnswers } from "./types.js";
@@ -347,7 +349,9 @@ export const generateProject = async (
       ".github/workflows/claude-review.yml",
       getClaudeReviewWorkflow(),
     );
+    await write(".github/workflows/claude-fix.yml", getClaudeFixWorkflow());
     await write(".github/workflows/auto-merge.yml", getAutoMergeWorkflow());
+    await write("docs/working-with-claude.md", getWorkingWithClaudeGuide(a));
     await write(".github/workflows/preview-e2e.yml", getPreviewE2eWorkflow());
     await write(
       ".github/workflows/production-smoke.yml",

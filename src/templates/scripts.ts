@@ -686,7 +686,7 @@ handbook_chapters_for_path() {
     src/components/* | src/ui/*) echo "components.md" ;;
     src/tests/factories/*) echo "factories.md" ;;
     src/tests/* | *.spec.ts | *.spec.tsx | *.test.ts | *.test.tsx) echo "conventions.md" ;;
-    src/utils/* | src/lib/* | src/interfaces/* | src/types/* | src/copy/*) echo "source-layout.md" ;;
+    src/utils/* | src/lib/* | src/interfaces/* | src/types/*) echo "source-layout.md" ;;
     src/hooks/* | src/api/*) echo "patterns.md" ;;
     *.css) echo "conventions.md" ;;
     .jest/* | jest.config.* | next.config.* | vercel.json) echo "platform.md" ;;
@@ -696,7 +696,7 @@ handbook_chapters_for_path() {
 
 changed="$(git diff --name-only "\${BASE_REF}"...HEAD 2>/dev/null || true)"
 
-code_changed="$(printf '%s\\n' "$changed" | grep -E '^src/.*\\.(ts|tsx|css)$|^\\.jest/|^jest\\.config\\.(ts|js|mjs)$|^next\\.config\\.(ts|js|mjs)$|^vercel\\.json$' || true)"
+code_changed="$(printf '%s\\n' "$changed" | grep -E '^src/.*\\.(ts|tsx|css)$|^\\.jest/|^jest\\.config\\.(ts|js|mjs)$|^next\\.config\\.(ts|js|mjs)$|^vercel\\.json$' | grep -v '^src/copy/' || true)"
 docs_changed="$(printf '%s\\n' "$changed" | grep -E '^docs/handbook/.*\\.md$' || true)"
 
 if [ -z "$code_changed" ]; then
