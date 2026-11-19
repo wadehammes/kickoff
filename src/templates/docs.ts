@@ -87,7 +87,7 @@ Attach images directly when you have them, and say what each image shows.
 2. Claude makes the change and sends you a **preview link**, a private copy of the site with your change. If the session shows a button to create a pull request, click it; that hands the change to the automated checks.
 3. Open the preview and check the page Claude points you to.
 4. Automated checks run (code quality, accessibility, a review by a second Claude, and a test of the preview). If one fails, Claude fixes it automatically.
-5. When everything passes, the change goes **live on ${a.prodUrl}** automatically, usually within a few minutes.
+5. When everything passes, the change goes to **${a.stagingUrl}** for one more check, then **live on ${a.prodUrl}** automatically, usually within a few minutes. If the staging check fails, the live site stays as it was.
 
 If the preview looks wrong, just reply with what to change. Nothing is live until the checks pass.
 
@@ -183,7 +183,7 @@ If you joined an existing project, skip ahead to **[Getting started](#getting-st
 
 1. **GitHub repository** — Create the repo your team will use for this site.
 ${a.includeClaudePipeline ? getPipelineBranchingPrereqs() : getStagingBranchingPrereqs()}
-${prereqBlock}${a.includeClaudePipeline ? `\n${a.includeContentful ? 9 : 8}. **Vercel pipeline settings** — In the Vercel project: enable **Deployment Checks** for production (native \`lint\` and \`typecheck\`, plus the GitHub **Lint/Test** job) and restrict **Force Promote**; set **Deployment Protection** to Standard Protection with Vercel Authentication and create a **Protection Bypass for Automation** secret; turn on the team policy **Separate Production Secret Values** and mark credentials **Sensitive**. See **[docs/handbook/platform.md](docs/handbook/platform.md)** — **Hands-off Claude pipeline**.` : ""}
+${prereqBlock}${a.includeClaudePipeline ? `\n${a.includeContentful ? 9 : 8}. **Vercel pipeline settings** — In the Vercel project: enable **Deployment Checks** for production (native \`lint\` and \`typecheck\`, plus the GitHub **Lint/Test** and **Staging Smoke** checks) and restrict **Force Promote**; add ${a.stagingUrl} as a domain (Staging Smoke points it at each new build); set **Deployment Protection** to Standard Protection with Vercel Authentication and create a **Protection Bypass for Automation** secret; turn on the team policy **Separate Production Secret Values** and mark credentials **Sensitive**. See **[docs/handbook/platform.md](docs/handbook/platform.md)** — **Hands-off Claude pipeline**.` : ""}
 
 ## Getting started
 
@@ -262,7 +262,7 @@ const getPipelineBranchingPrereqs = (): string => {
   return `2. **\`main\` as default branch** — This project is trunk-based: every change is a PR into \`main\`, and each merge deploys to production. Turn on **Allow auto-merge** and squash merging (\`Settings\` → \`General\`).
 3. **Ruleset on \`main\`** — \`Settings\` → \`Rules\` → \`Rulesets\`: require a pull request with **0 required approvals** and **Require review from Code Owners**; require status checks **Lint/Test**, **Claude Review Gate**, **Preview E2E**, and the **Vercel** deployment status; block force pushes; require linear history; add **no bypass actors** (bots included). Replace \`@your-org/web-platform\` in \`.github/CODEOWNERS\` with the owning team.
 4. **Claude GitHub App and secrets** — Install the Claude GitHub App (\`/install-github-app\` in Claude Code). Add repository secrets **\`ANTHROPIC_API_KEY\`**, **\`VERCEL_AUTOMATION_BYPASS_SECRET\`** (Vercel → Deployment Protection → Protection Bypass for Automation), and **\`VERCEL_TOKEN\`**, and repository variables **\`VERCEL_PROJECT_ID\`**, **\`VERCEL_TEAM_ID\`**, and **\`VERCEL_TEAM_SLUG\`** (used by the production smoke rollback). Create a **\`needs-engineer\`** label (Claude Fix adds it when it gives up).
-5. **Scaffold with kickoff and push** — From your machine, run the **kickoff** CLI that generated this scaffold, then commit and push the tree to **\`main\`** before enabling the ruleset. \`repository_dispatch\` workflows (Preview E2E, Production Smoke) only run once they exist on the default branch.`;
+5. **Scaffold with kickoff and push** — From your machine, run the **kickoff** CLI that generated this scaffold, then commit and push the tree to **\`main\`** before enabling the ruleset. \`repository_dispatch\` workflows (Preview E2E, Staging Smoke, Production Smoke) only run once they exist on the default branch.`;
 };
 
 const getStagingDeploymentReadme = (a: ProjectAnswers): string => {
@@ -281,7 +281,8 @@ Runs the Vercel membership check and pushes the tag. The release workflow then p
 
 const getPipelineDeploymentReadme = (a: ProjectAnswers): string => {
   return `- PRs to \`main\` → preview deployments; **Preview E2E** runs Playwright against each one
-- Merge to \`main\` → production deployment at ${a.prodUrl}, held by Vercel **Deployment Checks** until the checks pass
+- Merge to \`main\` → production build, held by Vercel **Deployment Checks**
+- **Staging Smoke** points ${a.stagingUrl} at that build and runs the \`@smoke\` tests there; ${a.prodUrl} only switches to the build once it passes
 - **Production Smoke** runs \`@smoke\` tests after promotion and rolls back automatically if they fail
 
 ## Hands-off Claude pipeline
@@ -1181,7 +1182,8 @@ Claude (claude.ai/code in a browser or the Claude mobile app, or \`@claude\` on 
 | PR checks | **Lint/Test**; **Claude Review Gate** (fails on blocking findings); **Preview E2E** (Playwright + axe against the Vercel preview); Vercel deployment status | \`ci.yml\`, \`claude-review.yml\`, \`preview-e2e.yml\` |
 | Failed checks | **Claude Fix** reads the failed **Lint/Test** or **Claude Review Gate** run, commits a fix, and pushes it (max 2 attempts per PR); then comments that an engineer is needed and adds the \`needs-engineer\` label | \`claude-fix.yml\` |
 | Merge | Auto-merge (squash) for \`claude/*\` PRs; paths in \`.github/CODEOWNERS\` also need a code owner approval | \`auto-merge.yml\`, \`.github/CODEOWNERS\` |
-| Production gate | Vercel **Deployment Checks** hold the production domain until \`lint\`, \`typecheck\`, and **Lint/Test** pass on \`main\` | Vercel project settings |
+| Staging | **Staging Smoke** points ${a.stagingUrl} at each new production build and runs the \`@smoke\` tests there; on failure it opens a plain-language GitHub issue and the build never reaches production | \`staging-smoke.yml\` |
+| Production gate | Vercel **Deployment Checks** hold the production domain until \`lint\`, \`typecheck\`, **Lint/Test**, and **Staging Smoke** pass | Vercel project settings |
 | After deploy | **Production Smoke** runs \`@smoke\` tests against ${a.prodUrl}; on failure it rolls back to the previous production deployment and opens a plain-language GitHub issue | \`production-smoke.yml\` |
 
 ### Content and images
@@ -1196,7 +1198,7 @@ Requesters are usually not engineers (see **[working-with-claude.md](../working-
 
 - **GitHub ruleset on \`main\`** — PR required, **0 approvals** + **Require review from Code Owners**, required checks **Lint/Test**, **Claude Review Gate**, **Preview E2E**, and Vercel; no force pushes; linear history; no bypass actors. **Allow auto-merge** on.
 - **GitHub secrets** — \`ANTHROPIC_API_KEY\`, \`VERCEL_AUTOMATION_BYPASS_SECRET\`, \`VERCEL_TOKEN\`. **Variables** — \`VERCEL_PROJECT_ID\`, \`VERCEL_TEAM_ID\`, \`VERCEL_TEAM_SLUG\`. **Label** — create \`needs-engineer\` (used by Claude Fix).
-- **Vercel** — Deployment Checks on production (restrict **Force Promote**); Standard Deployment Protection + Protection Bypass for Automation; team policy **Separate Production Secret Values** so previews of automated PRs never hold production secrets.
+- **Vercel** — Deployment Checks on production, including **Staging Smoke** (restrict **Force Promote**); ${a.stagingUrl} added as a domain on the project; Standard Deployment Protection + Protection Bypass for Automation; team policy **Separate Production Secret Values** so previews of automated PRs never hold production secrets.
 
 ### After a rollback
 

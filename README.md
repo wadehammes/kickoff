@@ -33,7 +33,7 @@ Optional add-ons selected during prompts:
 - **Resend** — transactional email
 - **reCAPTCHA** — react-google-recaptcha
 - **Agent hooks** — Cursor (`.cursor/`) or Claude Code (`.claude/`) handbook-enforcement hooks
-- **Hands-off Claude pipeline** (Claude Code only) — trunk-based flow where Claude opens PRs and machine checks replace human review: `@claude` workflow, Claude review gate (fails on blocking findings), auto-merge for `claude/*` PRs, CODEOWNERS on sensitive paths, Playwright + axe against Vercel previews, production smoke test with automatic rollback (plus a plain-language GitHub issue), Claude Fix (retries failing checks twice, then asks an engineer), a quality-gate Stop hook, and guidance for non-technical requesters (`CLAUDE.md` rules, `src/copy/` + `public/images/` content conventions, `docs/working-with-claude.md`). Replaces the `staging` / `make release` flow.
+- **Hands-off Claude pipeline** (Claude Code only) — trunk-based flow where Claude opens PRs and machine checks replace human review: `@claude` workflow, Claude review gate (fails on blocking findings), auto-merge for `claude/*` PRs, CODEOWNERS on sensitive paths, Playwright + axe against Vercel previews, a staging smoke test on `stagingUrl` that gates production via Vercel Deployment Checks, production smoke test with automatic rollback (plus a plain-language GitHub issue), Claude Fix (retries failing checks twice, then asks an engineer), a quality-gate Stop hook, and guidance for non-technical requesters (`CLAUDE.md` rules, `src/copy/` + `public/images/` content conventions, `docs/working-with-claude.md`). Replaces the `staging` / `make release` flow.
 
 ## Requirements
 
@@ -323,7 +323,7 @@ pnpm dev
 
 Generated projects also include **either** `.cursor/` (hooks + rules; Cursor adds `session-stop-checks.sh`, `_stop_checks.sh`, `enforce-handbook-edit.sh`, and related scripts) **or** `.claude/` (settings + hooks), depending on `agentTooling`. TypeScript is pinned to **^7.0.2** in generated `package.json`; **`pnpm handbook:check`** runs handbook drift detection locally. `pnpm-workspace.yaml` sets `minimumReleaseAge: 10080`, so installs only resolve package versions published at least 7 days ago.
 
-With `includeClaudePipeline`, the project also gets `.github/workflows/{claude,claude-review,claude-fix,auto-merge,preview-e2e,production-smoke}.yml`, `docs/working-with-claude.md`, `.github/CODEOWNERS`, `.github/pull_request_template.md`, `.claude/hooks/quality-gate.sh` plus `permissions` in `.claude/settings.json`, `playwright.config.ts`, and `e2e/smoke.spec.ts`; `release.yml`, the Makefile `release` target, and `scripts/verify-vercel-*` are omitted.
+With `includeClaudePipeline`, the project also gets `.github/workflows/{claude,claude-review,claude-fix,auto-merge,preview-e2e,staging-smoke,production-smoke}.yml`, `docs/working-with-claude.md`, `.github/CODEOWNERS`, `.github/pull_request_template.md`, `.claude/hooks/quality-gate.sh` plus `permissions` in `.claude/settings.json`, `playwright.config.ts`, and `e2e/smoke.spec.ts`; `release.yml`, the Makefile `release` target, and `scripts/verify-vercel-*` are omitted.
 
 Omit Contentful-specific paths (`src/contentful/`, draft API routes) when `includeContentful` is false. Omit `src/i18n/` and `src/app/[locale]/` when i18n is off.
 
