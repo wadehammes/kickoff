@@ -486,6 +486,91 @@ ${NODE_SETUP_STEPS}      - name: Install Playwright browser
 };
 
 // ---------------------------------------------------------------------------
+// .github/workflows/next-upgrade.yml
+// ---------------------------------------------------------------------------
+
+export const getNextUpgradeWorkflow = (): string => {
+  return `name: Next.js Upgrade
+on:
+  schedule:
+    - cron: "0 14 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+  actions: read
+
+concurrency:
+  group: next-upgrade
+  cancel-in-progress: false
+
+jobs:
+  upgrade:
+    name: Next.js Upgrade
+    runs-on: ubuntu-latest
+    env:
+      BRANCH: claude/next-upgrade-\${{ github.run_number }}
+    steps:
+      - name: Checkout
+        uses: ${CHECKOUT_ACTION}
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Configure git author
+        run: |
+          git config user.name "claude[bot]"
+          git config user.email "claude[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+${NODE_SETUP_STEPS}      - name: Run the official Next.js upgrade codemod
+        run: pnpm next:upgrade
+      - name: Refresh the Next.js docs index in CLAUDE.md
+        run: pnpm next:agents-md
+      - name: Check for changes
+        id: diff
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git add -A
+            git commit -m "Upgrade Next.js with the official codemod"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Fix anything the upgrade broke
+        id: claude
+        if: steps.diff.outputs.changed == 'true'
+        uses: ${CLAUDE_CODE_ACTION}
+        with:
+          anthropic_api_key: \${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            The official Next.js upgrade codemod (@next/codemod upgrade) just ran on this branch and was committed.
+            Run pnpm tsc:ci, pnpm lint:ci, pnpm lint:css, pnpm test:ci, pnpm knip:ci and pnpm build.
+            Fix failures caused by the upgrade. Use the Next.js docs indexed in CLAUDE.md (bundled under node_modules/next/dist/docs) for migration guidance, and follow the handbook.
+            Commit your fixes with git commit. Do not push; the workflow pushes and opens the pull request.
+            Never weaken, skip, or delete tests, lint rules, or checks.
+            If a failure needs a decision only a person can make, leave it, commit what you have, and explain it in one plain-language sentence.
+          claude_args: |
+            --max-turns 80
+            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(pnpm:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git add:*),Bash(git commit:*)"
+      - name: Push and open the pull request
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          APP_TOKEN: \${{ steps.claude.outputs.github_token }}
+          GITHUB_TOKEN_FALLBACK: \${{ secrets.GITHUB_TOKEN }}
+        run: |
+          token="$APP_TOKEN"
+          if [ -z "$token" ]; then
+            echo "::warning::No GitHub App token from claude-code-action; using GITHUB_TOKEN, which does not trigger PR checks."
+            token="$GITHUB_TOKEN_FALLBACK"
+          fi
+          git push "https://x-access-token:\${token}@github.com/\${GITHUB_REPOSITORY}.git" "HEAD:\${BRANCH}"
+          body="$(printf 'Monthly Next.js upgrade made with the official codemod (@next/codemod upgrade), plus any fixes Claude made so the checks pass.\\n\\nThis changes package.json, so a code owner has to approve it before it merges. Check the Vercel preview before approving.')"
+          GH_TOKEN="$token" gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" --title "Upgrade Next.js (monthly codemod run)" --body "$body"
+`;
+};
+
+// ---------------------------------------------------------------------------
 // .github/workflows/staging-smoke.yml
 // ---------------------------------------------------------------------------
 

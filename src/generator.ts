@@ -141,6 +141,7 @@ import {
   getNavigationCSS,
   getNextConfig,
   getNextEnvDeclaration,
+  getNextUpgradeWorkflow,
   getNotFoundPageComponent,
   getNotFoundPageCSS,
   getNpmrc,
@@ -360,6 +361,7 @@ export const generateProject = async (
     await write(".github/workflows/auto-merge.yml", getAutoMergeWorkflow());
     await write("docs/working-with-claude.md", getWorkingWithClaudeGuide(a));
     await write(".github/workflows/preview-e2e.yml", getPreviewE2eWorkflow());
+    await write(".github/workflows/next-upgrade.yml", getNextUpgradeWorkflow());
     await write(
       ".github/workflows/staging-smoke.yml",
       getStagingSmokeWorkflow(a),
