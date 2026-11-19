@@ -61,6 +61,7 @@ Most requests come from people who are not engineers (recruiting, marketing, ope
 - **Copy and repeated items** — page text, cards, lists, people, steps, links, and apply/CTA URLs live in typed files under **\`src/copy/\`** (one file per page or shared block, e.g. \`src/copy/home.ts\`), exported \`as const\`. Components import and render them; they do not hard-code copy. Routine requests ("change the bonus to 12%", "add a team member", "update the apply link") should only touch \`src/copy/\` and \`public/images/\`.
 - **Images** — put them in **\`public/images/<section>/<kebab-name>.<ext>\`** (e.g. \`public/images/team/jane-doe.jpg\`), render with \`next/image\`, and always give meaningful \`alt\` text (a person's name, what the image shows). If you do not know what an image shows, ask. Keep files web-sized (under ~500 KB).
 - **New sections or layouts** are fine: build a component that reads from \`src/copy/\`, follow the handbook, and add a Playwright check in \`e2e/\` for anything a visitor sees.
+- **New pages**: add the path to \`STATIC_ROUTES\` in \`src/app/sitemap.ts\` in the same PR so search engines find it.
 `;
 };
 
@@ -210,7 +211,7 @@ pnpm dev
 |---|---|
 | \`pnpm dev\` | Start Next.js dev server on port ${a.devPort} |
 | \`pnpm dev:preview\` | ${devPreviewDesc} |
-| \`pnpm build\` | Production build + generate sitemap |
+| \`pnpm build\` | Production build (Next.js also serves \`/sitemap.xml\` from \`src/app/sitemap.ts\`) |
 | \`pnpm start\` | Start production server |
 | \`pnpm tsc:ci\` | TypeScript strict check |
 | \`pnpm lint\` | Run Biome linter |
@@ -327,7 +328,7 @@ export const getHandbookReadme = (a: ProjectAnswers): string => {
 5. **App patterns** — [patterns.md](patterns.md): App Router data loading, React Query, API routes, forms, SEO.
 6. **Operations & tooling** — [platform.md](platform.md): CI, env, and \`proxy.ts\`.
 7. **Analytics & tags** — [integrations.md](integrations.md): GA, data layer, third parties.
-8. **Sitemaps** — [distribution.md](distribution.md): sitemap generation and public output.
+8. **Sitemaps** — [distribution.md](distribution.md): \`src/app/sitemap.ts\` and robots.
 9. **Where things live** — [source-layout.md](source-layout.md): interfaces, \`src/utils\`, \`src/lib\`.`
     : `0. **Pattern choice** — [decisions.md](decisions.md) when you are unsure **X vs Y**.
 1. **Orientation** — [architecture.md](architecture.md): stack, folders, App Router.
@@ -336,7 +337,7 @@ export const getHandbookReadme = (a: ProjectAnswers): string => {
 4. **App patterns** — [patterns.md](patterns.md): App Router data loading, React Query, API routes, forms, SEO.
 5. **Operations & tooling** — [platform.md](platform.md): CI, env, and \`proxy.ts\`.
 6. **Analytics & tags** — [integrations.md](integrations.md): GA, data layer, third parties.
-7. **Sitemaps** — [distribution.md](distribution.md): sitemap generation and public output.
+7. **Sitemaps** — [distribution.md](distribution.md): \`src/app/sitemap.ts\` and robots.
 8. **Where things live** — [source-layout.md](source-layout.md): interfaces, \`src/utils\`, \`src/lib\`.`;
 
   const indexTable = a.includeContentful
@@ -347,7 +348,7 @@ export const getHandbookReadme = (a: ProjectAnswers): string => {
 | [patterns.md](patterns.md) | Server components, serialization, React Query, \`src/api\`, forms, layout, metadata, JSON-LD. |
 | [platform.md](platform.md) | GitHub CI, releases${a.includeClaudePipeline ? ", hands-off Claude pipeline, Playwright" : ""}, knip, \`pnpm\` scripts, \`next.config\` (env, redirects), draft mode APIs, \`src/proxy.ts\`. |
 | [integrations.md](integrations.md) | Google Analytics, data layer, related env. |
-| [distribution.md](distribution.md) | Sitemap generation and \`public/\` output. |
+| [distribution.md](distribution.md) | Sitemap (\`src/app/sitemap.ts\`) and robots. |
 | [source-layout.md](source-layout.md) | \`src/interfaces\`, \`src/utils\` map, \`src/lib\`. |
 | [llms.md](llms.md) | Task-to-chapter routing for tools; copy-paste blurb for non-Cursor agents. |`
     : `${agentIndexRows}| [architecture.md](architecture.md) | Tech stack, \`src/app\`, key config. Start here. |
@@ -356,7 +357,7 @@ export const getHandbookReadme = (a: ProjectAnswers): string => {
 | [patterns.md](patterns.md) | Server components, serialization, React Query, \`src/api\`, forms, layout, metadata, JSON-LD. |
 | [platform.md](platform.md) | GitHub CI, releases${a.includeClaudePipeline ? ", hands-off Claude pipeline, Playwright" : ""}, knip, \`pnpm\` scripts, \`next.config\` (env, redirects), \`src/proxy.ts\`. |
 | [integrations.md](integrations.md) | Google Analytics, data layer, related env. |
-| [distribution.md](distribution.md) | Sitemap generation and \`public/\` output. |
+| [distribution.md](distribution.md) | Sitemap (\`src/app/sitemap.ts\`) and robots. |
 | [source-layout.md](source-layout.md) | \`src/interfaces\`, \`src/utils\` map, \`src/lib\`. |
 | [llms.md](llms.md) | Task-to-chapter routing for tools; copy-paste blurb for non-Cursor agents. |`;
 
@@ -540,7 +541,7 @@ Custom hooks; mutations under \`src/hooks/mutations/\` use React Query and \`src
 
 ### \`src/lib/\`
 
-Server-oriented helpers: \`generateSitemap.ts\`, \`schema.ts\` (JSON-LD), \`refreshContentAccess.ts\`, \`deployProgressStorage.ts\`, \`vercelDeploymentStatus.ts\`. See [distribution.md](distribution.md).
+Server-oriented helpers: \`schema.ts\` (JSON-LD), \`refreshContentAccess.ts\`, \`deployProgressStorage.ts\`, \`vercelDeploymentStatus.ts\`. See [distribution.md](distribution.md).
 
 ### \`src/ui/\`
 
@@ -1093,7 +1094,7 @@ Run **\`pnpm lint:all\`** locally for the same checks as a full pre-push pass (\
 | Script | Purpose |
 |--------|---------|
 | \`pnpm dev\` | Next dev server on port ${port}. |
-| \`pnpm build\` / \`pnpm start\` | Production build and serve (\`build\` runs \`make sitemap\`). |
+| \`pnpm build\` / \`pnpm start\` | Production build and serve. |
 | \`pnpm lint\` / \`pnpm lint:fix\` | Biome (same family as \`lint:ci\`). |
 | \`pnpm lint:check\` | Biome on changed files since \`origin/${base}\`. |
 | \`pnpm lint:css\` / \`pnpm lint:css:fix\` | Stylelint. |
@@ -1277,17 +1278,19 @@ export const getHandbookDistribution = (a: ProjectAnswers): string => {
   const url = a.prodUrl;
   return `# Sitemaps and public output
 
-This chapter describes how **sitemap XML** is produced and written for crawlers.
+This chapter describes how the sitemap and robots rules are produced for crawlers.
 
 <!-- prodUrl: ${url} -->
 
-## XML sitemaps
+## Sitemap
 
-- **Helpers**: \`src/lib/generateSitemap.ts\` — \`generateSitemap\`, **\`outputSitemap(routes, filename)\`**, \`SitemapItem\` with \`route\` and \`modTime\`.
-- **Build**: After \`next build\`, **\`make sitemap\`** runs \`scripts/make_sitemap.js\`, which reads **\`.next/prerender-manifest.json\`** and writes **\`public/sitemap.xml\`** with the prerendered route set (see \`package.json\` \`build\` script).
-- **Discovery**: Root layout or robots links to the sitemap URL when deployed.
+The sitemap uses Next.js's built-in [sitemap file convention](https://nextjs.org/docs/app/api-reference/file-conventions/metadata/sitemap): **\`src/app/sitemap.ts\`** returns the entries and Next.js serves them at **\`/sitemap.xml\`**. There is no build script or file in \`public/\`.
 
-When you add **routes that must appear in search indexes**, confirm they show up in the prerender manifest or extend the sitemap pipeline accordingly.
+- **Routes**: \`STATIC_ROUTES\` lists pages that aren't generated from content.${a.includeContentful ? " Indexable Contentful pages (`enableIndexing`) are added from `fetchPages`, with their `updatedAt` as `lastModified`." : ""}${a.includeI18n ? " Each route gets an English and a Spanish URL, with `alternates.languages` linking them." : ""}
+- **URLs** use \`envUrl()\`, so staging builds list staging URLs (robots blocks indexing outside production anyway).
+- **Discovery**: \`src/app/robots.ts\` points crawlers at \`${url}/sitemap.xml\`, and the root layout links it with \`<link rel="sitemap">\`.
+
+**When you add a page** that isn't generated from content, add its path to \`STATIC_ROUTES\` in the same PR so search engines find it.
 
 ## Robots and metadata
 
@@ -1333,7 +1336,6 @@ Specs: \`*.spec.ts\` next to each module (e.g. \`environment.helpers.spec.ts\`).
 
 Server- and shared-oriented modules:
 
-- \`generateSitemap.ts\` — sitemap XML generation (see [distribution.md](distribution.md))
 - \`schema.ts\` — JSON-LD / schema.org helpers
 - \`refreshContentAccess.ts\` — token gate, **\`parseDeployTarget\`**, hook URL parsing, and **\`resolveDeployHookMetadata\`**
 - \`deployProgressStorage.ts\` — client **\`localStorage\`**, label formatting, and **\`furthestDeployStatus\`**
