@@ -614,6 +614,53 @@ describe("generateProject", () => {
     ).toBe("");
   });
 
+  it("writes a Prismic scaffold with previews through Prismic's toolbar", async () => {
+    const root = await runInTemp(baseAnswers({ cms: "prismic" }));
+    const read = (file: string) => readFileSync(path.join(root, file), "utf-8");
+    const pkg = JSON.parse(read("package.json")) as {
+      dependencies: Record<string, string>;
+      devDependencies: Record<string, string>;
+      scripts: Record<string, string>;
+    };
+
+    for (const file of [
+      "prismic.config.json",
+      "src/prismic/client.ts",
+      "src/prismic/getPages.ts",
+      "src/app/api/preview/route.ts",
+      "src/app/api/exit-preview/route.ts",
+      "src/app/api/revalidate/route.ts",
+      "docs/handbook/prismic.md",
+    ]) {
+      expect(existsSync(path.join(root, file)), file).toBe(true);
+    }
+
+    expect(existsSync(path.join(root, "src/contentful"))).toBe(false);
+    expect(existsSync(path.join(root, "src/app/api/draft"))).toBe(false);
+    expect(read("src/app/layout.tsx")).toContain(
+      "<PrismicPreview repositoryName={repositoryName} />",
+    );
+    expect(read("next.config.ts")).toContain('hostname: "images.prismic.io"');
+    expect(read("next.config.ts")).toContain("static.cdn.prismic.io");
+    expect(read("tsconfig.json")).toContain(
+      '"prismic.config.json": ["./prismic.config.json"]',
+    );
+    expect(
+      read("src/components/ExitDraftModeLink/ExitDraftModeLink.component.tsx"),
+    ).toContain("/api/exit-preview?redirect=");
+    expect(pkg.dependencies).toHaveProperty("@prismicio/client");
+    expect(pkg.dependencies).toHaveProperty("@prismicio/next");
+    expect(pkg.dependencies).not.toHaveProperty("contentful");
+    expect(pkg.scripts["types:prismic"]).toBe("prismic pull");
+
+    const mentions = spawnSync(
+      "grep",
+      ["-rli", "contentful", ".", "--exclude-dir=node_modules"],
+      { cwd: root, encoding: "utf-8" },
+    );
+    expect(mentions.stdout).toBe("");
+  });
+
   it("keeps server-only secrets out of next.config env", async () => {
     const root = await runInTemp(
       baseAnswers({

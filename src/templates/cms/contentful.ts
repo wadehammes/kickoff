@@ -1,3 +1,4 @@
+import { getDisableDraftRoute, getDraftRoute } from "../app.js";
 import type { CmsAdapter } from "./types.js";
 
 // ---------------------------------------------------------------------------
@@ -503,7 +504,7 @@ Use \`CONTENTFUL_BATCH_LIMIT\` (defined in \`src/contentful/contentfulPagination
 };
 
 export const contentful: CmsAdapter = {
-  cspImgHosts: ["images.ctfassets.net"],
+  csp: { childSrc: [], imgSrc: ["images.ctfassets.net"], scriptSrc: [] },
   dependencies: [
     "@contentful/rich-text-react-renderer",
     "@contentful/rich-text-types",
@@ -515,6 +516,9 @@ export const contentful: CmsAdapter = {
   devDependencies: ["@types/safe-json-stringify", "cf-content-types-generator"],
   dir: "src/contentful",
   docs: {
+    apiRoutesPreview: `| \`GET /api/draft\` | Enable draft mode (preview secret query param) |
+| \`GET /api/disable-draft\` | Exit draft mode |
+`,
     architectureDir: `### \`src/contentful/\`
 
 - **Client**: \`src/contentful/client.ts\` — delivery vs preview clients from env.
@@ -526,8 +530,11 @@ export const contentful: CmsAdapter = {
 `,
     conventions:
       "- **Contentful types**: Content types are generated into `src/contentful/types/` (run `pnpm types:contentful` with Contentful env vars set). Do not edit generated types by hand — for any reason.\n- **Contentful ordering**: Do not sort or alphabetize Contentful data in the app. Order at fetch time via the Contentful API `order` parameter.\n",
-    envPreview:
-      "- **Preview content**: Getters accept `preview: true` and use the preview client from `src/contentful/client.ts`.",
+    driftReminder:
+      "This session touched src/contentful/. Confirm the generated types still match the space before you stop: regenerate into a scratch dir and diff (see docs/handbook/contentful.md → Content types (generated)). Also check src/contentful/enums.ts against the live content type ids — it is not the dispatch source and drifts silently.",
+    envPreview: `- **Enable draft**: \`src/app/api/draft/route.ts\` checks \`previewSecret\` against **\`CONTENTFUL_PREVIEW_SECRET\`**, enables draft mode, then redirects.
+- **Disable draft**: \`src/app/api/disable-draft/route.ts\`.
+- **Preview content**: Getters accept \`preview: true\` and use the preview client from \`src/contentful/client.ts\`.`,
     envSummary: `- **Contentful** — space, delivery/preview tokens, preview secret, CMA token for codegen.
 `,
     platformScriptRows: `| \`pnpm types:contentful\` | Regenerate \`src/contentful/types\` (needs CMA env vars). |
@@ -536,6 +543,10 @@ export const contentful: CmsAdapter = {
 # Generate Contentful TypeScript types (requires CONTENTFUL_SPACE_ID + CONTENTFUL_CMA_TOKEN in .env.local)
 pnpm types:contentful
 `,
+    readmePreview: `Visit \`/api/draft?previewSecret=YOUR_SECRET&redirect=/\` to enable draft mode.
+Visit \`/api/disable-draft\` to exit.
+
+Or use \`pnpm dev:preview\` which auto-opens draft mode after the server starts.`,
     readmePrerequisite:
       "**Contentful space** — Provision the space/environment, create or import content types (`Page`, etc.), and collect the tokens you need for the **Contentful** variables in **`.env.local.example`** (then see **[Contentful setup](#contentful-setup)**).",
     readmeScriptsRow:
@@ -583,7 +594,7 @@ See \`docs/handbook/contentful.md\` for full guidance.
     ["src/contentful/contentfulPagination.ts", getContentfulPagination()],
     ["src/utils/contentful.helpers.ts", getContentfulUtilHelpers()],
   ],
-  generatedTypesDir: "src/contentful/types",
+  generatedPaths: ["src/contentful/types/"],
   handbook: { content: getHandbookContentful, file: "contentful.md" },
   id: "contentful",
   imageHosts: [
@@ -605,8 +616,19 @@ See \`docs/handbook/contentful.md\` for full guidance.
     "https://images.ctfassets.net",
     "https://assets.ctfassets.net",
   ],
-  previewSecretEnv: "CONTENTFUL_PREVIEW_SECRET",
+  preview: {
+    exitPath: "/api/disable-draft",
+    routes: () => [
+      [
+        "src/app/api/draft/route.ts",
+        getDraftRoute("CONTENTFUL_PREVIEW_SECRET"),
+      ],
+      ["src/app/api/disable-draft/route.ts", getDisableDraftRoute()],
+    ],
+    secretEnv: "CONTENTFUL_PREVIEW_SECRET",
+  },
   richTextDocumentFactory: getContentfulRichTextDocumentFactory,
+  tsconfigPaths: {},
   typesScript: {
     command:
       "export $(cat .env.local | sed '/^#/d; s/[$\"]//g'); cf-content-types-generator -s $CONTENTFUL_SPACE_ID -t $CONTENTFUL_CMA_TOKEN -o src/contentful/types -r -g && biome format --write src/contentful/types",

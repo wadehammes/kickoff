@@ -188,6 +188,28 @@ const findJestMentions = (root: string): string[] =>
         ),
     );
 
+const findMentions = (root: string, pattern: RegExp): string[] =>
+  listFiles(root)
+    .filter((file) => !file.includes(`${path.sep}node_modules${path.sep}`))
+    .flatMap((file) =>
+      readFileSync(file, "utf-8")
+        .split("\n")
+        .flatMap((line, index) =>
+          pattern.test(line)
+            ? [`${path.relative(root, file)}:${index + 1}: ${line.trim()}`]
+            : [],
+        ),
+    );
+
+// Every CMS a project does not use, as a pattern for its name.
+const otherCmsNames = (cms: Cms): RegExp | null => {
+  const others = CMS_IDS.filter((id) => id !== "none" && id !== cms);
+
+  return others.length > 0
+    ? new RegExp(`\\b(${others.join("|")})\\b`, "i")
+    : null;
+};
+
 const isDynamicSegment = (name: string): boolean => name.startsWith("[");
 
 const findAmbiguousRoutes = (root: string): string[] => {
@@ -258,6 +280,14 @@ const findBrokenImports = (root: string): string[] => {
     ...Object.keys(pkg.dependencies ?? {}),
     ...Object.keys(pkg.devDependencies ?? {}),
   ]);
+  // Exact tsconfig paths entries (like "prismic.config.json") resolve to a file.
+  const aliases = Object.entries(
+    (
+      JSON.parse(readFileSync(path.join(root, "tsconfig.json"), "utf-8")) as {
+        compilerOptions: { paths: Record<string, string[]> };
+      }
+    ).compilerOptions.paths,
+  ).filter(([alias]) => !alias.includes("*"));
 
   const sourceFiles = listFiles(root).filter(
     (file) => /\.(ts|tsx|mjs|js)$/.test(file) && !file.endsWith(".d.ts"),
@@ -281,6 +311,14 @@ const findBrokenImports = (root: string): string[] => {
       }
       if (specifier.startsWith("node:") || NODE_BUILTINS.has(specifier)) {
         return [];
+      }
+      const alias = aliases.find(([name]) => name === specifier);
+      if (alias) {
+        return alias[1].some((target) =>
+          resolvesToFile(path.join(root, target)),
+        )
+          ? []
+          : [where];
       }
       return declared.has(packageNameOf(specifier))
         ? []
@@ -594,6 +632,13 @@ describe("generation matrix", () => {
       expect(
         findJestMentions(root).slice(0, 40).join("\n"),
         "Vitest projects should not mention Jest",
+      ).toBe("");
+    }
+    const otherCms = otherCmsNames(answers.cms);
+    if (otherCms) {
+      expect(
+        findMentions(root, otherCms).slice(0, 40).join("\n"),
+        "projects should not mention a CMS they do not use",
       ).toBe("");
     }
     if (answers.hosting === "other") {

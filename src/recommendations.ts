@@ -98,6 +98,12 @@ export const CMS_CHOICES: { description: string; title: string; value: Cms }[] =
       title: "Contentful",
       value: "contentful",
     },
+    {
+      description:
+        "Client, page getters, toolbar previews, and type generation",
+      title: "Prismic",
+      value: "prismic",
+    },
   ];
 
 /** Content sites get a CMS by default; everything else keeps content in code. */

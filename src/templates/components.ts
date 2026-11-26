@@ -157,7 +157,9 @@ export const getFooterCSS = (): string => {
 // src/components/ExitDraftModeLink/ExitDraftModeLink.component.tsx
 // ---------------------------------------------------------------------------
 
-export const getExitDraftModeLink = (): string => {
+export const getExitDraftModeLink = (
+  exitPath = "/api/disable-draft",
+): string => {
   return `"use client";
 
 import { usePathname } from "next/navigation";
@@ -169,7 +171,7 @@ export const ExitDraftModeLink = (props: HTMLProps<HTMLAnchorElement>) => {
   return (
     <a
       data-testid="rhExitDraftModeLink"
-      href={\`/api/disable-draft?redirect=\${pathname}\`}
+      href={\`${exitPath}?redirect=\${pathname}\`}
       {...props}
     >
       Exit Draft Mode

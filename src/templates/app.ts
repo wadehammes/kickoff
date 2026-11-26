@@ -1,5 +1,5 @@
 import type { ProjectAnswers } from "../types.js";
-import { getCms, usesCms } from "./cms/index.js";
+import { getCms, getLayoutPreview, usesCms } from "./cms/index.js";
 
 // ---------------------------------------------------------------------------
 // src/app/layout.tsx
@@ -40,10 +40,12 @@ export const getAppLayout = (a: ProjectAnswers): string => {
 `
     : "";
 
-  return `${gaImport}${draftImport}import Providers from "src/app/providers";
+  const preview = getLayoutPreview(a);
+
+  return `${gaImport}${preview.packageImports}${draftImport}import Providers from "src/app/providers";
 import { Footer } from "src/components/Footer/Footer.component";
 import { Navigation } from "src/components/Navigation/Navigation.component";
-import "src/styles/globals.css";
+${preview.localImports}import "src/styles/globals.css";
 import type { Metadata } from "next";
 import { envUrl } from "src/utils/environment.helpers";
 
@@ -82,7 +84,7 @@ ${draftUi}        <Providers>
           </div>
         </Providers>
       </body>
-${gaElement ? `      ${gaElement}\n` : ""}    </html>
+${preview.element}${gaElement ? `      ${gaElement}\n` : ""}    </html>
   );
 };
 
@@ -124,7 +126,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
 const Home = async () => {
   const draft = await draftMode();
 
-  // TODO: fetch your home page data from Contentful here
+  // TODO: fetch your home page data from your CMS here
   // const page = await fetchPage({ slug: "home", preview: draft.isEnabled });
   // if (!page) return notFound();
 
@@ -329,6 +331,8 @@ export default robots;
 // src/app/sitemap.ts  (served by Next.js at /sitemap.xml)
 // ---------------------------------------------------------------------------
 
+const importSource = (line: string): string => line.split(' from "')[1] ?? "";
+
 export const getAppSitemap = (a: ProjectAnswers): string => {
   const cms = getCms(a);
   const imports = [
@@ -339,7 +343,12 @@ export const getAppSitemap = (a: ProjectAnswers): string => {
       : []),
     ...(cms ? ['import { HOME_PAGE_SLUG } from "src/utils/constants";'] : []),
     'import { envUrl } from "src/utils/environment.helpers";',
-  ].join("\n");
+  ]
+    // Biome sorts imports by module; the CMS folder can land anywhere in src/.
+    .sort((left, right) =>
+      importSource(left).localeCompare(importSource(right)),
+    )
+    .join("\n");
 
   const cmsRoutes = cms
     ? `

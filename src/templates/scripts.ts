@@ -475,12 +475,12 @@ export const openBrowser = (targetUrl: string): void => {
 // ---------------------------------------------------------------------------
 
 export const getDevWithPreview = (a: ProjectAnswers): string => {
-  const cms = getCms(a);
+  const secretEnv = getCms(a)?.preview.secretEnv;
 
-  if (!cms) {
+  if (!secretEnv) {
     return `/**
- * Starts Next.js dev (${a.devPort}). Draft preview URL logic is omitted when
- * the scaffold was generated without Contentful.
+ * Starts Next.js dev (${a.devPort}). There is no draft preview URL to open
+ * automatically in this project.
  */
 
 import { spawn } from "node:child_process";
@@ -517,7 +517,7 @@ child.on("exit", (code, signal) => process.exit(signal ? 1 : (code ?? 0)));
   }
 
   return `/**
- * Runs \`next dev\` and, when ${cms.previewSecretEnv} is set, waits until
+ * Runs \`next dev\` and, when ${secretEnv} is set, waits until
  * the dev server answers then opens /api/draft so draft mode is on.
  */
 
@@ -611,12 +611,12 @@ const main = async (): Promise<void> => {
   child.on("exit", (code, signal) => process.exit(signal ? 1 : (code ?? 0)));
 
   const env = resolveEnvForScripts(repoRoot);
-  const secret = env.${cms.previewSecretEnv};
+  const secret = env.${secretEnv};
   const origin = \`http://localhost:\${PORT}\`;
 
   if (!secret) {
     console.info(
-      "\\n[dev:preview] Tip: set ${cms.previewSecretEnv} in .env.local to auto-open draft preview.\\n",
+      "\\n[dev:preview] Tip: set ${secretEnv} in .env.local to auto-open draft preview.\\n",
     );
     return;
   }

@@ -21,8 +21,12 @@ const PNPM_BUILTINS = new Set([
   "why",
 ]);
 
+// kickoff fills these in for projects with a CMS.
+const CMS_DIR = null;
+const CMS_REMINDER = "";
+
 const ROUTING_FOOTER =
-  "Routing: docs/handbook/llms.md. Chapters most often left stale: platform.md (scripts, CI), env.md (env vars, next.config), testing.md (test setup, mocks), factories.md, contentful.md (content model, parsers, renderer), source-layout.md (where files live), architecture.md (directory map, data flow), README.md (the setup a new engineer follows on day one).";
+  "Routing: docs/handbook/llms.md. Chapters most often left stale: platform.md (scripts, CI), env.md (env vars, next.config), testing.md (test setup, mocks), factories.md, source-layout.md (where files live), architecture.md (directory map, data flow), README.md (the setup a new engineer follows on day one).";
 
 const readStdin = async () => {
   const chunks = [];
@@ -195,7 +199,7 @@ export const collectFindings = () => {
   const docsChanged = matching(
     /^(docs\/handbook\/.*\.md|README\.md|CLAUDE\.md)$/,
   );
-  const contentfulChanged = matching(/^src\/contentful\//);
+  const cmsChanged = CMS_DIR ? matching(CMS_DIR) : [];
   const movedOrDeleted = lines(
     git(["diff", "--name-only", "--diff-filter=DR", "HEAD"]),
   );
@@ -216,10 +220,8 @@ export const collectFindings = () => {
     );
   }
 
-  if (contentfulChanged.length > 0 && existsSync(".env.local")) {
-    findings.push(
-      "This session touched src/contentful/. Confirm the generated types still match the space before you stop: regenerate into a scratch dir and diff (see docs/handbook/contentful.md → Content types (generated)). Also check src/contentful/enums.ts against the live content type ids — it is not the dispatch source and drifts silently.",
-    );
+  if (cmsChanged.length > 0 && existsSync(".env.local")) {
+    findings.push(CMS_REMINDER);
   }
 
   if (codeChanged.length + opsChanged.length > 0 && docsChanged.length === 0) {

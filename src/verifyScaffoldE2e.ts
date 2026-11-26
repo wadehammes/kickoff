@@ -488,7 +488,7 @@ const verifyFixture = async (
     const cms = getCms(answers);
 
     if (cms) {
-      console.log(`  skip build: next build needs a real ${cms.name} space`);
+      console.log(`  skip build: next build needs real ${cms.name} content`);
     } else {
       await smokeTestBuild(tmpRoot, answers);
     }

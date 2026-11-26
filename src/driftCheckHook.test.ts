@@ -16,6 +16,9 @@ import {
   findBrokenLinks,
   headingSlugs,
 } from "../scaffold-assets/claude-hooks/handbook-drift-check.mjs";
+import { getHandbookDriftCheckMjs } from "./templates/agents.js";
+import { contentful } from "./templates/cms/contentful.js";
+import { prismic } from "./templates/cms/prismic.js";
 
 const hook = path.resolve(
   import.meta.dirname,
@@ -187,18 +190,35 @@ describe("handbook drift-check hook", () => {
     );
   });
 
-  it("reminds about Contentful types only when env is set up", () => {
+  it("never reminds about a CMS in projects without one", () => {
     write("src/contentful/getPages.ts", "export const getPages = 1;\n");
-    write("docs/handbook/contentful.md", "# Contentful\n");
-
-    expect(collectFindings()).toEqual([]);
-
     write(".env.local", "CONTENTFUL_SPACE_ID=x\n");
 
-    expect(collectFindings().join("\n")).toContain(
-      "This session touched src/contentful/.",
-    );
+    expect(collectFindings().join("\n")).not.toContain("This session touched");
   });
+
+  it.each([contentful, prismic])(
+    "reminds about $name changes only when env is set up",
+    async (cms) => {
+      const built = path.join(
+        mkdtempSync(path.join(tmpdir(), "kickoff-drift-hook-")),
+        "handbook-drift-check.mjs",
+      );
+      writeFileSync(built, getHandbookDriftCheckMjs(cms));
+      const { collectFindings: collectCmsFindings } = (await import(built)) as {
+        collectFindings: () => string[];
+      };
+
+      write(`${cms.dir}/getPages.ts`, "export const getPages = 1;\n");
+      write(`docs/handbook/${cms.handbook.file}`, `# ${cms.name}\n`);
+
+      expect(collectCmsFindings()).toEqual([]);
+
+      write(".env.local", "SECRET=x\n");
+
+      expect(collectCmsFindings()).toContain(cms.docs.driftReminder);
+    },
+  );
 
   it("asks to grep for paths that moved or were deleted", () => {
     renameSync(
