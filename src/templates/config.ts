@@ -1,4 +1,5 @@
 import type { ProjectAnswers } from "../types.js";
+import { getCms } from "./cms/index.js";
 import { getTestRunner, usesVitest } from "./testRunner.js";
 
 /**
@@ -108,12 +109,7 @@ export const getPackageJson = (
     "schema-dts",
     "tslib",
     a.includeGA && "@next/third-parties",
-    a.includeContentful && "@contentful/rich-text-react-renderer",
-    a.includeContentful && "@contentful/rich-text-types",
-    a.includeContentful && "contentful",
-    a.includeContentful && "html-react-parser",
-    a.includeContentful && "safe-json-stringify",
-    a.includeContentful && "server-only",
+    ...((getCms(a)?.dependencies ?? []) as (keyof Versions)[]),
     a.includeI18n && "next-intl",
     a.includeResend && "resend",
     a.includeRecaptcha && "react-google-recaptcha",
@@ -157,9 +153,8 @@ export const getPackageJson = (
     "tsx",
     "typescript",
     "typescript-plugin-css-modules",
-    a.includeContentful && "@types/safe-json-stringify",
+    ...((getCms(a)?.devDependencies ?? []) as (keyof Versions)[]),
     a.includeRecaptcha && "@types/react-google-recaptcha",
-    a.includeContentful && "cf-content-types-generator",
     usesPlaywright(a) && "@axe-core/playwright",
     usesPlaywright(a) && "@playwright/test",
   ]);
@@ -208,9 +203,10 @@ export const getPackageJson = (
     scripts.typecheck = "tsc --strict --noEmit";
   }
 
-  if (a.includeContentful) {
-    scripts["types:contentful"] =
-      "export $(cat .env.local | sed '/^#/d; s/[$\"]//g'); cf-content-types-generator -s $CONTENTFUL_SPACE_ID -t $CONTENTFUL_CMA_TOKEN -o src/contentful/types -r -g && biome format --write src/contentful/types";
+  const cms = getCms(a);
+
+  if (cms) {
+    scripts[cms.typesScript.name] = cms.typesScript.command;
   }
 
   const pkg = {
@@ -687,8 +683,10 @@ export const getKnipConfig = (a: ProjectAnswers): string => {
     "src/utils/style.helpers.ts",
   ];
 
-  if (a.includeContentful) {
-    ignore.unshift("src/contentful/types/**");
+  const cms = getCms(a);
+
+  if (cms) {
+    ignore.unshift(`${cms.generatedTypesDir}/**`);
   } else {
     ignore.push("src/components/ExitDraftModeLink/**");
   }
@@ -719,9 +717,7 @@ export const getKnipConfig = (a: ProjectAnswers): string => {
         "src/components/**": ["exports"],
         "src/lib/schema.ts": ["exports"],
         "src/lib/toast/appToast.ts": ["exports"],
-        ...(a.includeContentful
-          ? { "src/contentful/getPages.ts": ["exports"] }
-          : {}),
+        ...(cms ? { [`${cms.dir}/getPages.ts`]: ["exports"] } : {}),
       },
       rules: {
         dependencies: "warn",
@@ -748,26 +744,7 @@ export const getNextEnvDeclaration = (): string => {
 export const getEnvLocalExample = (a: ProjectAnswers): string => {
   const lines: string[] = [];
 
-  if (a.includeContentful) {
-    lines.push(
-      "# ── Contentful ──────────────────────────────────────────────────────────────",
-      "# Your Contentful Space ID (find it in Settings > API keys)",
-      "CONTENTFUL_SPACE_ID=",
-      "",
-      "# Content Delivery API token (public, read-only)",
-      "CONTENTFUL_CONTENT_DELIVERY_API_KEY=",
-      "",
-      "# Content Preview API token (for draft mode)",
-      "CONTENTFUL_PREVIEW_API_KEY=",
-      "",
-      "# Secret used to authenticate draft mode requests",
-      "CONTENTFUL_PREVIEW_SECRET=",
-      "",
-      "# Content Management API token (used for type generation only)",
-      "CONTENTFUL_CMA_TOKEN=",
-      "",
-    );
-  }
+  lines.push(...(getCms(a)?.envExample ?? []));
 
   lines.push(
     "# ── App environment ─────────────────────────────────────────────────────────",

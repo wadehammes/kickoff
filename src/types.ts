@@ -4,6 +4,11 @@ export type Hosting = "vercel" | "other";
 
 export type TestRunner = "jest" | "vitest";
 
+export const CMS_IDS = ["none", "contentful"] as const;
+
+/** Content source for pages. "none" keeps all content in code. */
+export type Cms = (typeof CMS_IDS)[number];
+
 export const PROJECT_TYPES = [
   "marketing",
   "careers",
@@ -50,8 +55,8 @@ export interface ProjectAnswers {
   bgColor: string;
   textColor: string;
   includeI18n: boolean;
-  /** When false, omits Contentful client, getters, draft routes, and CMS handbook. */
-  includeContentful: boolean;
+  /** Where page content comes from. Defaults to "none" (content lives in code). */
+  cms: Cms;
   includeGA: boolean;
   includeResend: boolean;
   includeRecaptcha: boolean;

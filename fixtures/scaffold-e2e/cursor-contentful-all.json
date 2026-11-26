@@ -3,7 +3,7 @@
   "bgColor": "#ffffff",
   "devPort": 3003,
   "includeClaudePipeline": false,
-  "includeContentful": true,
+  "cms": "contentful",
   "includeGA": true,
   "includeI18n": true,
   "includeRecaptcha": true,

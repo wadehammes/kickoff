@@ -13,7 +13,7 @@ import process from "node:process";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { findBrokenLinks } from "../scaffold-assets/claude-hooks/handbook-drift-check.mjs";
 import { generateProject } from "./generator.js";
-import type { ProjectAnswers } from "./types.js";
+import { CMS_IDS, type Cms, type ProjectAnswers } from "./types.js";
 
 type Tooling = Pick<
   ProjectAnswers,
@@ -21,7 +21,6 @@ type Tooling = Pick<
 >;
 type Options = Pick<
   ProjectAnswers,
-  | "includeContentful"
   | "includeForms"
   | "includeGA"
   | "includeI18n"
@@ -79,7 +78,6 @@ const TOOLINGS: Tooling[] = [
 ];
 
 const OPTION_KEYS: (keyof Options)[] = [
-  "includeContentful",
   "includeForms",
   "includeGA",
   "includeI18n",
@@ -120,7 +118,7 @@ const optionCombinations = (): Options[] =>
     ),
   ) as Options[];
 
-const scenarioName = (tooling: Tooling, options: Options): string => {
+const scenarioName = (tooling: Tooling, cms: Cms, options: Options): string => {
   const enabled = OPTION_KEYS.filter((key) => options[key]).map((key) =>
     key.replace("include", "").toLowerCase(),
   );
@@ -129,31 +127,35 @@ const scenarioName = (tooling: Tooling, options: Options): string => {
     : tooling.agentTooling;
   const hostName = tooling.hosting === "other" ? "selfhost" : null;
   const runnerName = tooling.testRunner === "vitest" ? "vitest" : null;
-  return [toolingName, hostName, runnerName, ...enabled]
+  const cmsName = cms === "none" ? null : cms;
+  return [toolingName, hostName, runnerName, cmsName, ...enabled]
     .filter(Boolean)
     .join("-");
 };
 
 const SCENARIOS = TOOLINGS.flatMap((tooling) =>
-  optionCombinations().map((options) => ({
-    answers: {
-      ...tooling,
-      ...options,
-      bgColor: "#ffffff",
-      devPort: 3000,
-      extraPackages: [],
-      projectDescription: "",
-      projectType: "marketing",
-      primaryColor: "#000000",
-      prodUrl: "https://example.com",
-      projectName: scenarioName(tooling, options),
-      siteName: "Matrix Site",
-      stagingUrl: "https://staging.example.com",
-      textColor: "#000000",
-      useCurrentDir: false,
-    } satisfies ProjectAnswers,
-    name: scenarioName(tooling, options),
-  })),
+  CMS_IDS.flatMap((cms) =>
+    optionCombinations().map((options) => ({
+      answers: {
+        ...tooling,
+        ...options,
+        cms,
+        bgColor: "#ffffff",
+        devPort: 3000,
+        extraPackages: [],
+        projectDescription: "",
+        projectType: "marketing",
+        primaryColor: "#000000",
+        prodUrl: "https://example.com",
+        projectName: scenarioName(tooling, cms, options),
+        siteName: "Matrix Site",
+        stagingUrl: "https://staging.example.com",
+        textColor: "#000000",
+        useCurrentDir: false,
+      } satisfies ProjectAnswers,
+      name: scenarioName(tooling, cms, options),
+    })),
+  ),
 );
 
 const listFiles = (dir: string): string[] =>
@@ -557,7 +559,9 @@ afterAll(() => {
 
 describe("generation matrix", () => {
   it("covers every tooling and option combination", () => {
-    expect(SCENARIOS).toHaveLength(TOOLINGS.length * 2 ** OPTION_KEYS.length);
+    expect(SCENARIOS).toHaveLength(
+      TOOLINGS.length * CMS_IDS.length * 2 ** OPTION_KEYS.length,
+    );
   });
 
   it.each(SCENARIOS)("$name", async ({ answers }) => {

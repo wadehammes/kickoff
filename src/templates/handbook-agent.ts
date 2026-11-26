@@ -1,8 +1,11 @@
 import type { ProjectAnswers } from "../types.js";
 import { getAgentDir } from "./agents.js";
+import { getCms } from "./cms/index.js";
 import { usesVercel } from "./config.js";
 
 export const getHandbookGlossary = (a: ProjectAnswers): string => {
+  const cms = getCms(a);
+
   return `# Glossary
 
 Terms agents see in this scaffold. Paths are under **\`src/\`** unless noted.
@@ -21,9 +24,9 @@ Terms agents see in this scaffold. Paths are under **\`src/\`** unless noted.
 | Term | Meaning |
 | ---- | ------- |
 | **Getter** | Contentful (or other) read function that returns raw entries — parsers shape UI props. |
-| **Parser** | Maps CMS entry → typed component props${a.includeContentful ? " ([contentful.md](contentful.md))" : ""}. |
+| **Parser** | Maps CMS entry → typed component props${cms ? ` ([${cms.handbook.file}](${cms.handbook.file}))` : ""}. |
 | **Draft mode** | Preview unpublished CMS content via \`/api/draft\` when Contentful is scaffolded. |
-${a.includeContentful ? "| **Generated types** | `src/contentful/types/` — output of `pnpm types:contentful`; do not hand-edit. |" : "| **Generated types** | None in this project; Contentful was not scaffolded. |"}
+${cms ? `| **Generated types** | \`${cms.generatedTypesDir}/\` — output of \`pnpm ${cms.typesScript.name}\`; do not hand-edit. |` : "| **Generated types** | None in this project; Contentful was not scaffolded. |"}
 
 ## Client API surface
 
@@ -62,19 +65,20 @@ Pattern choices: [decisions.md](decisions.md). API map: [api-routes.md](api-rout
 };
 
 export const getHandbookDecisions = (a: ProjectAnswers): string => {
-  const cmsRow = a.includeContentful
-    ? `| CMS page data on the server | **Getters + parsers** in \`src/contentful/\` | Inline SDK calls in components |
+  const cms = getCms(a);
+  const cmsRow = cms
+    ? `| CMS page data on the server | **Getters + parsers** in \`${cms.dir}/\` | Inline SDK calls in components |
 | Preview content | **Draft mode** + preview client | Delivery API only in editors |`
     : "";
 
-  const draftPlaybook = a.includeContentful
+  const draftPlaybook = cms
     ? `
-### Contentful getter or parser change
+### ${cms.name} getter or parser change
 
-1. [contentful.md](contentful.md) — types, cache keys, parser output shape.
-2. Regenerate types if the content model changed (\`pnpm types:contentful\`).
+1. [${cms.handbook.file}](${cms.handbook.file}) — types, cache keys, parser output shape.
+2. Regenerate types if the content model changed (\`pnpm ${cms.typesScript.name}\`).
 3. Update factories and component specs that build parsed shapes.
-4. Handbook: [contentful.md](contentful.md), [architecture.md](architecture.md) data flow.
+4. Handbook: [${cms.handbook.file}](${cms.handbook.file}), [architecture.md](architecture.md) data flow.
 `
     : "";
 
@@ -241,7 +245,8 @@ ${cursorStop}
 };
 
 export const getHandbookApiRoutes = (a: ProjectAnswers): string => {
-  const draftSection = a.includeContentful
+  const cms = getCms(a);
+  const draftSection = cms
     ? `## Draft / preview (navigation, not \`api.*\`)
 
 | Route | Role |
@@ -249,7 +254,7 @@ export const getHandbookApiRoutes = (a: ProjectAnswers): string => {
 | \`GET /api/draft\` | Enable draft mode (preview secret query param) |
 | \`GET /api/disable-draft\` | Exit draft mode |
 
-Details: [env.md](env.md), [contentful.md](contentful.md).
+Details: [env.md](env.md), [${cms.handbook.file}](${cms.handbook.file}).
 
 `
     : "";

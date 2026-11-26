@@ -16,7 +16,7 @@ const answers = (overrides: Partial<ProjectAnswers> = {}): ProjectAnswers => ({
   agentTooling: "cursor",
   bgColor: "#ffffff",
   devPort: 3000,
-  includeContentful: true,
+  cms: "contentful",
   includeGA: false,
   includeI18n: false,
   includeRecaptcha: false,
@@ -42,7 +42,7 @@ const parse = (a: ProjectAnswers): PkgJson =>
   JSON.parse(getPackageJson(a)) as PkgJson;
 
 describe("getPackageJson", () => {
-  it("includes Contentful packages and types script when includeContentful is true", () => {
+  it("includes Contentful packages and types script when cms is contentful", () => {
     const pkg = parse(answers());
     expect(pkg.dependencies?.contentful).toBe("^11.12.10");
     expect(pkg.devDependencies?.["cf-content-types-generator"]).toBe("^3.0.1");
@@ -51,8 +51,8 @@ describe("getPackageJson", () => {
     );
   });
 
-  it("omits Contentful packages and types script when includeContentful is false", () => {
-    const pkg = parse(answers({ includeContentful: false }));
+  it("omits Contentful packages and types script when cms is none", () => {
+    const pkg = parse(answers({ cms: "none" }));
     expect(pkg.dependencies?.contentful).toBeUndefined();
     expect(pkg.devDependencies?.["cf-content-types-generator"]).toBeUndefined();
     expect(pkg.scripts?.["types:contentful"]).toBeUndefined();
@@ -107,7 +107,7 @@ describe("getPackageJson", () => {
       answers({
         agentTooling: "claude",
         includeClaudePipeline: true,
-        includeContentful: true,
+        cms: "contentful",
         includeGA: true,
         includeI18n: true,
         includeRecaptcha: true,

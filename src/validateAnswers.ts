@@ -1,13 +1,12 @@
 import { readFileSync } from "node:fs";
 import { DEFAULT_VERSIONS } from "./templates/config.js";
-import { PROJECT_TYPES, type ProjectAnswers } from "./types.js";
+import { CMS_IDS, PROJECT_TYPES, type ProjectAnswers } from "./types.js";
 
 const REQUIRED_KEYS: (keyof ProjectAnswers)[] = [
   "agentTooling",
   "bgColor",
   "devPort",
   "includeClaudePipeline",
-  "includeContentful",
   "includeGA",
   "includeI18n",
   "includeRecaptcha",
@@ -21,13 +20,16 @@ const REQUIRED_KEYS: (keyof ProjectAnswers)[] = [
   "useCurrentDir",
 ];
 
-const OPTIONAL_KEYS: (keyof ProjectAnswers)[] = [
+// includeContentful is the pre-cms answer key; it still works and maps onto cms.
+const OPTIONAL_KEYS: string[] = [
+  "cms",
   "extraPackages",
   "hosting",
   "includeForms",
   "includePlaywright",
   "projectDescription",
   "projectType",
+  "includeContentful",
   "testRunner",
 ];
 
@@ -43,6 +45,7 @@ const validateProfile = (
       | "includePlaywright"
       | "projectDescription"
       | "projectType"
+      | "cms"
       | "testRunner"
     >
   | string => {
@@ -62,6 +65,29 @@ const validateProfile = (
     if (o[key] !== undefined && typeof o[key] !== "boolean") {
       return `${key} must be a boolean`;
     }
+  }
+
+  if (
+    o.includeContentful !== undefined &&
+    typeof o.includeContentful !== "boolean"
+  ) {
+    return "includeContentful must be a boolean";
+  }
+
+  const legacyCms = o.includeContentful ? "contentful" : "none";
+
+  if (
+    o.cms !== undefined &&
+    o.includeContentful !== undefined &&
+    o.cms !== legacyCms
+  ) {
+    return "includeContentful conflicts with cms; use cms only";
+  }
+
+  const cms = o.cms ?? legacyCms;
+
+  if (!CMS_IDS.includes(cms as (typeof CMS_IDS)[number])) {
+    return `cms must be ${CMS_IDS.map((id) => `"${id}"`).join(" or ")}`;
   }
 
   const testRunner = o.testRunner ?? "jest";
@@ -88,6 +114,7 @@ const validateProfile = (
   }
 
   return {
+    cms: cms as ProjectAnswers["cms"],
     extraPackages,
     includeForms: o.includeForms === true,
     includePlaywright:
@@ -179,7 +206,6 @@ export const validateProjectAnswers = (
 
   for (const key of [
     "includeI18n",
-    "includeContentful",
     "includeGA",
     "includeResend",
     "includeRecaptcha",
@@ -210,7 +236,9 @@ export const validateProjectAnswers = (
     return profile;
   }
 
-  return { ...o, hosting, ...profile } as unknown as ProjectAnswers;
+  const { includeContentful: _legacy, ...answers } = o;
+
+  return { ...answers, hosting, ...profile } as unknown as ProjectAnswers;
 };
 
 export const readAnswersFile = (

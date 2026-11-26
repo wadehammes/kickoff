@@ -20,7 +20,7 @@ const answers: ProjectAnswers = {
   bgColor: "#ffffff",
   devPort: 3000,
   includeClaudePipeline: false,
-  includeContentful: false,
+  cms: "none",
   includeGA: false,
   includeI18n: false,
   includeRecaptcha: false,

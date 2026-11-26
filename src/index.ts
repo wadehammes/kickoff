@@ -10,9 +10,12 @@ import { generateProject, getScaffoldRoot } from "./generator.js";
 import { runHandbookCommand } from "./handbook/command.js";
 import {
   ADD_ONS,
+  CMS_CHOICES,
   PROJECT_TYPE_CHOICES,
   recommendedAddOns,
+  recommendedCms,
 } from "./recommendations.js";
+import { getCms } from "./templates/cms/index.js";
 import {
   DEFAULT_VERSIONS,
   KEEP_PINNED,
@@ -302,6 +305,16 @@ export const main = async () => {
               : "Must be a valid hex color (e.g. #000000)",
         },
         {
+          choices: CMS_CHOICES,
+          initial: (_previous: unknown, values: { projectType: ProjectType }) =>
+            CMS_CHOICES.findIndex(
+              (choice) => choice.value === recommendedCms(values.projectType),
+            ),
+          message: "Where does page content come from?",
+          name: "cms",
+          type: "select",
+        },
+        {
           choices: (
             _previous: unknown,
             values: { projectType: ProjectType },
@@ -501,9 +514,11 @@ export const main = async () => {
   console.log(
     `  ${chalk.cyan(`${step++}.`)} ${chalk.white("cp .env.local.example .env.local")}`,
   );
-  if (projectAnswers.includeContentful) {
+  const cms = getCms(projectAnswers);
+
+  if (cms) {
     console.log(
-      `  ${chalk.cyan(`${step++}.`)} ${chalk.white("Fill in your Contentful API keys and other env vars in .env.local")}`,
+      `  ${chalk.cyan(`${step++}.`)} ${chalk.white(`Fill in your ${cms.name} API keys and other env vars in .env.local`)}`,
     );
   } else {
     console.log(
@@ -511,9 +526,9 @@ export const main = async () => {
     );
   }
   console.log(`  ${chalk.cyan(`${step++}.`)} ${chalk.white("pnpm install")}`);
-  if (projectAnswers.includeContentful) {
+  if (cms) {
     console.log(
-      `  ${chalk.cyan(`${step++}.`)} ${chalk.white("pnpm types:contentful")}  ${chalk.gray("# generate Contentful TypeScript types")}`,
+      `  ${chalk.cyan(`${step++}.`)} ${chalk.white(`pnpm ${cms.typesScript.name}`)}  ${chalk.gray(`# generate ${cms.name} TypeScript types`)}`,
     );
   }
   console.log(

@@ -116,7 +116,7 @@ kickoff starts by asking what kind of project it is (marketing site, careers or 
 
 | Option | Adds |
 | --- | --- |
-| Contentful | Contentful client, getters and parsers, draft mode routes, and type generation (`pnpm types:contentful`) |
+| CMS | `none` (default) keeps pages and copy in code. `contentful` adds the Contentful client, getters and parsers, draft mode routes, and type generation (`pnpm types:contentful`). Content sites start with Contentful selected. |
 | i18n | English at `/` and Spanish at `/es` with next-intl. Copy in `src/copy/` is typed per language, so a missing translation fails the typecheck. Includes a language switcher. |
 | Google Analytics | GA through `@next/third-parties` |
 | Resend | The Resend email package and env vars |
@@ -146,11 +146,11 @@ A monthly workflow also runs the official Next.js upgrade codemod and opens a PR
 
 ### Interactive
 
-Run `kickoff` and answer the prompts: project name, site name, project type and description, production and staging URLs, dev port, brand colors, the add-on checklist, extra packages, hosting, test runner, and agent tooling. Choosing Claude Code with Vercel hosting adds the pipeline question. The project is written to `./<project-name>/`, or to the current directory if you choose that.
+Run `kickoff` and answer the prompts: project name, site name, project type and description, production and staging URLs, dev port, brand colors, the CMS, the add-on checklist, extra packages, hosting, test runner, and agent tooling. Choosing Claude Code with Vercel hosting adds the pipeline question. The project is written to `./<project-name>/`, or to the current directory if you choose that.
 
 ### Non-interactive
 
-Pass a JSON file with every answer. kickoff rejects missing or unknown keys, and values must be real JSON booleans and numbers. The project profile keys are optional, so older answers files still work: `hosting` defaults to `"vercel"`, `testRunner` to `"jest"`, `projectType` to `"marketing"`, `projectDescription` to `""`, `includeForms` and `includePlaywright` to `false`, and `extraPackages` to `[]`.
+Pass a JSON file with every answer. kickoff rejects missing or unknown keys, and values must be real JSON booleans and numbers. The project profile keys are optional, so older answers files still work: `cms` defaults to `"none"`, `hosting` to `"vercel"`, `testRunner` to `"jest"`, `projectType` to `"marketing"`, `projectDescription` to `""`, `includeForms` and `includePlaywright` to `false`, and `extraPackages` to `[]`. Older files with `includeContentful` still work: `true` means `"cms": "contentful"`.
 
 ```sh
 kickoff --answers ./answers.json
@@ -167,7 +167,7 @@ kickoff --answers ./answers.json
   "primaryColor": "#000000",
   "bgColor": "#ffffff",
   "textColor": "#000000",
-  "includeContentful": false,
+  "cms": "none",
   "includeI18n": false,
   "includeGA": false,
   "includeResend": false,

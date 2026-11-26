@@ -310,9 +310,27 @@ describe("kickoff CLI", () => {
     expect(question("hosting").type).toBe("select");
     expect(question("testRunner").type).toBe("select");
     expect(question("testRunner").initial).toBe(0);
+    expect(question("cms").type).toBe("select");
+
+    const cmsInitial = question("cms").initial as (
+      previous: unknown,
+      values: Record<string, string>,
+    ) => number;
+
+    expect(cmsInitial(undefined, { projectType: "content" })).toBe(1);
+    expect(cmsInitial(undefined, { projectType: "marketing" })).toBe(0);
     expect(hostingIndex).toBeLessThan(
       questions.findIndex((q) => q.name === "includeClaudePipeline"),
     );
+  });
+
+  it("generates a Contentful project when Contentful is picked", async () => {
+    vi.mocked(prompts).mockResolvedValueOnce({ ...answers, cms: "contentful" });
+
+    expect(await run("--no-refresh")).toBeNull();
+    expect(
+      existsSync(path.join(root, "prompted-site", "src/contentful/client.ts")),
+    ).toBe(true);
   });
 
   it("generates a Vitest project when Vitest is picked", async () => {

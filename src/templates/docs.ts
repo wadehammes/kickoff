@@ -1,4 +1,5 @@
 import type { ProjectAnswers } from "../types.js";
+import { getCms } from "./cms/index.js";
 import { getBaseBranch, usesPlaywright, usesVercel } from "./config.js";
 import { getTestRunner, usesVitest } from "./testRunner.js";
 
@@ -27,7 +28,8 @@ export const getProjectSummary = (a: ProjectAnswers): string =>
     .join(" ");
 
 export const getClaude = (a: ProjectAnswers): string => {
-  const cmsClause = a.includeContentful ? "Contentful/CMS changes, " : "";
+  const cms = getCms(a);
+  const cmsClause = cms ? `${cms.name}/CMS changes, ` : "";
   return `# Agent instructions
 
 ## About this project
@@ -143,6 +145,7 @@ Most content and design changes go live without anyone else. An engineer is pull
 
 export const getReadme = (a: ProjectAnswers): string => {
   const base = getBaseBranch(a);
+  const cms = getCms(a);
   const previewTarget = a.includeClaudePipeline ? "PRs" : "PRs /`staging`";
   const hostingSteps = (first: number) =>
     usesVercel(a)
@@ -150,40 +153,22 @@ export const getReadme = (a: ProjectAnswers): string => {
 ${first + 1}. **Pull env into this repo** — In your local clone, run **\`npx vercel link\`** once so the CLI targets the right project, then **\`npx vercel env pull .env.local\`** to sync secrets into **\`.env.local\`**. Re-run **pull** when values change in Vercel; keep **\`.env.local\`** out of version control.`
       : `${first}. **Hosting and env** — Point your host at this repository: it builds with **\`pnpm build\`** and serves with **\`pnpm start\`** (Node 24), deploying **\`main\`** to production and **\`${base}\`** to staging. Add **every** variable listed in **\`.env.local.example\`** to its environment settings.
 ${first + 1}. **Local env** — Copy **\`.env.local.example\`** to **\`.env.local\`** and fill in the values; keep **\`.env.local\`** out of version control.`;
-  const prereqBlock = a.includeContentful
-    ? `6. **Contentful space** — Provision the space/environment, create or import content types (\`Page\`, etc.), and collect the tokens you need for the **Contentful** variables in **\`.env.local.example\`** (then see **[Contentful setup](#contentful-setup)**).
+  const prereqBlock = cms
+    ? `6. ${cms.docs.readmePrerequisite}
 ${hostingSteps(7)}`
     : hostingSteps(6);
 
-  const gettingStartedExtra = a.includeContentful
-    ? `
-# Generate Contentful TypeScript types (requires CONTENTFUL_SPACE_ID + CONTENTFUL_CMA_TOKEN in .env.local)
-pnpm types:contentful
-`
-    : "";
+  const gettingStartedExtra = cms?.docs.readmeGettingStarted ?? "";
 
-  const scriptsTypesRow = a.includeContentful
-    ? "| `pnpm types:contentful` | Regenerate `src/contentful/types/` from Contentful space |\n"
-    : "";
+  const scriptsTypesRow = cms?.docs.readmeScriptsRow ?? "";
 
-  const devPreviewDesc = a.includeContentful
-    ? "Start dev server and auto-open Contentful draft mode"
+  const devPreviewDesc = cms
+    ? `Start dev server and auto-open ${cms.name} draft mode`
     : "Start dev server (starts Next only—no CMS draft URL)";
 
-  const contentfulSection = a.includeContentful
-    ? `## Contentful setup
+  const contentfulSection = cms?.docs.readmeSetup ?? "";
 
-1. Create a Contentful space and add a \`Page\` content type
-2. Fill in \`CONTENTFUL_SPACE_ID\`, \`CONTENTFUL_CONTENT_DELIVERY_API_KEY\`, \`CONTENTFUL_PREVIEW_API_KEY\`, \`CONTENTFUL_PREVIEW_SECRET\`, and \`CONTENTFUL_CMA_TOKEN\` in \`.env.local\`
-3. Run \`pnpm types:contentful\` to generate TypeScript types in \`src/contentful/types/\`
-4. Add getters in \`src/contentful/get*.ts\` and parsers in \`src/contentful/parse*.ts\`
-
-See \`docs/handbook/contentful.md\` for full guidance.
-
-`
-    : "";
-
-  const draftSection = a.includeContentful
+  const draftSection = cms
     ? `## Draft mode
 
 Visit \`/api/draft?previewSecret=YOUR_SECRET&redirect=/\` to enable draft mode.
@@ -213,13 +198,13 @@ ${getProjectSummary(a)}
 
 ## Prerequisites (greenfield bootstrap)
 
-These steps happen **outside application code**: GitHub repository settings, the **kickoff** scaffolding CLI on your machine${a.includeContentful ? ", " : " and "}${usesVercel(a) ? "Vercel" : "your host"}${a.includeContentful ? ", and Contentful." : "."} Work through them once when standing up this repo—not for every contributor clone.
+These steps happen **outside application code**: GitHub repository settings, the **kickoff** scaffolding CLI on your machine${cms ? ", " : " and "}${usesVercel(a) ? "Vercel" : "your host"}${cms ? `, and ${cms.name}.` : "."} Work through them once when standing up this repo—not for every contributor clone.
 
 If you joined an existing project, skip ahead to **[Getting started](#getting-started)**.
 
 1. **GitHub repository** — Create the repo your team will use for this site.
 ${a.includeClaudePipeline ? getPipelineBranchingPrereqs() : getStagingBranchingPrereqs()}
-${prereqBlock}${a.includeClaudePipeline ? `\n${a.includeContentful ? 9 : 8}. **Vercel pipeline settings** — In the Vercel project: enable **Deployment Checks** for production (native \`lint\` and \`typecheck\`, plus the GitHub **Lint/Test** and **Staging Smoke** checks) and restrict **Force Promote**; add ${a.stagingUrl} as a domain (Staging Smoke points it at each new build); set **Deployment Protection** to Standard Protection with Vercel Authentication and create a **Protection Bypass for Automation** secret; turn on the team policy **Separate Production Secret Values** and mark credentials **Sensitive**. See **[docs/handbook/releases.md](docs/handbook/releases.md)**.` : ""}
+${prereqBlock}${a.includeClaudePipeline ? `\n${cms ? 9 : 8}. **Vercel pipeline settings** — In the Vercel project: enable **Deployment Checks** for production (native \`lint\` and \`typecheck\`, plus the GitHub **Lint/Test** and **Staging Smoke** checks) and restrict **Force Promote**; add ${a.stagingUrl} as a domain (Staging Smoke points it at each new build); set **Deployment Protection** to Standard Protection with Vercel Authentication and create a **Protection Bypass for Automation** secret; turn on the team policy **Separate Production Secret Values** and mark credentials **Sensitive**. See **[docs/handbook/releases.md](docs/handbook/releases.md)**.` : ""}
 
 ## Getting started
 
@@ -342,8 +327,9 @@ There is no manual release step: each merge to \`main\` deploys to production. U
 // ---------------------------------------------------------------------------
 
 export const getHandbookNonNegotiables = (a: ProjectAnswers): string => {
-  const contentfulRow = a.includeContentful
-    ? "| Getters fetch entries and parsers turn them into component props | Components that read raw Contentful entries, or edits to `src/contentful/types/` | [contentful.md](contentful.md) |\n"
+  const cms = getCms(a);
+  const contentfulRow = cms
+    ? `| Getters fetch entries and parsers turn them into component props | Components that read raw ${cms.name} entries, or edits to \`${cms.generatedTypesDir}/\` | [${cms.handbook.file}](${cms.handbook.file}) |\n`
     : "";
   const formsRow = a.includeForms
     ? "| `react-hook-form` with a `zod` schema and `zodResolver`, validated again in the Route Handler | Hand-rolled form state, or validation only in the browser | [patterns.md](patterns.md#forms) |\n"
@@ -402,8 +388,9 @@ export const getHandbookReadme = (a: ProjectAnswers): string => {
       ? "| [languages.md](languages.md) | Change copy, add a page, or touch routing in English and Spanish |\n"
       : "",
   ].join("");
-  const contentfulRow = a.includeContentful
-    ? "| [contentful.md](contentful.md) | Change a content type, getter, parser, or Rich Text rendering |\n"
+  const cms = getCms(a);
+  const contentfulRow = cms
+    ? `| [${cms.handbook.file}](${cms.handbook.file}) | Change a content type, getter, parser, or Rich Text rendering |\n`
     : "";
 
   return `# ${s} handbook
@@ -450,6 +437,7 @@ ${getHandbookChangePolicy(a)}
 // ---------------------------------------------------------------------------
 
 export const getHandbookLlms = (a: ProjectAnswers): string => {
+  const cms = getCms(a);
   const rows = [
     [
       "Any change, before anything else",
@@ -478,11 +466,11 @@ export const getHandbookLlms = (a: ProjectAnswers): string => {
       "[patterns.md](patterns.md)",
     ],
     ["`src/app/api/**`, `src/api/**`", "[api-routes.md](api-routes.md)"],
-    ...(a.includeContentful
+    ...(cms
       ? [
           [
-            "`src/contentful/**`, content types, parsers, Rich Text",
-            "[contentful.md](contentful.md)",
+            `\`${cms.dir}/**\`, content types, parsers, Rich Text`,
+            `[${cms.handbook.file}](${cms.handbook.file})`,
           ],
         ]
       : []),
@@ -551,7 +539,9 @@ ${getHandbookChangePolicy(a)}
 
 export const getHandbookArchitecture = (a: ProjectAnswers): string => {
   const s = a.siteName;
-  if (!a.includeContentful) {
+  const cms = getCms(a);
+
+  if (!cms) {
     return `# Architecture
 
 If you are new here, this page is your map. It explains how the site is structured, which technologies we rely on, and how the App Router renders UI.
@@ -609,15 +599,7 @@ ${
 
 One folder per feature component under \`src/components/<ComponentName>/\`. See [components.md](components.md).
 
-### \`src/contentful/\`
-
-- **Client**: \`src/contentful/client.ts\` — delivery vs preview clients from env.
-- **Getters**: \`get*.ts\` files — async functions that call Contentful with \`preview\` flag.
-- **Parsers**: \`parse*.ts\` — normalize raw entries into typed app shapes.
-- **Cache**: \`cacheConfig.ts\` + \`cacheKeys.ts\` — \`unstable_cache\` wrappers and typed cache keys and cache tags.
-- **Types**: \`src/contentful/types/\` — generated; run \`pnpm types:contentful\`.
-
-### \`src/hooks/\`
+${cms.docs.architectureDir}### \`src/hooks/\`
 
 Custom hooks; mutations under \`src/hooks/mutations/\` use React Query and \`src/api/urls.ts\`.
 
@@ -716,7 +698,7 @@ If you are unsure, copy a nearby file that already does the right thing and run 
 - **Do not re-export types (or values) from another module.** Import from the module that defines them. Never re-export types from a component file so consumers can import from a single place — have them import from the defining module directly.
 - **Use a single params object for function parameters.** For any function that takes more than one argument or an optional argument, pass a single object parameter so call sites are self-documenting and order-independent.
 - **Use semantic parameter and variable names.** Pick a name that describes what the value *is* — its domain meaning, format, or source — not its lifecycle state. Avoid generic placeholders like \`raw\`, \`data\`, \`val\`, \`tmp\`, \`result\`, \`thing\`. Prefer \`encodedValue\`, \`apiResponse\`, \`candidateSlug\`, \`trimmedDescription\`.
-${a.includeContentful ? "- **Contentful types**: Content types are generated into `src/contentful/types/` (run `pnpm types:contentful` with Contentful env vars set). Do not edit generated types by hand — for any reason.\n- **Contentful ordering**: Do not sort or alphabetize Contentful data in the app. Order at fetch time via the Contentful API `order` parameter.\n" : ""}- **App-level types**: Shared slugs, navigation IDs, and similar **constants** live in \`src/utils/constants.ts\`. Feature-scoped interfaces live under \`src/interfaces/\`. Prefer colocating types with a feature when they are not cross-cutting.
+${getCms(a)?.docs.conventions ?? ""}- **App-level types**: Shared slugs, navigation IDs, and similar **constants** live in \`src/utils/constants.ts\`. Feature-scoped interfaces live under \`src/interfaces/\`. Prefer colocating types with a feature when they are not cross-cutting.
 - **API and forms**: When adding new API or form payloads, define interfaces in the relevant module, next to \`src/api/urls.ts\`, or alongside the route handler under \`src/app/api/\`.
 - **Site constants**: App-wide slugs, Contentful entry IDs, and similar **data constants** belong in \`src/utils/constants.ts\`, not scattered as magic strings.
 
@@ -913,108 +895,12 @@ ${nextScriptMock}
 };
 
 // ---------------------------------------------------------------------------
-// docs/handbook/contentful.md
-// ---------------------------------------------------------------------------
-
-export const getHandbookContentful = (a: ProjectAnswers): string => {
-  if (!a.includeContentful) {
-    return `# Contentful integration
-
-This project was scaffolded **without** Contentful—there is no \`src/contentful/\` tree and no Contentful type-generation script.
-
-To adopt Contentful later, add the SDK and codegen dependencies, restore env keys in \`next.config.ts\`, copy the \`src/contentful/\` patterns from a Contentful-enabled kickoff run (or another project handbook), and run type generation against your space.
-`;
-  }
-
-  return `# Contentful integration
-
-Most pages are driven by Contentful. This guide explains how **generated types**, **getters** (fetch), and **parsers** (normalize) fit together, and how sections and content blocks reach the UI.
-
-## Content types (generated)
-
-All Contentful content type TypeScript definitions live under \`src/contentful/types/\`. They are **generated** from the CMS and **must never be edited by hand — for any reason**.
-
-- **Regenerate**: Run \`pnpm types:contentful\` (requires \`CONTENTFUL_SPACE_ID\` and \`CONTENTFUL_CMA_TOKEN\` in env). The script runs Biome format on the generated types.
-- When the CMS schema changes, regenerate and fix any parser or component that breaks.
-
-**Source of truth rule (important):** If you see a type mismatch between app code and a generated Contentful type, **do not fix it by editing \`src/contentful/types/*\`**. Those files are overwritten by codegen.
-
-- If the CMS schema is correct: **update app code** (parsers/components/factories/tests) to match the generated types.
-- If the app behavior is correct and the CMS schema is wrong: **update the CMS model** and re-run \`pnpm types:contentful\`.
-
-Common rationalizations that are still wrong: "I'm just renaming a field to match a rename the editor is about to do." "I need to unblock myself since I don't have CMS access." In all cases: do the CMS edit first, then run codegen, then update consumers.
-
-## Getters
-
-**Getters** are async functions that talk to Contentful through \`src/contentful/client.ts\`.
-
-- Each getter file is named \`get<Resource>.ts\` (e.g. \`getPages.ts\`, \`getNavigation.ts\`).
-- **Preview**: Pass \`preview: true\` when draft/preview mode is active so the preview client and token are used.
-- Getters should be the only place that calls the Contentful client directly.
-
-## Parsers
-
-For every section or content block we render, a **parser** in \`src/contentful/parse*.ts\` turns the raw entry into a shape React can consume.
-
-- **Input**: Raw Contentful entry types from generated \`src/contentful/types/\`.
-- **Output**: Normalized app types (plain objects with \`id\` and typed fields).
-- **Helpers in \`src/contentful/helpers.ts\`**:
-  - \`ExtractSymbolType\` — string union from a Contentful Symbol field.
-  - \`ContentfulTypeCheck\` — compile-time check that the parsed **type** matches the Contentful fields.
-  - \`ContentfulParseShape\` — compile-time check that the parsed **return literal** sets every key on the type, including optionals. Apply via \`satisfies\` on the terminal return: \`return { ...fields } satisfies ContentfulParseShape<MyType>;\`. Catches silently dropped fields that would otherwise be \`undefined\` at runtime.
-- **Assets**: \`src/contentful/parseContentfulAsset.ts\` normalizes assets across parsers.
-
-## Sections vs content blocks
-
-### Sections
-
-Sections are the top-level building blocks attached to a page in Contentful.
-
-- Parsed in a top-level \`parseSections.ts\` and related parser types.
-- Rendered by a \`SectionRenderer\` component that switches on section type.
-
-### Content blocks
-
-Modules (content cards, copy blocks, slides, etc.) **live inside** sections.
-
-- Parsed in individual \`parse*.ts\` files.
-- Rendered by a \`ContentRenderer\` component that switches on content type, runs the parser, and renders the matching component.
-
-## Adding a new Contentful-driven block (checklist)
-
-1. **Types**: Confirm the content type exists in Contentful, then run \`pnpm types:contentful\`.
-2. **Parser**: Add or extend \`src/contentful/parse<Name>.ts\` with a normalized type and \`parseContentful…\` function. Append \`satisfies ContentfulParseShape<MyType>\` to the terminal return literal so every key must be set explicitly. Use \`ContentfulTypeCheck\` and \`ExtractSymbolType\` where appropriate.
-3. **ContentRenderer**: Handle the new content type: parse the entry and render the component with typed props.
-4. **Section parser**: If the block appears inside a section's content array, ensure the sections parser includes the new type in its content union and parsing logic.
-5. **Component**: Implement the UI with CSS Modules per [css.md](css.md).
-
-## Rich Text
-
-Rich Text is rendered with \`@contentful/rich-text-react-renderer\`. Reuse shared options and typography patterns from nearby components so links and marks stay consistent.
-
-The \`RichText\` component in \`src/contentful/richText.tsx\` is the standard wrapper. For components that need custom rendering options, pass an \`options\` object to \`documentToReactComponents\` directly.
-
-## Client and environment
-
-- **Client**: \`src/contentful/client.ts\` is the one place we construct Contentful clients for delivery and preview.
-- Do **not** create ad-hoc clients in random files—reuse this module and the getters/parsers so tokens and behavior stay aligned.
-
-## Cache
-
-- **\`src/contentful/cacheConfig.ts\`**: \`sanitizeForCache\` and the revalidation seconds constant. Wrap getter calls with \`unstable_cache\` here to enable on-demand revalidation.
-- **\`src/contentful/cacheKeys.ts\`**: Typed cache key constants and cache tags so keys are consistent across getters and revalidation routes.
-
-## Pagination
-
-Use \`CONTENTFUL_BATCH_LIMIT\` (defined in \`src/contentful/contentfulPagination.ts\`) when fetching large sets. Batch requests using \`skip\`/\`limit\` with a stable \`order\` so pagination is deterministic.
-`;
-};
-
-// ---------------------------------------------------------------------------
 // docs/handbook/components.md
 // ---------------------------------------------------------------------------
 
 export const getHandbookComponents = (a: ProjectAnswers): string => {
+  const cms = getCms(a);
+
   return `# Components
 
 New UI lives under \`src/components/<Name>/\`. This page describes the files we expect in that folder, how the **scaffold** works, and how tests and dynamic imports fit in.
@@ -1042,11 +928,11 @@ Run **\`pnpm scaffold <ComponentName>\`** when you want a head start — it drop
 After scaffolding, follow **[testing.md](testing.md)** for page object vs spec responsibilities.
 
 ${
-  a.includeContentful
-    ? `**Heads-up:** For Contentful-backed components, treat the scaffold as a starting point only — the default **interfaces** / **factory** are generic stubs, not CMS parsers:
+  cms
+    ? `**Heads-up:** For ${cms.name}-backed components, treat the scaffold as a starting point only — the default **interfaces** / **factory** are generic stubs, not CMS parsers:
 
-1. Drop or replace the default **interfaces** when your props come from a parser type in \`src/contentful/\`.
-2. Wire types and parsers from \`src/contentful/\` as in [contentful.md](contentful.md).
+1. Drop or replace the default **interfaces** when your props come from a parser type in \`${cms.dir}/\`.
+2. Wire types and parsers from \`${cms.dir}/\` as in [${cms.handbook.file}](${cms.handbook.file}).
 3. Take a prop typed as the parser output (e.g. \`metadata: MyBlockType\`) when the block is CMS-driven.
 
 `
@@ -1080,10 +966,11 @@ New headless behavior should use **[Base UI](https://base-ui.com/react/overview/
 // ---------------------------------------------------------------------------
 
 export const getHandbookPatterns = (a: ProjectAnswers): string => {
-  const cmsBullets = a.includeContentful
-    ? `- **Contentful**: Call getters from \`src/contentful/\` with \`{ preview }\` derived from \`draftMode()\` when you need draft content.
+  const cms = getCms(a);
+  const cmsBullets = cms
+    ? `- **${cms.name}**: Call getters from \`${cms.dir}/\` with \`{ preview }\` derived from \`draftMode()\` when you need draft content.
 - **Serialization**: Next.js must receive serializable props when passing data from Server to Client Components. Replace \`undefined\` with \`null\` where needed.
-- **Not found**: Use \`notFound()\` from \`next/navigation\` when Contentful returns no page for a slug.
+- **Not found**: Use \`notFound()\` from \`next/navigation\` when ${cms.name} returns no page for a slug.
 `
     : `- **Serialization**: Next.js must receive serializable props when passing data from Server to Client Components. Replace \`undefined\` with \`null\` where needed.
 - **Not found**: Use \`notFound()\` from \`next/navigation\` when a route has no data.
@@ -1153,13 +1040,13 @@ export const getHandbookPlatform = (a: ProjectAnswers): string => {
     ? "the `main` ruleset, CODEOWNERS, Claude GitHub App and Actions secrets,"
     : "default branch (`staging`), branch protections, seeding **`v0.0.0`**,";
 
-  const greenfield = a.includeContentful
-    ? `GitHub, ${usesVercel(a) ? "Vercel" : "hosting"}, and Contentful setup that happens **outside** this repo—including ${greenfieldBranching} importing the scaffold from kickoff, adding **all** env vars from **\`.env.local.example\`**${usesVercel(a) ? " in Vercel, and **`npx vercel env pull .env.local`** in the clone" : " in your host's settings"}—is captured in root **[README.md](../../README.md)** — **Prerequisites (greenfield bootstrap)**.`
+  const cms = getCms(a);
+  const greenfield = cms
+    ? `GitHub, ${usesVercel(a) ? "Vercel" : "hosting"}, and ${cms.name} setup that happens **outside** this repo—including ${greenfieldBranching} importing the scaffold from kickoff, adding **all** env vars from **\`.env.local.example\`**${usesVercel(a) ? " in Vercel, and **`npx vercel env pull .env.local`** in the clone" : " in your host's settings"}—is captured in root **[README.md](../../README.md)** — **Prerequisites (greenfield bootstrap)**.`
     : `GitHub and ${usesVercel(a) ? "Vercel" : "hosting"} setup that happens **outside** this repo—including ${greenfieldBranching} importing the scaffold from kickoff, adding env vars from **\`.env.local.example\`**${usesVercel(a) ? " in Vercel, and **`npx vercel env pull .env.local`** in the clone" : " in your host's settings"}—is captured in root **[README.md](../../README.md)** — **Prerequisites (greenfield bootstrap)**.`;
 
-  const scriptRowsExtra = a.includeContentful
-    ? `| \`pnpm types:contentful\` | Regenerate \`src/contentful/types\` (needs CMA env vars). |
-| \`pnpm dev:preview\` | Dev server with Contentful preview mode enabled. |
+  const scriptRowsExtra = cms
+    ? `${cms.docs.platformScriptRows}| \`pnpm dev:preview\` | Dev server with ${cms.name} preview mode enabled. |
 `
     : `| \`pnpm dev:preview\` | Starts Next dev only (no \`/api/draft\` auto-open when Contentful is omitted). |
 `;
@@ -1232,18 +1119,16 @@ ${agentHooksSection}${a.includePlaywright && !a.includeClaudePipeline ? getHandb
 // ---------------------------------------------------------------------------
 
 export const getHandbookEnv = (a: ProjectAnswers): string => {
-  const notableContentful = a.includeContentful
-    ? `- **Contentful** — space, delivery/preview tokens, preview secret, CMA token for codegen.
-`
-    : "";
-  const draftSection = a.includeContentful
+  const cms = getCms(a);
+  const notableContentful = cms?.docs.envSummary ?? "";
+  const draftSection = cms
     ? `## Preview and draft mode
 
 Draft mode uses App Router APIs:
 
-- **Enable draft**: \`src/app/api/draft/route.ts\` checks \`previewSecret\` against **\`CONTENTFUL_PREVIEW_SECRET\`**, enables draft mode, then redirects.
+- **Enable draft**: \`src/app/api/draft/route.ts\` checks \`previewSecret\` against **\`${cms.previewSecretEnv}\`**, enables draft mode, then redirects.
 - **Disable draft**: \`src/app/api/disable-draft/route.ts\`.
-- **Preview content**: Getters accept \`preview: true\` and use the preview client from \`src/contentful/client.ts\`.
+${cms.docs.envPreview}
 
 `
     : "";
@@ -1495,6 +1380,8 @@ Before adding a new script or external loader, **grep the repo for similar env k
 
 export const getHandbookDistribution = (a: ProjectAnswers): string => {
   const url = a.prodUrl;
+  const cms = getCms(a);
+
   return `# Sitemaps and public output
 
 This chapter describes how the sitemap and robots rules are produced for crawlers.
@@ -1505,7 +1392,7 @@ This chapter describes how the sitemap and robots rules are produced for crawler
 
 The sitemap uses Next.js's built-in [sitemap file convention](https://nextjs.org/docs/app/api-reference/file-conventions/metadata/sitemap): **\`src/app/sitemap.ts\`** returns the entries and Next.js serves them at **\`/sitemap.xml\`**. There is no build script or file in \`public/\`.
 
-- **Routes**: \`STATIC_ROUTES\` lists pages that aren't generated from content.${a.includeContentful ? " Indexable Contentful pages (`enableIndexing`) are added from `fetchPages`, with their `updatedAt` as `lastModified`." : ""}${a.includeI18n ? " Each route gets an English and a Spanish URL, with `alternates.languages` linking them." : ""}
+- **Routes**: \`STATIC_ROUTES\` lists pages that aren't generated from content.${cms ? ` Indexable ${cms.name} pages (\`enableIndexing\`) are added from \`fetchPages\`, with their \`updatedAt\` as \`lastModified\`.` : ""}${a.includeI18n ? " Each route gets an English and a Spanish URL, with `alternates.languages` linking them." : ""}
 - **URLs** use \`envUrl()\`, so staging builds list staging URLs (robots blocks indexing outside production anyway).
 - **Discovery**: \`src/app/robots.ts\` points crawlers at \`${url}/sitemap.xml\`, and the root layout links it with \`<link rel="sitemap">\`.
 
@@ -1523,9 +1410,7 @@ The sitemap uses Next.js's built-in [sitemap file convention](https://nextjs.org
 // ---------------------------------------------------------------------------
 
 export const getHandbookSourceLayout = (a: ProjectAnswers): string => {
-  const contentfulRow = a.includeContentful
-    ? "| `contentful.helpers.ts` | `createImageUrl`, `isVideo`, `getContentfulEntryWebUrl` |\n"
-    : "";
+  const contentfulRow = getCms(a)?.docs.sourceLayoutRows ?? "";
 
   return `# Source layout reference
 
