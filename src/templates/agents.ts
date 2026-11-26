@@ -1079,16 +1079,22 @@ export const getHandbookReviewCommand = (a: ProjectAnswers): string => {
     ? "- Copy: user-facing text in `src/copy/` with no Spanish (`es`) entry, or a page with hard-coded strings instead of copy ([platform.md → Languages](docs/handbook/platform.md#languages-english-and-spanish)).\n"
     : "";
 
-  return `---
-description: Review the changes in this branch against docs/handbook and CLAUDE.md.
-argument-hint: "[base branch or file paths]"
----
+  const frontmatter =
+    a.agentTooling === "claude"
+      ? '---\ndescription: Review the changes in this branch against docs/handbook and CLAUDE.md.\nargument-hint: "[base branch or file paths]"\n---\n\n'
+      : "";
+  const argumentsLine =
+    a.agentTooling === "claude"
+      ? "Arguments: $ARGUMENTS"
+      : "Arguments: whatever the engineer typed after the command, if anything.";
+
+  return `${frontmatter}# Handbook review
 
 Review the code this branch changes against the handbook, and report where it doesn't follow it. Don't edit any code or handbook files; this is a review. After the report, the engineer may reply **go** for a separate pass that applies the fixes and runs \`pnpm lint:all\`.
 
 ## 1. Find the changes
 
-Arguments: $ARGUMENTS
+${argumentsLine}
 
 - If the arguments are paths that exist, review those files and their pairs (\`.po.tsx\`, \`.spec.ts(x)\`).
 - If the argument is a branch, diff against it.
