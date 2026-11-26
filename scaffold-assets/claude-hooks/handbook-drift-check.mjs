@@ -2,6 +2,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, normalize } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const MAX_REPORTED = 20;
 
@@ -62,10 +63,13 @@ const docPaths = () =>
     existsSync(doc),
   );
 
-const headingSlugs = (path) => {
+const withoutFencedCode = (markdown) =>
+  markdown.replace(/^```[\s\S]*?^```/gm, "");
+
+export const headingSlugs = (path) => {
   const slugs = new Set();
 
-  for (const [, heading] of readFileSync(path, "utf8").matchAll(
+  for (const [, heading] of withoutFencedCode(readFileSync(path, "utf8")).matchAll(
     /^#+\s+(.*)$/gm,
   )) {
     slugs.add(
@@ -81,16 +85,16 @@ const headingSlugs = (path) => {
   return slugs;
 };
 
-const findBrokenLinks = () => {
+export const findBrokenLinks = (docs = docPaths()) => {
   const broken = [];
 
-  for (const doc of docPaths()) {
+  for (const doc of docs) {
     const base = dirname(doc) || ".";
 
-    for (const [, target] of readFileSync(doc, "utf8").matchAll(
+    for (const [, target] of withoutFencedCode(readFileSync(doc, "utf8")).matchAll(
       /\[[^\]]+\]\(([^)\s]+)\)/g,
     )) {
-      if (/^(https?:\/\/|mailto:|#)/.test(target)) {
+      if (/^([a-z][a-z0-9+.-]*:|#)/i.test(target)) {
         continue;
       }
 
@@ -114,7 +118,7 @@ const findBrokenLinks = () => {
     }
   }
 
-  return broken.slice(0, MAX_REPORTED);
+  return broken;
 };
 
 const fencedAndInlineCodeIn = (body) => [
@@ -175,7 +179,7 @@ const collectFindings = () => {
   );
 
   const findings = [];
-  const brokenLinks = findBrokenLinks();
+  const brokenLinks = findBrokenLinks().slice(0, MAX_REPORTED);
   const missingScripts = findMissingScripts();
 
   if (brokenLinks.length > 0) {
@@ -249,4 +253,6 @@ const main = async () => {
   process.stdout.write(JSON.stringify({ decision: "block", reason }));
 };
 
-await main();
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  await main();
+}

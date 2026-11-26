@@ -1,6 +1,11 @@
 import type { ProjectAnswers } from "../types.js";
 import { getBaseBranch } from "./config.js";
 
+export const getHandbookChangePolicy = (a: ProjectAnswers): string =>
+  a.includeClaudePipeline
+    ? "These pages describe what the code does today. When a change affects how we build something, update the matching page in the same PR. No one reviews these PRs by hand, so a stale page misleads the next agent."
+    : "These pages describe what the code does today and are team agreements. When a change seems to affect how we build something, name the page and section, describe the update you'd make, and ask the engineer you're working with before editing it. A broken link or typo can be fixed directly. Once they agree, update the page in the same PR.";
+
 // ---------------------------------------------------------------------------
 // CLAUDE.md
 // ---------------------------------------------------------------------------
@@ -13,11 +18,7 @@ Before **substantive** work in this repo (features, refactors, ${cmsClause}patte
 
 Follow documented patterns.
 
-**Keep the handbook accurate:** ${
-    a.includeClaudePipeline
-      ? "whenever a change would make the handbook wrong or incomplete (new flows, moved files, scaffold or convention changes, anything a future reader would be misled by), update the relevant **`docs/handbook/*.md`** in the **same PR**. No one reviews these PRs by hand, so a stale page misleads the next agent."
-      : "the handbook pages are team agreements. When a change seems to affect one, name the page and section, describe the update you'd make, and ask the engineer you're working with before editing it. A broken link or typo can be fixed directly. Once they agree, update the page in the **same PR**."
-  }
+**Keep the handbook accurate:** ${getHandbookChangePolicy(a)}
 
 You can skip a full handbook pass for **narrow** edits (typos, single obvious lines, mechanical fixes) that do not change behavior or documented expectations.
 
@@ -402,15 +403,8 @@ Setup for a new machine (prerequisites, env, first \`pnpm dev\`) is in the root 
 ## Keep it accurate
 
 ${getHandbookChangePolicy(a)}
-
-Most rules here also apply to older code that doesn't follow them yet. You don't need to fix a whole file, but code you add or rewrite should follow them.
 `;
 };
-
-const getHandbookChangePolicy = (a: ProjectAnswers): string =>
-  a.includeClaudePipeline
-    ? "These pages describe what the code does today. Changes ship without a human reviewer, so when a change affects how we build something, update the matching page in the same PR, so the next person or agent isn't led the wrong way."
-    : "These pages describe what the code does today and are team agreements. When a change affects how we build something, update the matching page in the same PR. Agents describe the update they'd make and ask the engineer they're working with before editing a page; a broken link or typo can be fixed directly.";
 
 // ---------------------------------------------------------------------------
 // docs/handbook/llms.md
@@ -489,10 +483,6 @@ export const getHandbookLlms = (a: ProjectAnswers): string => {
     ["An unfamiliar term", "[glossary.md](glossary.md)"],
   ];
 
-  const policy = a.includeClaudePipeline
-    ? "When a change affects how we build something, update the matching page in the same PR. No one reviews these PRs by hand, so a stale page misleads the next agent."
-    : "When a change seems to affect how we build something, describe the update you'd make to the matching page and ask the engineer you're working with before editing it. The pages are team agreements: a broken link or typo can be fixed directly, but a rule changes only with the engineer's go-ahead.";
-
   return `# Handbook routing
 
 Which page to read before a task. Written for agents and tools; people should start at [README.md](README.md). Paths are relative to this folder (\`docs/handbook/\`) unless they start with \`src/\` or name a root file.
@@ -503,7 +493,7 @@ ${rows.map(([task, page]) => `| ${task} | ${page} |`).join("\n")}
 
 Outside this folder: setup and prerequisites are in the root [README.md](../../README.md), and agent defaults are in [CLAUDE.md](../../CLAUDE.md).${a.includeClaudePipeline ? " How people who aren't engineers request changes is in [working-with-claude.md](../working-with-claude.md)." : ""}
 
-${policy}
+${getHandbookChangePolicy(a)}
 `;
 };
 

@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { findBrokenLinks } from "../scaffold-assets/claude-hooks/handbook-drift-check.mjs";
 import { generateProject } from "./generator.js";
 import type { ProjectAnswers } from "./types.js";
 
@@ -290,58 +291,10 @@ const findInvalidJson = (root: string): string[] =>
       }
     });
 
-const headingSlugs = (file: string): Set<string> =>
-  new Set(
-    readFileSync(file, "utf-8")
-      .replace(/^```[\s\S]*?^```/gm, "")
-      .split("\n")
-      .filter((line) => /^#{1,6}\s/.test(line))
-      .map((line) =>
-        line
-          .replace(/^#+\s*/, "")
-          .replaceAll("`", "")
-          .toLowerCase()
-          .replace(/[^\p{L}\p{N}_\s-]/gu, "")
-          .trim()
-          .replaceAll(" ", "-"),
-      ),
-  );
-
 const findBrokenDocLinks = (root: string): string[] =>
-  listFiles(root)
-    .filter(
-      (file) =>
-        file.endsWith(".md") &&
-        !path.relative(root, file).startsWith("node_modules"),
-    )
-    .flatMap((file) =>
-      [
-        ...readFileSync(file, "utf-8")
-          .replace(/^```[\s\S]*?^```/gm, "")
-          .matchAll(/\]\(([^)\s]+)\)/g),
-      ]
-        .map(([, target]) => target)
-        .filter((target) => !/^([a-z][a-z0-9+.-]*:|#)/i.test(target))
-        .flatMap((target) => {
-          const [targetPath, anchor] = target.split("#");
-          const resolved = path.join(path.dirname(file), targetPath);
-          const label = `${path.relative(root, file)} → ${target}`;
-
-          if (!existsSync(resolved)) {
-            return [`${label} (no such file)`];
-          }
-
-          if (
-            anchor &&
-            resolved.endsWith(".md") &&
-            !headingSlugs(resolved).has(anchor)
-          ) {
-            return [`${label} (no such heading)`];
-          }
-
-          return [];
-        }),
-    );
+  findBrokenLinks(listFiles(root).filter((file) => file.endsWith(".md"))).map(
+    (problem: string) => problem.replaceAll(`${root}/`, ""),
+  );
 
 let matrixRoot: string;
 let previousCwd: string;
