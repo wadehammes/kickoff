@@ -271,6 +271,17 @@ describe("generateProject", () => {
     );
   });
 
+  it("has Dependabot keep both npm packages and pinned actions current", async () => {
+    const root = await runInTemp(baseAnswers({ projectName: "deps-site" }));
+    const config = readFileSync(
+      path.join(root, ".github/dependabot.yml"),
+      "utf-8",
+    );
+
+    expect(config).toContain("package-ecosystem: npm");
+    expect(config).toContain("package-ecosystem: github-actions");
+  });
+
   it("builds draft preview URLs without a double slash", async () => {
     const root = await runInTemp(baseAnswers({ projectName: "preview-site" }));
     const helper = path.join(root, "scripts/lib/preview-local.mjs");

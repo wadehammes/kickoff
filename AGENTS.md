@@ -11,6 +11,8 @@ src/
 ├── index.ts              ← CLI entry (argv, prompts or --answers → generateProject)
 ├── types.ts              ← ProjectAnswers interface
 ├── validateAnswers.ts    ← Strict JSON validation for --answers
+├── versions/
+│   └── refreshVersions.ts ← Picks the newest npm version in range that is 7+ days old; used before generating
 ├── generator.ts          ← Orchestrates all write() calls; getScaffoldRoot, dry-run / verbose
 ├── verifyScaffoldE2e.ts  ← E2E: generate fixture projects and run their CI scripts
 ├── handbook/
@@ -57,6 +59,7 @@ Examples:
 - Add or change agent hooks → update `src/templates/agents.ts`, handbook `platform.md`, and root `README.md` (What you get, Options)
 - Change a rule in `getHandbookConventions` or another chapter → update the matching row in `getHandbookNonNegotiables`, and check `getHandbookLlms` still routes the files it covers
 - Change the handbook layout (`getHandbookReadme`, `getHandbookLlms`, `getHandbookNonNegotiables`) → make the same change to the structure `src/handbook/prompt.ts` asks agents to write, so existing repos and new projects get the same handbook
+- Add a package to a generated project → add it to `DEFAULT_VERSIONS` in `config.ts` (the refresh only updates packages listed there), and to `KEEP_PINNED` if it must stay exactly pinned
 - Change the `/handbook-review` command (`getHandbookReviewCommand` in `agents.ts`) → keep its list of hook rules in step with the hooks tables in `getClaudeHooksReadme` / `getCursorHooksReadme`
 - Change the Claude pipeline (`includeClaudePipeline`: workflows in `github.ts`, quality gate in `agents.ts`, Playwright in `testing.ts`) → update `getHandbookPipelineSection` / `getPipeline*` helpers in `docs.ts`, `getClaudePipelineInstructions` (generated `CLAUDE.md`), `getWorkingWithClaudeGuide` (`docs/working-with-claude.md` for non-technical requesters), root `README.md`, and `fixtures/scaffold-e2e/claude-pipeline.json` if answers change
 
@@ -105,6 +108,7 @@ pnpm test:coverage      # vitest with coverage; CI fails below the thresholds in
 pnpm test:scaffold-e2e  # generate fixture projects, run their CI scripts, build/serve/smoke non-CMS fixtures
 SCAFFOLD_E2E_PLAYWRIGHT=1 pnpm test:scaffold-e2e  # also run generated Playwright suites
 SCAFFOLD_E2E_ONLY=claude-static pnpm test:scaffold-e2e  # run only the named fixtures
+SCAFFOLD_E2E_REFRESH=0 pnpm test:scaffold-e2e  # use the tested package versions instead of refreshing from npm
 node dist/index.js      # run the CLI (interactive; or --answers / --dry-run / --help)
 node dist/index.js handbook --dry-run   # scan the current repo and print the handbook build prompt
 ```

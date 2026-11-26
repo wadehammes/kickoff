@@ -160,7 +160,17 @@ The full shape is `ProjectAnswers` in [`src/types.ts`](src/types.ts). `includeCl
 | `--force` | Write into a directory that already has files |
 | `--dry-run` | Print the files that would be written, without writing them |
 | `--verbose` | Log each file as it's written |
+| `--no-refresh` | Use kickoff's tested package versions instead of checking npm |
+| `--latest-majors` | Also move packages to newer major versions |
 | `-h`, `--help` | Show usage |
+
+### Package versions
+
+Before it writes anything, kickoff checks npm and moves every package to the newest version in its current major that has been out for at least 7 days, skipping prereleases and deprecated releases. That way a project generated months after kickoff's last update still starts current. The step takes about a second. If npm can't be reached, kickoff uses the versions it was tested with and says so.
+
+Newer major versions are listed but not applied, because the templates were tested against the current ones. Pass `--latest-majors` to take them anyway, or `--no-refresh` to skip the check. Biome stays pinned exactly, since its config schema changes between releases.
+
+After generation, Dependabot keeps the GitHub Actions pins current, with the same 7-day cooldown.
 
 ### After generating
 
@@ -278,7 +288,7 @@ Templates and the generated handbook (`src/templates/docs.ts`) have to stay in s
 
 The matrix test (`src/generationMatrix.test.ts`) runs in seconds. For every combination it checks for colliding routes, pages without exactly one `<html>` layout, imports that don't resolve, references to `pnpm` scripts that don't exist, invalid JSON, and TypeScript syntax errors. When you fix a class of generator bug, add a check there.
 
-The end-to-end run is slower and covers each option at least once with a real install. Set `SCAFFOLD_E2E_PLAYWRIGHT=1` to also run the generated Playwright suites for pipeline fixtures, or `SCAFFOLD_E2E_ONLY=claude-static,cursor-static` to run just those fixtures. CI does this on every PR to `main`, alongside the build, lint and unit tests.
+The end-to-end run is slower and covers each option at least once with a real install. Set `SCAFFOLD_E2E_PLAYWRIGHT=1` to also run the generated Playwright suites for pipeline fixtures, or `SCAFFOLD_E2E_ONLY=claude-static,cursor-static` to run just those fixtures. The run refreshes package versions from npm first, the same way `kickoff` does; set `SCAFFOLD_E2E_REFRESH=0` to use the tested versions. CI does this on every PR to `main`, alongside the build, lint and unit tests.
 
 To release kickoff, run `make release tag=vX.Y.Z` from an up-to-date `staging`. It tags `staging`, pushes the tag, and follows the release workflow, which fast-forwards `main` to the tag and publishes the GitHub release. The workflow needs a `RELEASE_PUSH_TOKEN` repository secret: a personal access token (Contents read/write) whose owner can bypass the `main` ruleset.
 

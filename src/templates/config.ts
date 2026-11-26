@@ -1,97 +1,149 @@
 import type { ProjectAnswers } from "../types.js";
 
-/** Official Next.js codemod CLI used by the next:upgrade and next:agents-md scripts. */
-const NEXT_CODEMOD_VERSION = "16.4.6";
+/**
+ * Every package and tool version a generated project can use. `kickoff`
+ * refreshes these from npm before generating (see src/versions); the values
+ * here are the tested fallback.
+ */
+export const DEFAULT_VERSIONS = {
+  "@axe-core/playwright": "^4.14.0",
+  "@base-ui/react": "^1.9.0",
+  "@biomejs/biome": "2.6.6",
+  "@contentful/rich-text-react-renderer": "^16.2.2",
+  "@contentful/rich-text-types": "^17.2.7",
+  "@faker-js/faker": "^10.6.0",
+  "@jest/globals": "^30.5.2",
+  "@jest/types": "^30.5.1",
+  "@next/codemod": "16.4.6",
+  "@next/third-parties": "^16.4.3",
+  "@playwright/test": "^1.65.0",
+  "@svgr/webpack": "^8.1.0",
+  "@tanstack/react-query": "^5.105.0",
+  "@testing-library/dom": "^10.4.2",
+  "@testing-library/jest-dom": "^7.0.1",
+  "@testing-library/react": "^16.3.3",
+  "@testing-library/user-event": "^14.6.8",
+  "@types/jest": "^30.0.0",
+  "@types/node": "^26.6.6",
+  "@types/react": "^19.3.0",
+  "@types/react-dom": "^19.3.0",
+  "@types/react-google-recaptcha": "^2.1.9",
+  "@types/safe-json-stringify": "^1.1.5",
+  "cf-content-types-generator": "^3.0.1",
+  classnames: "^2.5.1",
+  contentful: "^11.12.10",
+  csstype: "^3.2.3",
+  "html-react-parser": "^6.1.9",
+  "identity-obj-proxy": "^3.0.0",
+  jest: "^30.5.2",
+  "jest-environment-jsdom": "^30.5.2",
+  "jest-mock": "^30.5.2",
+  knip: "^6.43.0",
+  next: "^16.4.3",
+  "next-intl": "^4.14.9",
+  "postcss-flexbugs-fixes": "^5.0.2",
+  "postcss-preset-env": "^11.6.1",
+  react: "^19.3.1",
+  "react-dom": "^19.3.1",
+  "react-google-recaptcha": "^3.1.0",
+  "react-is": "^19.2.4",
+  resend: "^6.35.0",
+  "safe-json-stringify": "^1.2.0",
+  "schema-dts": "^2.1.0",
+  "server-only": "^0.0.1",
+  stylelint: "^18.0.0-next.0",
+  "stylelint-config-css-modules": "^4.6.0",
+  "stylelint-config-standard": "^41.0.0-next.0",
+  "stylelint-value-no-unknown-custom-properties": "^6.1.1",
+  "ts-jest": "^29.4.15",
+  tslib: "^2.8.1",
+  tsx: "^4.20.5",
+  typescript: "^7.0.2",
+  "typescript-plugin-css-modules": "^5.3.0",
+  vercel: "65.14.0",
+};
+
+export type Versions = Record<keyof typeof DEFAULT_VERSIONS, string>;
+
+/** Pinned exactly because biome.json's schema and rule names change between releases. */
+export const KEEP_PINNED: (keyof Versions)[] = ["@biomejs/biome"];
 
 /** Branch PRs target: `main` for the trunk-based Claude pipeline, otherwise `staging`. */
 export const getBaseBranch = (a: ProjectAnswers): "main" | "staging" =>
   a.includeClaudePipeline ? "main" : "staging";
 
-export const getPackageJson = (a: ProjectAnswers): string => {
-  const deps: Record<string, string> = {
-    "@base-ui/react": "^1.9.0",
-    "@jest/types": "^30.5.1",
-    "@tanstack/react-query": "^5.105.0",
-    classnames: "^2.5.1",
-    "jest-mock": "^30.5.2",
-    next: "^16.4.3",
-    "postcss-flexbugs-fixes": "^5.0.2",
-    "postcss-preset-env": "^11.6.1",
-    react: "^19.3.1",
-    "react-dom": "^19.3.1",
-    "schema-dts": "^2.1.0",
-    tslib: "^2.8.1",
-  };
+const pick = (
+  versions: Versions,
+  names: (keyof Versions | false)[],
+): Record<string, string> =>
+  Object.fromEntries(
+    names
+      .filter((name): name is keyof Versions => name !== false)
+      .map((name) => [name, versions[name]]),
+  );
 
-  if (a.includeGA) {
-    deps["@next/third-parties"] = "^16.4.3";
-  }
+export const getPackageJson = (
+  a: ProjectAnswers,
+  versions: Versions = DEFAULT_VERSIONS,
+): string => {
+  const deps = pick(versions, [
+    "@base-ui/react",
+    "@jest/types",
+    "@tanstack/react-query",
+    "classnames",
+    "jest-mock",
+    "next",
+    "postcss-flexbugs-fixes",
+    "postcss-preset-env",
+    "react",
+    "react-dom",
+    "schema-dts",
+    "tslib",
+    a.includeGA && "@next/third-parties",
+    a.includeContentful && "@contentful/rich-text-react-renderer",
+    a.includeContentful && "@contentful/rich-text-types",
+    a.includeContentful && "contentful",
+    a.includeContentful && "html-react-parser",
+    a.includeContentful && "safe-json-stringify",
+    a.includeContentful && "server-only",
+    a.includeI18n && "next-intl",
+    a.includeResend && "resend",
+    a.includeRecaptcha && "react-google-recaptcha",
+  ]);
 
-  if (a.includeContentful) {
-    deps["@contentful/rich-text-react-renderer"] = "^16.2.2";
-    deps["@contentful/rich-text-types"] = "^17.2.7";
-    deps.contentful = "^11.12.10";
-    deps["html-react-parser"] = "^6.1.9";
-    deps["safe-json-stringify"] = "^1.2.0";
-    deps["server-only"] = "^0.0.1";
-  }
-
-  if (a.includeI18n) {
-    deps["next-intl"] = "^4.14.9";
-  }
-  if (a.includeResend) {
-    deps.resend = "^6.35.0";
-  }
-  if (a.includeRecaptcha) {
-    deps["react-google-recaptcha"] = "^3.1.0";
-  }
-
-  const devDeps: Record<string, string> = {
-    "@jest/globals": "^30.5.2",
-    "@svgr/webpack": "^8.1.0",
-    // Pinned: biome.json schema and rule names change between releases
-    "@biomejs/biome": "2.6.6",
-    "@faker-js/faker": "^10.6.0",
-    "@testing-library/dom": "^10.4.2",
-    "@testing-library/jest-dom": "^7.0.1",
-    "@testing-library/react": "^16.3.3",
-    "@testing-library/user-event": "^14.6.8",
-    "@types/jest": "^30.0.0",
-    "@types/node": "^26.6.6",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    csstype: "^3.2.3",
-    "identity-obj-proxy": "^3.0.0",
-    jest: "^30.5.2",
-    "jest-environment-jsdom": "^30.5.2",
-    knip: "^6.43.0",
-    "react-is": "^19.2.4",
-    stylelint: "^18.0.0-next.0",
-    "stylelint-config-css-modules": "^4.6.0",
-    "stylelint-config-standard": "^41.0.0-next.0",
-    "stylelint-value-no-unknown-custom-properties": "^6.1.1",
-    "ts-jest": "^29.4.15",
-    tsx: "^4.20.5",
-    typescript: "^7.0.2",
-    "typescript-plugin-css-modules": "^5.3.0",
-  };
-
-  if (a.includeContentful) {
-    devDeps["@types/safe-json-stringify"] = "^1.1.5";
-  }
-
-  if (a.includeRecaptcha) {
-    devDeps["@types/react-google-recaptcha"] = "^2.1.9";
-  }
-
-  if (a.includeContentful) {
-    devDeps["cf-content-types-generator"] = "^3.0.1";
-  }
-
-  if (a.includeClaudePipeline) {
-    devDeps["@axe-core/playwright"] = "^4.14.0";
-    devDeps["@playwright/test"] = "^1.65.0";
-  }
+  const devDeps = pick(versions, [
+    "@jest/globals",
+    "@svgr/webpack",
+    "@biomejs/biome",
+    "@faker-js/faker",
+    "@testing-library/dom",
+    "@testing-library/jest-dom",
+    "@testing-library/react",
+    "@testing-library/user-event",
+    "@types/jest",
+    "@types/node",
+    "@types/react",
+    "@types/react-dom",
+    "csstype",
+    "identity-obj-proxy",
+    "jest",
+    "jest-environment-jsdom",
+    "knip",
+    "react-is",
+    "stylelint",
+    "stylelint-config-css-modules",
+    "stylelint-config-standard",
+    "stylelint-value-no-unknown-custom-properties",
+    "ts-jest",
+    "tsx",
+    "typescript",
+    "typescript-plugin-css-modules",
+    a.includeContentful && "@types/safe-json-stringify",
+    a.includeRecaptcha && "@types/react-google-recaptcha",
+    a.includeContentful && "cf-content-types-generator",
+    a.includeClaudePipeline && "@axe-core/playwright",
+    a.includeClaudePipeline && "@playwright/test",
+  ]);
 
   const scripts: Record<string, string> = {
     build: "next build && make sitemap",
@@ -115,8 +167,8 @@ export const getPackageJson = (a: ProjectAnswers): string => {
       "node --import tsx --test scripts/verify-vercel-release.test.mjs",
     "tsc:ci": "tsc --strict",
     "handbook:check": "bash scripts/handbook-sync-check.sh",
-    "next:agents-md": `pnpm dlx @next/codemod@${NEXT_CODEMOD_VERSION} agents-md --output CLAUDE.md`,
-    "next:upgrade": `pnpm dlx @next/codemod@${NEXT_CODEMOD_VERSION} upgrade minor --yes`,
+    "next:agents-md": `pnpm dlx @next/codemod@${versions["@next/codemod"]} agents-md --output CLAUDE.md`,
+    "next:upgrade": `pnpm dlx @next/codemod@${versions["@next/codemod"]} upgrade minor --yes`,
   };
 
   if (a.includeClaudePipeline) {

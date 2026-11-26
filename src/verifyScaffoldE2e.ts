@@ -18,8 +18,14 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { generateProject } from "./generator.js";
+import {
+  DEFAULT_VERSIONS,
+  KEEP_PINNED,
+  type Versions,
+} from "./templates/config.js";
 import type { ProjectAnswers } from "./types.js";
 import { validateProjectAnswers } from "./validateAnswers.js";
+import { fetchFromNpm, refreshVersions } from "./versions/refreshVersions.js";
 
 const SCAFFOLD_CHECKS = [
   "tsc:ci",
@@ -319,6 +325,30 @@ const verifyHandbookCommand = (): void => {
   }
 };
 
+const resolveVersions = async (): Promise<Versions> => {
+  if (process.env.SCAFFOLD_E2E_REFRESH === "0") {
+    console.log("\n→ using kickoff's tested package versions");
+    return DEFAULT_VERSIONS;
+  }
+
+  console.log("\n→ refreshing package versions from npm");
+  const result = await refreshVersions({
+    fetchMetadata: fetchFromNpm,
+    keep: KEEP_PINNED,
+    versions: DEFAULT_VERSIONS,
+  });
+
+  for (const { from, name, to } of result.updated) {
+    console.log(`  ${name} ${from} -> ${to}`);
+  }
+
+  for (const failure of result.failed) {
+    console.log(`  could not check ${failure}`);
+  }
+
+  return result.versions;
+};
+
 const loadFixture = (fixturePath: string): ProjectAnswers => {
   const raw = JSON.parse(readFileSync(fixturePath, "utf-8")) as unknown;
   const validated = validateProjectAnswers(raw);
@@ -331,6 +361,7 @@ const loadFixture = (fixturePath: string): ProjectAnswers => {
 const verifyFixture = async (
   fixturePath: string,
   prevCwd: string,
+  versions: Versions,
 ): Promise<void> => {
   const fixtureName = path.basename(fixturePath);
   const answers = loadFixture(fixturePath);
@@ -342,7 +373,7 @@ const verifyFixture = async (
 
   try {
     process.chdir(tmpRoot);
-    await generateProject(answers);
+    await generateProject(answers, { versions });
     writeMinimalEnvLocal(tmpRoot, answers);
 
     console.log("  pnpm install");
@@ -414,8 +445,10 @@ const main = async () => {
   try {
     verifyHandbookCommand();
 
+    const versions = await resolveVersions();
+
     for (const fixturePath of fixtures) {
-      await verifyFixture(fixturePath, prevCwd);
+      await verifyFixture(fixturePath, prevCwd, versions);
     }
   } catch (error) {
     console.error(
