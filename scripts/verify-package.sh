@@ -33,6 +33,10 @@ kickoff="${work}/install/node_modules/.bin/kickoff"
 
 "${kickoff}" --help | grep -q "kickoff handbook" || fail "kickoff --help did not run"
 
+expected_version="$(node -p "require('${repo_root}/package.json').version")"
+installed_version="$("${kickoff}" --version)"
+[[ "${installed_version}" == "${expected_version}" ]] || fail "kickoff --version printed ${installed_version}, expected ${expected_version}"
+
 (cd "${work}/site" && "${kickoff}" --answers "${repo_root}/fixtures/scaffold-e2e/claude-static.json" --no-refresh >/dev/null)
 
 for file in package.json docs/handbook/llms.md .claude/hooks/handbook-drift-check.mjs .claude/commands/handbook-review.md; do

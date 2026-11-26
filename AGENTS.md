@@ -124,6 +124,18 @@ make release tag=v1.3.0
 
 Same flow as filtermydiscogs, minus the Vercel check (kickoff isn't deployed). PRs merge into `staging`. `make release` runs only from `staging`: it tags `staging`, pushes the tag, and `scripts/watch-release.sh` follows the run. `.github/workflows/release.yml` fast-forwards `main` to the tag with the `RELEASE_PUSH_TOKEN` secret (a personal access token whose owner can bypass the `main` ruleset), then publishes `@wadehammes/kickoff` to npm and creates the GitHub release.
 
-The tag sets the published version (`npm version` runs in the workflow), so `package.json`'s `version` doesn't need a bump commit. npm uses trusted publishing: the package's npm settings trust `wadehammes/kickoff` and `.github/workflows/release.yml`, and the job's `id-token: write` permission is what authenticates `npm publish`.
+The tag is the only source of the version. `package.json` says `0.0.0-development` on purpose: the workflow runs `npm version` from the tag, so the npm version, the GitHub release, and `kickoff --version` always match it. `make release` and the workflow both reject tags that aren't exactly `vX.Y.Z`. If a run fails after publishing, rerun it: the publish step skips a version that's already on npm, and the last step fails unless npm and the GitHub release both match the tag. `scripts/watch-release.sh` checks the same thing before it reports success.
+
+The first publish is manual, because npm only allows trusted publishing on a package that exists. Publish it as the version of your next tag, so that release creates the matching GitHub release and skips the publish:
+
+```sh
+npm login
+pnpm install && pnpm build
+npm version 1.3.0 --no-git-tag-version
+pnpm verify:package && npm publish
+git checkout package.json
+```
+
+Then, on npmjs.com, add a trusted publisher (GitHub Actions, `wadehammes/kickoff`, `release.yml`). After the first publish, set the package to require trusted publishing and disallow tokens on npmjs.com (Settings → Publishing access), so no version can be published outside the release workflow. npm uses trusted publishing: the package's npm settings trust `wadehammes/kickoff` and `.github/workflows/release.yml`, and the job's `id-token: write` permission is what authenticates `npm publish`.
 
 What ships is `files` in `package.json`: built `dist/`, `scaffold-assets/` (read at runtime), the README, and the license. Run `pnpm verify:package` after changing what the CLI reads from disk; it packs, installs the tarball in a temp folder, and generates a project with it.

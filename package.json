@@ -1,6 +1,6 @@
 {
   "name": "@wadehammes/kickoff",
-  "version": "1.2.0",
+  "version": "0.0.0-development",
   "description": "Generate a Next.js and TypeScript project with a handbook, agent hooks, and a review command that keep people and AI agents on the same conventions.",
   "keywords": [
     "nextjs",

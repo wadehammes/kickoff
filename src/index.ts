@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, readdirSync, realpathSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -30,6 +30,13 @@ const banner = `
 ${chalk.cyan("🚀 kickoff")} ${chalk.white("—")} ${chalk.gray("Next.js + TypeScript project scaffolder")}
 `;
 
+const readPackageVersion = (): string =>
+  (
+    JSON.parse(
+      readFileSync(new URL("../package.json", import.meta.url), "utf-8"),
+    ) as { version: string }
+  ).version;
+
 const printHelp = () => {
   console.log(`Usage: kickoff [options]
 
@@ -51,6 +58,7 @@ Options:
   --verbose          Log each file as it is written
   --no-refresh       Use kickoff's tested package versions instead of checking npm
   --latest-majors    Also move packages to newer major versions (kickoff was tested on the current ones)
+  -v, --version      Print the kickoff version
   -h, --help         Show this help
 `);
 };
@@ -148,6 +156,7 @@ export const main = async () => {
       force: { type: "boolean", default: false },
       "dry-run": { type: "boolean", default: false },
       help: { default: false, short: "h", type: "boolean" },
+      version: { default: false, short: "v", type: "boolean" },
       verbose: { type: "boolean", default: false },
       "latest-majors": { type: "boolean", default: false },
       "no-refresh": { type: "boolean", default: false },
@@ -157,6 +166,11 @@ export const main = async () => {
 
   if (values.help) {
     printHelp();
+    process.exit(0);
+  }
+
+  if (values.version) {
+    console.log(readPackageVersion());
     process.exit(0);
   }
 

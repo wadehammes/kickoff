@@ -181,6 +181,7 @@ The full shape is `ProjectAnswers` in [`src/types.ts`](src/types.ts). `includeCl
 | `--verbose` | Log each file as it's written |
 | `--no-refresh` | Use kickoff's tested package versions instead of checking npm |
 | `--latest-majors` | Also move packages to newer major versions |
+| `-v`, `--version` | Print the installed kickoff version |
 | `-h`, `--help` | Show usage |
 
 ### Package versions
@@ -309,7 +310,7 @@ The matrix test (`src/generationMatrix.test.ts`) runs in seconds. For every comb
 
 The end-to-end run is slower and covers each option at least once with a real install. Set `SCAFFOLD_E2E_PLAYWRIGHT=1` to also run the generated Playwright suites for pipeline fixtures, or `SCAFFOLD_E2E_ONLY=claude-static,cursor-static` to run just those fixtures. The run refreshes package versions from npm first, the same way `kickoff` does; set `SCAFFOLD_E2E_REFRESH=0` to use the tested versions. CI does this on every PR to `main`, alongside the build, lint and unit tests.
 
-To release kickoff, run `make release tag=vX.Y.Z` from an up-to-date `staging`. It tags `staging`, pushes the tag, and follows the release workflow. The workflow builds and tests, checks that the packed package installs and generates a project (`pnpm verify:package`), fast-forwards `main` to the tag, publishes `@wadehammes/kickoff` to npm with the tag's version, and creates the GitHub release. npm publishing uses trusted publishing, so no npm token is stored, and each version shows provenance linking it to its commit. The workflow needs a `RELEASE_PUSH_TOKEN` repository secret: a personal access token (Contents read/write) whose owner can bypass the `main` ruleset.
+To release kickoff, run `make release tag=vX.Y.Z` from an up-to-date `staging`. It tags `staging`, pushes the tag, and follows the release workflow. The workflow builds and tests, checks that the packed package installs and generates a project (`pnpm verify:package`), fast-forwards `main` to the tag, publishes `@wadehammes/kickoff` to npm with the tag's version, and creates the GitHub release. The tag (`vX.Y.Z`, checked by `make release` and the workflow) is the only source of the version, so npm, the GitHub release, and `kickoff --version` always match; `package.json` keeps `0.0.0-development`. npm publishing uses trusted publishing, so no npm token is stored, and each version shows provenance linking it to its commit. The workflow needs a `RELEASE_PUSH_TOKEN` repository secret: a personal access token (Contents read/write) whose owner can bypass the `main` ruleset.
 
 ## License
 

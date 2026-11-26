@@ -56,5 +56,15 @@ if [[ -z "${release_url}" ]]; then
 	exit 1
 fi
 
-printf '\nRelease %s published, main fast-forwarded.\n' "${tag}"
+package_name="$(node -p "require('$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/package.json').name")"
+version="${tag#v}"
+published="$(npm view "${package_name}@${version}" version 2>/dev/null || true)"
+if [[ "${published}" != "${version}" ]]; then
+	printf '\nThe %s release exists, but npm does not have %s@%s.\n' "${tag}" "${package_name}" "${version}" >&2
+	printf '  https://github.com/%s/actions/runs/%s\n' "${repo}" "${run_id}" >&2
+	exit 1
+fi
+
+printf '\nRelease %s published, main fast-forwarded, and %s@%s is on npm.\n' "${tag}" "${package_name}" "${version}"
 printf '  %s\n' "${release_url}"
+printf '  https://www.npmjs.com/package/%s/v/%s\n' "${package_name}" "${version}"
