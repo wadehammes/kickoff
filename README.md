@@ -38,7 +38,7 @@ Every generated project includes:
 | Deployment | Vercel, plus a token-protected page for triggering a redeploy |
 | CI | GitHub Actions with every action pinned to a commit, Dependabot, PR labeling |
 | Dependencies | pnpm 12, installs limited to package versions published at least 7 days ago |
-| Agent tooling | A handbook in `docs/handbook/` with a routing page for agents, `CLAUDE.md`, and hooks for Cursor or Claude Code that block edits breaking the conventions, plus a `/handbook-review` command that checks a branch against the handbook |
+| Agent tooling | A handbook in `docs/handbook/` with a non-negotiables page, a routing page that maps tasks and files to pages for agents, `CLAUDE.md`, and hooks for Cursor or Claude Code that block edits breaking the conventions, plus a `/handbook-review` command that checks a branch against the handbook |
 | Upgrades | `pnpm next:upgrade` and `pnpm next:agents-md`, which wrap the official Next.js codemods |
 
 ## Options

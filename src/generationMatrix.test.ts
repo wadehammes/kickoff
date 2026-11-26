@@ -290,6 +290,59 @@ const findInvalidJson = (root: string): string[] =>
       }
     });
 
+const headingSlugs = (file: string): Set<string> =>
+  new Set(
+    readFileSync(file, "utf-8")
+      .replace(/^```[\s\S]*?^```/gm, "")
+      .split("\n")
+      .filter((line) => /^#{1,6}\s/.test(line))
+      .map((line) =>
+        line
+          .replace(/^#+\s*/, "")
+          .replaceAll("`", "")
+          .toLowerCase()
+          .replace(/[^\p{L}\p{N}_\s-]/gu, "")
+          .trim()
+          .replaceAll(" ", "-"),
+      ),
+  );
+
+const findBrokenDocLinks = (root: string): string[] =>
+  listFiles(root)
+    .filter(
+      (file) =>
+        file.endsWith(".md") &&
+        !path.relative(root, file).startsWith("node_modules"),
+    )
+    .flatMap((file) =>
+      [
+        ...readFileSync(file, "utf-8")
+          .replace(/^```[\s\S]*?^```/gm, "")
+          .matchAll(/\]\(([^)\s]+)\)/g),
+      ]
+        .map(([, target]) => target)
+        .filter((target) => !/^([a-z][a-z0-9+.-]*:|#)/i.test(target))
+        .flatMap((target) => {
+          const [targetPath, anchor] = target.split("#");
+          const resolved = path.join(path.dirname(file), targetPath);
+          const label = `${path.relative(root, file)} → ${target}`;
+
+          if (!existsSync(resolved)) {
+            return [`${label} (no such file)`];
+          }
+
+          if (
+            anchor &&
+            resolved.endsWith(".md") &&
+            !headingSlugs(resolved).has(anchor)
+          ) {
+            return [`${label} (no such heading)`];
+          }
+
+          return [];
+        }),
+    );
+
 let matrixRoot: string;
 let previousCwd: string;
 
@@ -331,6 +384,9 @@ describe("generation matrix", () => {
       "package.json script files",
     ).toBe("");
     expect(findInvalidJson(root).join("\n"), "invalid JSON").toBe("");
+    expect(findBrokenDocLinks(root).join("\n"), "broken markdown links").toBe(
+      "",
+    );
     expect(
       findTypeScriptSyntaxErrors(root).join("\n"),
       "TypeScript syntax errors",

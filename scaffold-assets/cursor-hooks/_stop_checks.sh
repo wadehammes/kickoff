@@ -12,7 +12,7 @@ stop_section_handbook_drift() {
     return 0
   fi
 
-  printf '%s\n\n' "$(printf 'Handbook-drift check: this session changed code under src/ but no docs/handbook/*.md. If any change shifted documented behavior or conventions, update the matching chapter now (see docs/handbook/llms.md for routing). If nothing documented changed, reply that the handbook is still accurate.\n\nChanged code files:\n%s' "$code_changed")"
+  printf '%s\n\n' "$(printf 'Handbook-drift check: this session changed code under src/ but no docs/handbook/*.md. If any change affects how we build things, name the matching page and section (docs/handbook/llms.md routes them) and update it, asking the engineer first if CLAUDE.md says to. If nothing documented changed, reply that the handbook is still accurate.\n\nChanged code files:\n%s' "$code_changed")"
 }
 
 stop_section_lint_all() {

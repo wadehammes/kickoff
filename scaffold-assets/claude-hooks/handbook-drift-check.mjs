@@ -210,7 +210,7 @@ const collectFindings = () => {
     }
 
     findings.push(
-      `This session changed code or config but no handbook chapter. If any change shifted documented behavior or conventions, update the matching chapter now (docs/handbook/llms.md routes task → chapter). If nothing documented changed, you may stop.\n\n${scope.join("\n")}`,
+      `This session changed code or config but no handbook chapter. If any change affects how we build things, name the matching page and section (docs/handbook/llms.md routes them) and update it, asking the engineer first if CLAUDE.md says to. If nothing documented changed, you may stop.\n\n${scope.join("\n")}`,
     );
   }
 

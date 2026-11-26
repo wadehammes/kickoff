@@ -21,7 +21,7 @@ src/
     ├── components.ts     ← Navigation, Footer, ExitDraftModeLink, NotFoundPage
     ├── config.ts         ← package.json, tsconfig, biome, jest, postcss, env...
     ├── contentful.ts     ← client, helpers, cache, parsers, richText
-    ├── docs.ts           ← CLAUDE.md, README, handbook index/llms/core chapters (generated projects)
+    ├── docs.ts           ← CLAUDE.md, README, handbook index/llms/non-negotiables/core chapters (generated projects)
     ├── handbook-agent.ts ← glossary, decisions, agent-workflow, api-routes, factories, data-storage
     ├── github.ts         ← CI, release, dependabot, labeler workflows; Claude pipeline workflows, CODEOWNERS, PR template
     ├── i18n.ts           ← routing, request, proxy, [locale] root layout/pages, per-locale copy, LanguageSwitcher
@@ -51,6 +51,7 @@ Examples:
 - Change import paths (e.g. `src/utils/helpers` → `src/utils/environment.helpers`) → update any handbook chapter that references it
 - Add a new prompt/option → update `getHandbookPlatform` scripts table and `getReadme`, and root `README.md` (Options table, `--answers` example, Working in a generated project)
 - Add or change agent hooks → update `src/templates/agents.ts`, handbook `platform.md`, and root `README.md` (What you get, Options)
+- Change a rule in `getHandbookConventions` or another chapter → update the matching row in `getHandbookNonNegotiables`, and check `getHandbookLlms` still routes the files it covers
 - Change the `/handbook-review` command (`getHandbookReviewCommand` in `agents.ts`) → keep its checklist in step with `getHandbookConventions` and the hooks tables in `getClaudeHooksReadme` / `getCursorHooksReadme`
 - Change the Claude pipeline (`includeClaudePipeline`: workflows in `github.ts`, quality gate in `agents.ts`, Playwright in `testing.ts`) → update `getHandbookPipelineSection` / `getPipeline*` helpers in `docs.ts`, `getClaudePipelineInstructions` (generated `CLAUDE.md`), `getWorkingWithClaudeGuide` (`docs/working-with-claude.md` for non-technical requesters), root `README.md`, and `fixtures/scaffold-e2e/claude-pipeline.json` if answers change
 
