@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      # npm trusted publishing: GitHub's OIDC token authenticates `npm publish`, so no npm token is stored.
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -18,6 +20,29 @@ jobs:
           fetch-depth: 0
           # The default checkout persists GITHUB_TOKEN as git HTTP auth, which would override the PAT below and push as github-actions[bot] (no ruleset bypass).
           persist-credentials: false
+      - name: Setup PNPM
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+        with:
+          package_json_file: package.json
+      - name: Read Node.js version from .tool-versions
+        id: get_node_version
+        shell: bash
+        run: |
+          echo "node_version=$(awk '/nodejs/ {print $2}' .tool-versions)" >> $GITHUB_OUTPUT
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: ${{ steps.get_node_version.outputs.node_version }}
+          registry-url: https://registry.npmjs.org
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build and test
+        run: pnpm build && pnpm test
+      - name: Set the package version from the tag
+        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
+      - name: Check the package installs and runs
+        run: bash scripts/verify-package.sh
       - name: Reset Main
         id: reset_main
         env:
@@ -31,6 +56,8 @@ jobs:
           git config --local --unset-all "http.https://github.com/.extraheader" || true
           git remote set-url origin "https://x-access-token:${RELEASE_PUSH_TOKEN}@github.com/${{ github.repository }}.git"
           git push origin "${{ github.ref }}:main"
+      - name: Publish to npm
+        run: npm publish
       - name: Generate changelog
         id: changelog
         uses: metcalfc/changelog-generator@0440d0932f9a0dd1cc9ecd8412830761351323bd # v4.7.0

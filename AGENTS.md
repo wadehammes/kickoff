@@ -122,4 +122,8 @@ git switch staging && git pull
 make release tag=v1.3.0
 ```
 
-Same flow as filtermydiscogs, minus the Vercel check (kickoff isn't deployed). PRs merge into `staging`. `make release` runs only from `staging`: it tags `staging`, pushes the tag, and `scripts/watch-release.sh` follows the run. `.github/workflows/release.yml` fast-forwards `main` to the tag with the `RELEASE_PUSH_TOKEN` secret (a personal access token whose owner can bypass the `main` ruleset), then publishes the GitHub release.
+Same flow as filtermydiscogs, minus the Vercel check (kickoff isn't deployed). PRs merge into `staging`. `make release` runs only from `staging`: it tags `staging`, pushes the tag, and `scripts/watch-release.sh` follows the run. `.github/workflows/release.yml` fast-forwards `main` to the tag with the `RELEASE_PUSH_TOKEN` secret (a personal access token whose owner can bypass the `main` ruleset), then publishes `@wadehammes/kickoff` to npm and creates the GitHub release.
+
+The tag sets the published version (`npm version` runs in the workflow), so `package.json`'s `version` doesn't need a bump commit. npm uses trusted publishing: the package's npm settings trust `wadehammes/kickoff` and `.github/workflows/release.yml`, and the job's `id-token: write` permission is what authenticates `npm publish`.
+
+What ships is `files` in `package.json`: built `dist/`, `scaffold-assets/` (read at runtime), the README, and the license. Run `pnpm verify:package` after changing what the CLI reads from disk; it packs, installs the tarball in a temp folder, and generates a project with it.
