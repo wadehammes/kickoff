@@ -14,5 +14,12 @@
   "siteName": "E2E Claude Static",
   "stagingUrl": "https://staging.e2e-claude.example",
   "textColor": "#111111",
-  "useCurrentDir": true
+  "useCurrentDir": true,
+  "projectType": "careers",
+  "projectDescription": "An E2E fixture that covers the forms and browser-test add-ons.",
+  "includeForms": true,
+  "includePlaywright": true,
+  "extraPackages": [
+    "clsx"
+  ]
 }

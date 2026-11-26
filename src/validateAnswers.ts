@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
-import type { ProjectAnswers } from "./types.js";
+import { DEFAULT_VERSIONS } from "./templates/config.js";
+import { PROJECT_TYPES, type ProjectAnswers } from "./types.js";
 
 const REQUIRED_KEYS: (keyof ProjectAnswers)[] = [
   "agentTooling",
@@ -20,7 +21,73 @@ const REQUIRED_KEYS: (keyof ProjectAnswers)[] = [
   "useCurrentDir",
 ];
 
-const OPTIONAL_KEYS: (keyof ProjectAnswers)[] = ["hosting"];
+const OPTIONAL_KEYS: (keyof ProjectAnswers)[] = [
+  "extraPackages",
+  "hosting",
+  "includeForms",
+  "includePlaywright",
+  "projectDescription",
+  "projectType",
+];
+
+const NPM_NAME = /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/;
+
+const validateProfile = (
+  o: Record<string, unknown>,
+):
+  | Pick<
+      ProjectAnswers,
+      | "extraPackages"
+      | "includeForms"
+      | "includePlaywright"
+      | "projectDescription"
+      | "projectType"
+    >
+  | string => {
+  const projectType = o.projectType ?? "marketing";
+
+  if (!PROJECT_TYPES.includes(projectType as (typeof PROJECT_TYPES)[number])) {
+    return `projectType must be one of ${PROJECT_TYPES.map((type) => `"${type}"`).join(", ")}`;
+  }
+
+  const projectDescription = o.projectDescription ?? "";
+
+  if (typeof projectDescription !== "string") {
+    return "projectDescription must be a string";
+  }
+
+  for (const key of ["includeForms", "includePlaywright"] as const) {
+    if (o[key] !== undefined && typeof o[key] !== "boolean") {
+      return `${key} must be a boolean`;
+    }
+  }
+
+  const extraPackages = o.extraPackages ?? [];
+
+  if (
+    !Array.isArray(extraPackages) ||
+    !extraPackages.every(
+      (name) => typeof name === "string" && NPM_NAME.test(name),
+    )
+  ) {
+    return "extraPackages must be a list of npm package names";
+  }
+
+  const duplicate = extraPackages.find((name) => name in DEFAULT_VERSIONS);
+
+  if (duplicate) {
+    return `extraPackages already includes ${duplicate}; kickoff adds it`;
+  }
+
+  return {
+    extraPackages,
+    includeForms: o.includeForms === true,
+    includePlaywright:
+      o.includePlaywright === true || o.includeClaudePipeline === true,
+    projectDescription: projectDescription.trim(),
+    projectType: projectType as ProjectAnswers["projectType"],
+  };
+};
 
 /**
  * Validates a JSON value against ProjectAnswers (strict keys and types).
@@ -128,7 +195,13 @@ export const validateProjectAnswers = (
     return 'includeClaudePipeline requires hosting "vercel"';
   }
 
-  return { ...o, hosting } as unknown as ProjectAnswers;
+  const profile = validateProfile(o);
+
+  if (typeof profile === "string") {
+    return profile;
+  }
+
+  return { ...o, hosting, ...profile } as unknown as ProjectAnswers;
 };
 
 export const readAnswersFile = (

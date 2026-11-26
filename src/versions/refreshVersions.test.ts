@@ -3,6 +3,7 @@ import {
   type PackageMetadata,
   pickVersions,
   refreshVersions,
+  resolveExtraPackages,
 } from "./refreshVersions.js";
 
 const NOW = new Date("2026-11-25T00:00:00Z");
@@ -159,5 +160,31 @@ describe("refreshVersions", () => {
       next: "^16.4.3",
     });
     expect(result.failed).toEqual(["next: network down"]);
+  });
+
+  it("pins extra packages to their newest release that is a week old", async () => {
+    const registry: Record<string, PackageMetadata> = {
+      clsx: metadata({ "2.1.1": 300 }),
+      "date-fns": metadata({ "3.6.0": 400, "4.1.0": 30, "4.2.0": 2 }),
+      fresh: metadata({ "1.0.0": 1 }),
+    };
+
+    const result = await resolveExtraPackages({
+      fetchMetadata: async (name) => {
+        if (!registry[name]) {
+          throw new Error("registry returned 404");
+        }
+
+        return registry[name];
+      },
+      names: ["date-fns", "clsx", "fresh", "not-a-real-package"],
+      now: NOW,
+    });
+
+    expect(result.versions).toEqual({ clsx: "^2.1.1", "date-fns": "^4.1.0" });
+    expect(result.problems).toEqual([
+      "fresh: no release is at least 7 days old yet",
+      "not-a-real-package: registry returned 404",
+    ]);
   });
 });

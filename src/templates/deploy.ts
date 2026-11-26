@@ -2006,7 +2006,17 @@ describe("DeployButton", () => {
 
     await user.click(deployButton);
 
-    expect(screen.getByRole("button", { name: /starting/i })).toBeDisabled();
+    const startingButton = screen.getByRole("button", { name: /starting/i });
+
+    expect(startingButton).toBeDisabled();
+
+    await user.click(startingButton);
+
+    await waitFor(() => {
+      expect(
+        window.localStorage.getItem("refresh-content-deploy:staging"),
+      ).toContain("hook-b");
+    });
 
     expect(
       mockFetch.mock.calls.filter(

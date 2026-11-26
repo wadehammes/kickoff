@@ -7,6 +7,12 @@ import {
 } from "./github.js";
 
 const answers = (overrides: Partial<ProjectAnswers> = {}): ProjectAnswers => ({
+  extraPackages: [],
+  hosting: "vercel",
+  includeForms: false,
+  includePlaywright: false,
+  projectDescription: "",
+  projectType: "marketing",
   agentTooling: "cursor",
   bgColor: "#ffffff",
   devPort: 3000,
@@ -137,5 +143,34 @@ describe("getPackageJson", () => {
     expect(getProductionSmokeWorkflow(pipeline, versions)).toContain(
       "vercel@65.20.0",
     );
+  });
+
+  it("adds form libraries with the forms add-on", () => {
+    const pkg = parse(answers({ includeForms: true }));
+
+    expect(pkg.dependencies?.["react-hook-form"]).toBe("^7.92.0");
+    expect(pkg.dependencies?.zod).toBe("^4.6.7");
+    expect(pkg.dependencies?.["@hookform/resolvers"]).toBe("^7.0.7");
+    expect(parse(answers()).dependencies?.zod).toBeUndefined();
+  });
+
+  it("adds Playwright without the pipeline when asked", () => {
+    const pkg = parse(answers({ includePlaywright: true }));
+
+    expect(pkg.devDependencies?.["@playwright/test"]).toBe("^1.65.0");
+    expect(pkg.scripts?.["test:e2e"]).toBe("playwright test");
+    expect(parse(answers()).scripts?.["test:e2e"]).toBeUndefined();
+  });
+
+  it("adds extra packages at their resolved versions", () => {
+    const pkg = JSON.parse(
+      getPackageJson(answers({ extraPackages: ["date-fns", "clsx"] }), {
+        ...DEFAULT_VERSIONS,
+        "date-fns": "^4.1.0",
+      }),
+    ) as PkgJson;
+
+    expect(pkg.dependencies?.["date-fns"]).toBe("^4.1.0");
+    expect(pkg.dependencies?.clsx).toBe("latest");
   });
 });

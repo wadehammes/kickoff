@@ -12,6 +12,7 @@ export const DEFAULT_VERSIONS = {
   "@contentful/rich-text-react-renderer": "^16.2.2",
   "@contentful/rich-text-types": "^17.2.7",
   "@faker-js/faker": "^10.6.0",
+  "@hookform/resolvers": "^7.0.7",
   "@jest/globals": "^30.5.2",
   "@jest/types": "^30.5.1",
   "@next/codemod": "16.4.6",
@@ -46,6 +47,7 @@ export const DEFAULT_VERSIONS = {
   react: "^19.3.1",
   "react-dom": "^19.3.1",
   "react-google-recaptcha": "^3.1.0",
+  "react-hook-form": "^7.92.0",
   "react-is": "^19.2.4",
   resend: "^6.35.0",
   "safe-json-stringify": "^1.2.0",
@@ -61,6 +63,7 @@ export const DEFAULT_VERSIONS = {
   typescript: "^7.0.2",
   "typescript-plugin-css-modules": "^5.3.0",
   vercel: "65.14.0",
+  zod: "^4.6.7",
 };
 
 export type Versions = Record<keyof typeof DEFAULT_VERSIONS, string>;
@@ -109,7 +112,14 @@ export const getPackageJson = (
     a.includeI18n && "next-intl",
     a.includeResend && "resend",
     a.includeRecaptcha && "react-google-recaptcha",
+    a.includeForms && "react-hook-form",
+    a.includeForms && "zod",
+    a.includeForms && "@hookform/resolvers",
   ]);
+
+  for (const name of a.extraPackages ?? []) {
+    deps[name] = (versions as Record<string, string>)[name] ?? "latest";
+  }
 
   const devDeps = pick(versions, [
     "@jest/globals",
@@ -141,8 +151,8 @@ export const getPackageJson = (
     a.includeContentful && "@types/safe-json-stringify",
     a.includeRecaptcha && "@types/react-google-recaptcha",
     a.includeContentful && "cf-content-types-generator",
-    a.includeClaudePipeline && "@axe-core/playwright",
-    a.includeClaudePipeline && "@playwright/test",
+    usesPlaywright(a) && "@axe-core/playwright",
+    usesPlaywright(a) && "@playwright/test",
   ]);
 
   const scripts: Record<string, string> = {
@@ -175,8 +185,11 @@ export const getPackageJson = (
     delete scripts["test:scripts"];
   }
 
-  if (a.includeClaudePipeline) {
+  if (usesPlaywright(a)) {
     scripts["test:e2e"] = "playwright test";
+  }
+
+  if (a.includeClaudePipeline) {
     scripts.typecheck = "tsc --strict --noEmit";
   }
 
@@ -788,3 +801,7 @@ export const getEnvLocalExample = (a: ProjectAnswers): string => {
 
 /** Vercel-only files and docs are left out when the site is hosted elsewhere. */
 export const usesVercel = (a: ProjectAnswers): boolean => a.hosting !== "other";
+
+/** Playwright ships with the browser-tests add-on and always with the Claude pipeline. */
+export const usesPlaywright = (a: ProjectAnswers): boolean =>
+  a.includePlaywright || a.includeClaudePipeline;

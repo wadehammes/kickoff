@@ -5,7 +5,15 @@ import { describe, expect, it } from "vitest";
 import type { ProjectAnswers } from "./types.js";
 import { readAnswersFile, validateProjectAnswers } from "./validateAnswers.js";
 
-const valid: Omit<ProjectAnswers, "hosting"> = {
+const valid: Omit<
+  ProjectAnswers,
+  | "extraPackages"
+  | "hosting"
+  | "includeForms"
+  | "includePlaywright"
+  | "projectDescription"
+  | "projectType"
+> = {
   agentTooling: "cursor",
   bgColor: "#ffffff",
   devPort: 3000,
@@ -118,7 +126,10 @@ describe("validateAnswers", () => {
     writeFileSync(invalid, JSON.stringify({ ...valid, devPort: 0 }));
     writeFileSync(broken, "{ not json");
 
-    expect(readAnswersFile(good)).toEqual({ ...valid, hosting: "vercel" });
+    expect(readAnswersFile(good)).toMatchObject({
+      ...valid,
+      hosting: "vercel",
+    });
     expect(readAnswersFile(invalid)).toBe(
       "Invalid answers: devPort must be between 1 and 65535",
     );
@@ -151,5 +162,66 @@ describe("validateAnswers", () => {
         includeClaudePipeline: true,
       }),
     ).toBe('includeClaudePipeline requires hosting "vercel"');
+  });
+
+  it("defaults the project profile so older answers files still work", () => {
+    expect(validateProjectAnswers(valid)).toMatchObject({
+      extraPackages: [],
+      includeForms: false,
+      includePlaywright: false,
+      projectDescription: "",
+      projectType: "marketing",
+    });
+  });
+
+  it("always includes Playwright with the Claude pipeline", () => {
+    expect(
+      validateProjectAnswers({
+        ...valid,
+        agentTooling: "claude",
+        includeClaudePipeline: true,
+        includePlaywright: false,
+      }),
+    ).toMatchObject({ includePlaywright: true });
+  });
+
+  it("accepts a full project profile", () => {
+    expect(
+      validateProjectAnswers({
+        ...valid,
+        extraPackages: ["date-fns", "@radix-ui/react-slot"],
+        includeForms: true,
+        includePlaywright: true,
+        projectDescription: "Careers site for Rhythm, in English and Spanish.",
+        projectType: "careers",
+      }),
+    ).toMatchObject({
+      extraPackages: ["date-fns", "@radix-ui/react-slot"],
+      projectType: "careers",
+    });
+  });
+
+  it.each([
+    [
+      { projectType: "blog" },
+      'projectType must be one of "marketing", "careers", "content", "app"',
+    ],
+    [{ projectDescription: 4 }, "projectDescription must be a string"],
+    [{ includeForms: "yes" }, "includeForms must be a boolean"],
+    [{ includePlaywright: 1 }, "includePlaywright must be a boolean"],
+    [
+      { extraPackages: "date-fns" },
+      "extraPackages must be a list of npm package names",
+    ],
+    [
+      { extraPackages: ["Not A Package"] },
+      "extraPackages must be a list of npm package names",
+    ],
+    [
+      { extraPackages: ["next"] },
+      "extraPackages already includes next; kickoff adds it",
+    ],
+  ])("rejects %o", (override, message) => {
+    expect(validateProjectAnswers({ ...valid, ...override })).toBe(message);
   });
 });

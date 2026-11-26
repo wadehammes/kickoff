@@ -9,13 +9,22 @@ import prompts from "prompts";
 import { generateProject, getScaffoldRoot } from "./generator.js";
 import { runHandbookCommand } from "./handbook/command.js";
 import {
+  ADD_ONS,
+  PROJECT_TYPE_CHOICES,
+  recommendedAddOns,
+} from "./recommendations.js";
+import {
   DEFAULT_VERSIONS,
   KEEP_PINNED,
   type Versions,
 } from "./templates/config.js";
-import type { ProjectAnswers } from "./types.js";
+import type { ProjectAnswers, ProjectType } from "./types.js";
 import { readAnswersFile, validateProjectAnswers } from "./validateAnswers.js";
-import { fetchFromNpm, refreshVersions } from "./versions/refreshVersions.js";
+import {
+  fetchFromNpm,
+  refreshVersions,
+  resolveExtraPackages,
+} from "./versions/refreshVersions.js";
 
 const banner = `
 ${chalk.cyan("🚀 kickoff")} ${chalk.white("—")} ${chalk.gray("Next.js + TypeScript project scaffolder")}
@@ -48,6 +57,7 @@ Options:
 
 const refreshPackageVersions = async (
   includeMajors: boolean,
+  extraPackages: string[],
 ): Promise<Versions> => {
   console.log(
     `${chalk.cyan("→")} Checking npm for newer package versions (at least 7 days old) ...`,
@@ -85,7 +95,40 @@ const refreshPackageVersions = async (
     );
   }
 
-  return result.versions;
+  if (extraPackages.length === 0) {
+    return result.versions;
+  }
+
+  const checked = Object.keys(DEFAULT_VERSIONS).length - KEEP_PINNED.length;
+
+  if (result.failed.length === checked) {
+    console.log(
+      chalk.yellow(
+        `  Couldn't reach npm to check ${extraPackages.join(", ")}; pnpm will pick its version at install, still holding back releases under 7 days old.`,
+      ),
+    );
+    return result.versions;
+  }
+
+  const extras = await resolveExtraPackages({
+    fetchMetadata: fetchFromNpm,
+    names: extraPackages,
+  });
+
+  if (extras.problems.length > 0) {
+    for (const problem of extras.problems) {
+      console.error(chalk.red(`✖ Couldn't add ${problem}`));
+    }
+    process.exit(1);
+  }
+
+  console.log(
+    `  Added ${Object.entries(extras.versions)
+      .map(([name, version]) => `${name}@${version}`)
+      .join(", ")}.`,
+  );
+
+  return { ...result.versions, ...extras.versions };
 };
 
 const scaffoldTargetIsNonEmpty = (root: string): boolean =>
@@ -166,6 +209,19 @@ export const main = async () => {
             value.trim().length > 0 ? true : "Site name is required",
         },
         {
+          choices: PROJECT_TYPE_CHOICES,
+          initial: 0,
+          message: "What kind of project is it?",
+          name: "projectType",
+          type: "select",
+        },
+        {
+          initial: "",
+          message: `Describe it in a sentence or two ${chalk.dim("(goes into CLAUDE.md and the handbook so agents know what they're building)")}:`,
+          name: "projectDescription",
+          type: "text",
+        },
+        {
           initial: "https://www.mysite.com",
           message: "Production URL (e.g. https://www.mysite.com):",
           name: "prodUrl",
@@ -232,34 +288,30 @@ export const main = async () => {
               : "Must be a valid hex color (e.g. #000000)",
         },
         {
-          initial: true,
-          message: `Include ${chalk.cyan("Contentful")} CMS? ${chalk.dim("(no = static / API-only; skips CMS layer, draft routes, types codegen)")}`,
-          name: "includeContentful",
-          type: "confirm",
+          choices: (
+            _previous: unknown,
+            values: { projectType: ProjectType },
+          ) => {
+            const recommended = recommendedAddOns(values.projectType);
+
+            return ADD_ONS.map((addOn) => ({
+              description: addOn.description,
+              selected: recommended.includes(addOn.key),
+              title: addOn.title,
+              value: addOn.key,
+            }));
+          },
+          hint: "Recommended for this kind of project are selected. Space toggles, enter confirms.",
+          instructions: false,
+          message: "Add-ons:",
+          name: "addOns",
+          type: "multiselect",
         },
         {
-          initial: false,
-          message: "Include i18n (next-intl)?",
-          name: "includeI18n",
-          type: "confirm",
-        },
-        {
-          initial: false,
-          message: "Include Google Analytics?",
-          name: "includeGA",
-          type: "confirm",
-        },
-        {
-          initial: false,
-          message: "Include Resend email?",
-          name: "includeResend",
-          type: "confirm",
-        },
-        {
-          initial: false,
-          message: "Include reCAPTCHA?",
-          name: "includeRecaptcha",
-          type: "confirm",
+          initial: "",
+          message: `Any other npm packages? ${chalk.dim("(comma-separated, blank for none)")}`,
+          name: "extraPackages",
+          type: "text",
         },
         {
           choices: [
@@ -319,8 +371,16 @@ export const main = async () => {
       process.exit(0);
     }
 
+    const { addOns = [], extraPackages = "", ...rest } = answers;
     const validated = validateProjectAnswers({
-      ...answers,
+      ...rest,
+      ...Object.fromEntries(
+        ADD_ONS.map(({ key }) => [key, addOns.includes(key)]),
+      ),
+      extraPackages: String(extraPackages)
+        .split(",")
+        .map((name) => name.trim())
+        .filter(Boolean),
       includeClaudePipeline: answers.includeClaudePipeline ?? false,
     });
     if (typeof validated === "string") {
@@ -373,7 +433,10 @@ export const main = async () => {
   const versions =
     dryRun || values["no-refresh"]
       ? DEFAULT_VERSIONS
-      : await refreshPackageVersions(values["latest-majors"]);
+      : await refreshPackageVersions(
+          values["latest-majors"],
+          projectAnswers.extraPackages,
+        );
 
   try {
     await generateProject(projectAnswers, { dryRun, verbose, versions });

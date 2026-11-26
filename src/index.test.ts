@@ -14,7 +14,6 @@ import process from "node:process";
 import prompts from "prompts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { main } from "./index.js";
-import type { ProjectAnswers } from "./types.js";
 
 vi.mock("prompts", () => ({ default: vi.fn() }));
 
@@ -27,16 +26,16 @@ class ExitError extends Error {
 const fixture = (name: string) =>
   path.resolve(import.meta.dirname, "../fixtures/scaffold-e2e", name);
 
-const answers: Omit<ProjectAnswers, "includeClaudePipeline"> = {
+const answers = {
+  addOns: [] as string[],
   agentTooling: "cursor",
   bgColor: "#ffffff",
   devPort: 4321,
-  includeContentful: false,
-  includeGA: false,
-  includeI18n: false,
-  includeRecaptcha: false,
-  includeResend: false,
+  extraPackages: "",
+  hosting: "vercel",
   primaryColor: "#000000",
+  projectDescription: "",
+  projectType: "marketing",
   prodUrl: "https://example.com",
   projectName: "prompted-site",
   siteName: "Prompted Site",
@@ -377,5 +376,98 @@ describe("kickoff CLI", () => {
     expect(packageJson().dependencies.next).toBe("^16.4.3");
     expect(output()).toContain("Couldn't check");
     expect(output()).toContain("kickoff's tested versions");
+  });
+
+  it("turns the add-on checklist and extra packages into the project", async () => {
+    stubRegistry({ clsx: { "2.1.1": 300 }, "date-fns": { "4.1.0": 30 } });
+    vi.mocked(prompts).mockResolvedValueOnce({
+      ...answers,
+      addOns: ["includeForms", "includePlaywright"],
+      extraPackages: "date-fns, clsx",
+      projectDescription: "A site for testing kickoff.",
+    });
+
+    expect(await run()).toBeNull();
+
+    const site = path.join(root, "prompted-site");
+    const pkg = JSON.parse(
+      readFileSync(path.join(site, "package.json"), "utf-8"),
+    ) as {
+      dependencies: Record<string, string>;
+      devDependencies: Record<string, string>;
+    };
+
+    expect(pkg.dependencies["react-hook-form"]).toBeDefined();
+    expect(pkg.dependencies["date-fns"]).toBe("^4.1.0");
+    expect(pkg.dependencies.clsx).toBe("^2.1.1");
+    expect(pkg.dependencies.contentful).toBeUndefined();
+    expect(pkg.devDependencies["@playwright/test"]).toBeDefined();
+    expect(existsSync(path.join(site, "e2e/smoke.spec.ts"))).toBe(true);
+    expect(readFileSync(path.join(site, "CLAUDE.md"), "utf-8")).toContain(
+      "A site for testing kickoff.",
+    );
+  });
+
+  it("pre-selects the add-ons recommended for the project type", async () => {
+    vi.mocked(prompts).mockResolvedValueOnce({});
+    await run();
+
+    const [questions] = vi.mocked(prompts).mock.calls[0] as [
+      {
+        choices?: unknown;
+        name: string;
+      }[],
+    ];
+    const addOns = questions.find((q) => q.name === "addOns");
+
+    if (!addOns) {
+      throw new Error("no addOns question");
+    }
+
+    const choices = (
+      addOns.choices as (
+        previous: unknown,
+        values: { projectType: string },
+      ) => { selected: boolean; value: string }[]
+    )("", { projectType: "careers" });
+
+    expect(
+      choices.filter((choice) => choice.selected).map((choice) => choice.value),
+    ).toEqual([
+      "includeI18n",
+      "includeGA",
+      "includeForms",
+      "includePlaywright",
+    ]);
+    expect(questions.some((q) => q.name === "includeContentful")).toBe(false);
+  });
+
+  it("stops when an extra package can't be added", async () => {
+    stubRegistry({});
+    vi.mocked(prompts).mockResolvedValueOnce({
+      ...answers,
+      extraPackages: "not-a-real-package",
+    });
+
+    expect(await run()).toBe(1);
+    expect(errors()).toContain("Couldn't add not-a-real-package");
+  });
+
+  it("leaves extra packages to pnpm when npm can't be reached", async () => {
+    vi.mocked(prompts).mockResolvedValueOnce({
+      ...answers,
+      extraPackages: "date-fns",
+    });
+
+    expect(await run()).toBeNull();
+
+    const pkg = JSON.parse(
+      readFileSync(path.join(root, "prompted-site", "package.json"), "utf-8"),
+    ) as { dependencies: Record<string, string> };
+
+    expect(pkg.dependencies["date-fns"]).toBe("latest");
+    expect(output()).toContain(
+      "Couldn't reach npm to check date-fns; pnpm will pick its version at install",
+    );
   });
 });

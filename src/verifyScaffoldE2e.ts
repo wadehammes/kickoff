@@ -25,7 +25,11 @@ import {
 } from "./templates/config.js";
 import type { ProjectAnswers } from "./types.js";
 import { validateProjectAnswers } from "./validateAnswers.js";
-import { fetchFromNpm, refreshVersions } from "./versions/refreshVersions.js";
+import {
+  fetchFromNpm,
+  refreshVersions,
+  resolveExtraPackages,
+} from "./versions/refreshVersions.js";
 
 const SCAFFOLD_CHECKS = [
   "tsc:ci",
@@ -177,7 +181,7 @@ const smokeTestBuild = async (
       await expectPage("/es/kickoff-e2e-missing-page", 404, "es");
     }
 
-    if (answers.includeClaudePipeline && RUN_PLAYWRIGHT) {
+    if (answers.includePlaywright && RUN_PLAYWRIGHT) {
       console.log("  playwright install chromium");
       execSync(
         `pnpm exec playwright install ${process.env.CI ? "--with-deps " : ""}chromium`,
@@ -373,7 +377,16 @@ const verifyFixture = async (
 
   try {
     process.chdir(tmpRoot);
-    await generateProject(answers, { versions });
+    const extras = await resolveExtraPackages({
+      fetchMetadata: fetchFromNpm,
+      names: answers.extraPackages,
+    });
+    if (extras.problems.length > 0) {
+      throw new Error(`extra packages: ${extras.problems.join("; ")}`);
+    }
+    await generateProject(answers, {
+      versions: { ...versions, ...extras.versions },
+    });
     writeMinimalEnvLocal(tmpRoot, answers);
 
     console.log("  pnpm install");
