@@ -33,7 +33,7 @@ export const getClaude = (a: ProjectAnswers): string => {
 
 ${getProjectSummary(a)}
 
-Before **substantive** work in this repo (features, refactors, ${cmsClause}patterns that touch the App Router or API routes, CI or env, analytics), read **\`docs/handbook/non-negotiables.md\`** and the handbook page that matches the task. **\`docs/handbook/llms.md\`** maps tasks and files to pages. When unsure which pattern to use, read **\`docs/handbook/decisions.md\`** first.
+Before **substantive** work in this repo (features, refactors, ${cmsClause}patterns that touch the App Router or API routes, CI or env, analytics), read the handbook page that matches the task (**\`docs/handbook/llms.md\`** maps tasks and files to pages). The non-negotiables (\`docs/handbook/non-negotiables.md\`) load at the start of every session; every change follows them. When unsure which pattern to use, read **\`docs/handbook/decisions.md\`** first.
 
 Follow documented patterns.
 
@@ -42,6 +42,8 @@ Follow documented patterns.
 You can skip a full handbook pass for **narrow** edits (typos, single obvious lines, mechanical fixes) that do not change behavior or documented expectations.
 
 Run **\`/handbook-review\`** to check a branch against the handbook before you open a PR.
+
+Next.js 16 APIs differ from what you may remember. Before using a Next.js API, file convention, or config option, look it up in **\`docs/nextjs.md\`**, an index of the docs bundled with the installed version (\`pnpm next:agents-md\` refreshes it).
 ${a.includeI18n ? getClaudeI18nInstructions() : ""}${a.includeClaudePipeline ? getClaudePipelineInstructions() : ""}`;
 };
 
@@ -225,12 +227,21 @@ ${usesVercel(a) ? "# Environment variables: start from the example, then edit by
 # Install dependencies
 pnpm install
 
-# Index the Next.js docs for AI agents (writes a block into CLAUDE.md)
+# Index the Next.js docs for AI agents (writes docs/nextjs.md)
 pnpm next:agents-md
 ${gettingStartedExtra}# Start dev server on port ${a.devPort}
 pnpm dev
 \`\`\`
 
+### Keep agent context small (recommended)
+
+Install [rtk](https://www.rtk-ai.app/) once per machine. It condenses the output of commands an agent runs (tests, builds, lint, git) before it reaches the model, so long sessions stay cheaper and sharper.
+
+\`\`\`sh
+brew install rtk
+rtk init --agent ${a.agentTooling}
+\`\`\`
+${a.includeClaudePipeline ? "\nThe quality gate hook runs its checks through rtk automatically when it is installed.\n" : ""}
 ## Scripts
 
 | Command | Description |
@@ -248,7 +259,7 @@ pnpm dev
 | \`pnpm lint:all\` | \`lint:check\`, Stylelint fix, \`tsc:ci\`, and \`knip:ci\` |
 | \`pnpm knip\` / \`pnpm knip:ci\` | Dead-code / unused export analysis ([knip.json](knip.json)) |
 | \`pnpm next:upgrade\` | Upgrade Next.js and React to the latest minor with the official codemod |
-| \`pnpm next:agents-md\` | Refresh the Next.js docs index in \`CLAUDE.md\` |
+| \`pnpm next:agents-md\` | Refresh the Next.js docs index in \`docs/nextjs.md\` |
 | \`pnpm test:ci\` | Run Jest test suite |
 ${usesPlaywright(a) ? "| `pnpm test:e2e` | Playwright tests in `e2e/` against `BASE_URL` (default: local dev server) |\n" : ""}${a.includeClaudePipeline ? "| `pnpm typecheck` | TypeScript check used by Vercel Deployment Checks |\n" : ""}${scriptsTypesRow}| \`pnpm scaffold MyComponent\` | Scaffold a new component with all standard files |
 
@@ -1195,7 +1206,7 @@ Run **\`pnpm lint:all\`** locally for the same checks as a full pre-push pass (\
 | \`pnpm lint:css\` / \`pnpm lint:css:fix\` | Stylelint. |
 | \`pnpm lint:all\` | \`lint:check\`, Stylelint fix, \`tsc:ci\`, and \`knip:ci\`. |
 | \`pnpm knip\` / \`pnpm knip:ci\` | Dead-code / unused export analysis ([knip.json](../../knip.json)). |
-| \`pnpm next:upgrade\` / \`pnpm next:agents-md\` | Official Next.js codemods: upgrade, and refresh the docs index in \`CLAUDE.md\` (see **Upgrading Next.js**). |
+| \`pnpm next:upgrade\` / \`pnpm next:agents-md\` | Official Next.js codemods: upgrade, and refresh the docs index in \`docs/nextjs.md\` (see **Upgrading Next.js**). |
 | \`pnpm test:ci\` | Jest (CI-style). |
 ${usesPlaywright(a) ? "| `pnpm test:e2e` | Playwright (`e2e/`) against `BASE_URL`. |\n" : ""}${a.includeClaudePipeline ? "| `pnpm typecheck` | TypeScript check for Vercel Deployment Checks. |\n" : ""}| \`pnpm scaffold\` | New component folder under \`src/components/\` (see [components.md](components.md)). |
 ${scriptRowsExtra}
@@ -1322,7 +1333,7 @@ const getHandbookUpgradingSection = (a: ProjectAnswers): string => {
 Use the official codemods instead of editing versions by hand. Both scripts run a pinned version of \`@next/codemod\` with \`pnpm dlx\`.
 
 - **\`pnpm next:upgrade\`** runs \`@next/codemod upgrade minor --yes\`: it bumps Next.js and React to the latest minor release, applies the migration codemods for that jump, and reinstalls. Run \`pnpm lint:all\`, \`pnpm test:ci\` and \`pnpm build\` afterwards and fix anything left over. For a major upgrade, run the codemod with \`major\` and read the upgrade guide first.
-- **\`pnpm next:agents-md\`** writes an index of the Next.js docs bundled in \`node_modules/next/dist/docs\` into \`CLAUDE.md\` (between markers, so rerunning replaces it). Run it after installing and after every upgrade so agents read docs that match the installed version.
+- **\`pnpm next:agents-md\`** writes an index of the Next.js docs bundled in \`node_modules/next/dist/docs\` to \`docs/nextjs.md\` (rerunning replaces it). It lives outside \`CLAUDE.md\` so its ~2,400 tokens load only when an agent looks something up; \`CLAUDE.md\` keeps a one-line pointer. Run it after installing and after every upgrade so agents read docs that match the installed version.
 - \`minimumReleaseAge\` in \`pnpm-workspace.yaml\` still applies: if the codemod targets a release less than 7 days old, the install fails. Wait and rerun.${scheduled}
 
 `;

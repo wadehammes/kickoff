@@ -225,20 +225,23 @@ export const getSessionHandbookRoutingSh = (): string => {
   return `#!/usr/bin/env bash
 set -euo pipefail
 
-# Session start: inject handbook routing map once per agent session.
+# Session start: inject the non-negotiables and the handbook routing table once per agent session.
 
 source "$(dirname "$0")/_lib.sh"
 hook_input
 
 root="$(project_dir)"
 map_file="$root/docs/handbook/llms.md"
+rules_file="$root/docs/handbook/non-negotiables.md"
 
 [ -f "$map_file" ] || exit 0
 
-map_content="$(<"$map_file")"
+map_content="$(grep "^|" "$map_file")"
+rules_content=""
+[ -f "$rules_file" ] && rules_content="$(<"$rules_file")"
 
 session_context "$(
-  printf 'Handbook routing — read the chapter matching this task BEFORE editing code (from docs/handbook/llms.md):\\n\\n%s' "$map_content"
+  printf '%s\\n\\nHandbook routing — read the page matching this task BEFORE editing code (from docs/handbook/llms.md):\\n\\n%s' "$rules_content" "$map_content"
 )"
 
 exit 0
@@ -522,6 +525,12 @@ case "$file" in
     exit 0 ;;
 esac
 
+session="$(printf '%s' "$INPUT" | jq -r '.session_id // .conversation_id // "session"')"
+state_dir="$(git rev-parse --git-dir 2>/dev/null || echo /tmp)/handbook-sync-nudge/$session"
+marker="$state_dir/$(printf '%s' "$file" | cksum | cut -d' ' -f1)"
+[ -e "$marker" ] && exit 0
+mkdir -p "$state_dir" && touch "$marker"
+
 ctx="Handbook-sync check: you just edited $file. If this edit changes how we build things here, docs/handbook/$chapter needs the same change. Follow CLAUDE.md on whether to ask the engineer before editing the handbook."
 
 advise_context "$ctx"
@@ -799,9 +808,17 @@ fi
 
 attempts="$(cat "$attempts_file" 2>/dev/null || echo 0)"
 
+run_check() {
+  if command -v rtk >/dev/null 2>&1; then
+    rtk err pnpm --silent "$1"
+  else
+    pnpm --silent "$1"
+  fi
+}
+
 failures=""
 for script in tsc:ci lint:ci lint:css test:ci knip:ci; do
-  if ! output="$(pnpm --silent "$script" 2>&1)"; then
+  if ! output="$(run_check "$script" 2>&1)"; then
     failures="$(printf '%s\\n\\n--- pnpm %s ---\\n%s' "$failures" "$script" "$(printf '%s' "$output" | tail -n 40)")"
   fi
 done
@@ -986,7 +1003,7 @@ Shared team files under \`.cursor/\` are tracked in git (\`hooks.json\`, \`hooks
 
 | Script | Event | What it does |
 |--------|-------|--------------|
-| \`session-handbook-routing.sh\` | \`sessionStart\` | Injects the handbook routing map (\`llms.md\`) into session context. |
+| \`session-handbook-routing.sh\` | \`sessionStart\` | Injects the non-negotiables and the handbook routing table (from \`llms.md\`) into session context. |
 | \`block-added-comments.sh\` | \`preToolUse\` | Denies edits that add code comments. |
 | \`block-toplevel-media.sh\` | \`preToolUse\` | Denies top-level \`@media\` in CSS — nest inside selectors. |
 | \`block-custom-media.sh\` | \`preToolUse\` | Denies \`@custom-media\` / \`@media (--var)\` — use range syntax. |
@@ -1009,7 +1026,7 @@ ${getCommandsSection(".cursor")}
 
 export const getClaudeHooksReadme = (a: ProjectAnswers): string => {
   const pipelineRow = a.includeClaudePipeline
-    ? `| \`${QUALITY_GATE_HOOK_SCRIPT_NAME}\` | \`Stop\` | When files changed, runs \`tsc:ci\`, \`lint:ci\`, \`lint:css\`, \`test:ci\`, \`knip:ci\` and blocks the stop until they pass (max 3 attempts). |
+    ? `| \`${QUALITY_GATE_HOOK_SCRIPT_NAME}\` | \`Stop\` | When files changed, runs \`tsc:ci\`, \`lint:ci\`, \`lint:css\`, \`test:ci\`, \`knip:ci\` and blocks the stop until they pass (max 3 attempts). Runs them through rtk when it is installed, so only errors reach Claude. |
 `
     : "";
 
@@ -1033,7 +1050,7 @@ Shared team files under \`.claude/\` are tracked in git (\`settings.json\`, \`ho
 
 | Script | Event | What it does |
 |--------|-------|--------------|
-| \`session-handbook-routing.sh\` | \`SessionStart\` | Injects the handbook routing map (\`llms.md\`) into session context. |
+| \`session-handbook-routing.sh\` | \`SessionStart\` | Injects the non-negotiables and the handbook routing table (from \`llms.md\`) into session context. |
 | \`block-added-comments.sh\` | \`PreToolUse\` | Denies edits that add code comments. |
 | \`block-toplevel-media.sh\` | \`PreToolUse\` | Denies top-level \`@media\` in CSS — nest inside selectors. |
 | \`block-custom-media.sh\` | \`PreToolUse\` | Denies \`@custom-media\` / \`@media (--var)\` — use range syntax. |

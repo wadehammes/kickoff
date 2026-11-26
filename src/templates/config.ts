@@ -177,7 +177,7 @@ export const getPackageJson = (
       "node --import tsx --test scripts/verify-vercel-release.test.mjs",
     "tsc:ci": "tsc --strict",
     "handbook:check": "bash scripts/handbook-sync-check.sh",
-    "next:agents-md": `pnpm dlx @next/codemod@${versions["@next/codemod"]} agents-md --output CLAUDE.md`,
+    "next:agents-md": `pnpm dlx @next/codemod@${versions["@next/codemod"]} agents-md --output docs/nextjs.md`,
     "next:upgrade": `pnpm dlx @next/codemod@${versions["@next/codemod"]} upgrade minor --yes`,
   };
 

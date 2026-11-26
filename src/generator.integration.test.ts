@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
@@ -359,6 +360,122 @@ describe("generateProject", () => {
     expect(platform).toContain("## Browser tests (Playwright)");
     expect(platform).toContain("pnpm test:e2e");
     expect(patterns).toContain("zodResolver");
+  });
+
+  it("keeps the Next.js docs index out of the context loaded every session", async () => {
+    const root = await runInTemp(baseAnswers({ projectName: "index-site" }));
+    const pkg = JSON.parse(
+      readFileSync(path.join(root, "package.json"), "utf-8"),
+    ) as { scripts: Record<string, string> };
+    const claudeMd = readFileSync(path.join(root, "CLAUDE.md"), "utf-8");
+
+    expect(pkg.scripts["next:agents-md"]).toContain("--output docs/nextjs.md");
+    expect(claudeMd).toContain("docs/nextjs.md");
+    expect(claudeMd).not.toContain("NEXT-AGENTS-MD");
+  });
+
+  it("reminds about the handbook once per file per session", async () => {
+    const root = await runInTemp(
+      baseAnswers({ agentTooling: "claude", projectName: "nudge-site" }),
+    );
+    spawnSync("git", ["init", "-q"], { cwd: root });
+    const nudge = (file: string, session: string) =>
+      spawnSync("bash", [".claude/hooks/handbook-sync-nudge.sh"], {
+        cwd: root,
+        encoding: "utf-8",
+        input: JSON.stringify({
+          cwd: root,
+          session_id: session,
+          tool_input: { file_path: path.join(root, file) },
+        }),
+      }).stdout;
+
+    expect(nudge("src/components/Footer/Footer.component.tsx", "s1")).toContain(
+      "components.md",
+    );
+    expect(nudge("src/components/Footer/Footer.component.tsx", "s1")).toBe("");
+    expect(nudge("src/styles/globals.module.css", "s1")).toContain("css.md");
+    expect(nudge("src/components/Footer/Footer.component.tsx", "s2")).toContain(
+      "components.md",
+    );
+  });
+
+  it("runs the quality gate through rtk when it is installed", async () => {
+    const root = await runInTemp(
+      baseAnswers({
+        agentTooling: "claude",
+        includeClaudePipeline: true,
+        projectName: "gate-site",
+      }),
+    );
+    spawnSync("git", ["init", "-q"], { cwd: root });
+    const bin = path.join(root, "fake-bin");
+    mkdirSync(bin);
+    writeFileSync(
+      path.join(bin, "pnpm"),
+      '#!/usr/bin/env bash\nif [ "$2" = tsc:ci ]; then echo "error TS2304: broken"; exit 2; fi\n',
+      { mode: 0o755 },
+    );
+    const gate = (withRtk: boolean) => {
+      if (withRtk) {
+        writeFileSync(
+          path.join(bin, "rtk"),
+          '#!/usr/bin/env bash\nshift\nout="$("$@" 2>&1)"; code=$?\necho "[rtk] $out"\nexit $code\n',
+          { mode: 0o755 },
+        );
+      } else {
+        rmSync(path.join(bin, "rtk"), { force: true });
+      }
+
+      return spawnSync("bash", [".claude/hooks/quality-gate.sh"], {
+        cwd: root,
+        encoding: "utf-8",
+        env: { ...process.env, PATH: `${bin}:/usr/bin:/bin:/opt/homebrew/bin` },
+        input: JSON.stringify({ cwd: root }),
+      }).stdout;
+    };
+
+    expect(gate(true)).toContain("[rtk] error TS2304: broken");
+    expect(gate(false)).toContain("error TS2304: broken");
+    expect(gate(false)).not.toContain("[rtk]");
+  });
+
+  it("injects the non-negotiables and the routing table at session start", async () => {
+    const root = await runInTemp(
+      baseAnswers({ agentTooling: "claude", projectName: "session-site" }),
+    );
+    const injected = spawnSync(
+      "bash",
+      [".claude/hooks/session-handbook-routing.sh"],
+      {
+        cwd: root,
+        encoding: "utf-8",
+        input: JSON.stringify({ cwd: root }),
+      },
+    ).stdout;
+
+    expect(injected).toContain("| Any change, before anything else |");
+    expect(injected).toContain("# Non-negotiables");
+    expect(injected).toContain("| Always | Never | Page |");
+    expect(injected).not.toContain("Outside this folder");
+    expect(injected).not.toContain("Written for agents and tools");
+  });
+
+  it("recommends rtk for the agent tooling the project uses", async () => {
+    for (const agentTooling of ["claude", "cursor"] as const) {
+      const root = await runInTemp(
+        baseAnswers({ agentTooling, projectName: `rtk-${agentTooling}` }),
+      );
+      const readme = readFileSync(path.join(root, "README.md"), "utf-8");
+      const workflow = readFileSync(
+        path.join(root, "docs/handbook/agent-workflow.md"),
+        "utf-8",
+      );
+
+      expect(readme).toContain("brew install rtk");
+      expect(readme).toContain(`rtk init --agent ${agentTooling}`);
+      expect(workflow).toContain("rtk");
+    }
   });
 
   it("keeps server-only secrets out of next.config env", async () => {

@@ -93,7 +93,7 @@ Kickoff ships **`.cursor/hooks.json`** and scripts under **`.cursor/hooks/`** th
 
 ## Testing generation scenarios
 
-- Token budgets: every handbook page stays under ~1,500 tokens, /handbook-review under ~1,500, and what loads at session start (`CLAUDE.md` plus `llms.md`) under ~2,000 (`TOKEN_BUDGETS` in the generation matrix). Split a page by topic when it grows past its budget instead of raising the number.
+- Token budgets: every handbook page stays under ~1,500 tokens, /handbook-review under ~1,500, and what loads at session start (`CLAUDE.md`, plus the non-negotiables and the `llms.md` routing table the session hook injects) under ~2,750 (`TOKEN_BUDGETS` in the generation matrix). Split a page by topic when it grows past its budget instead of raising the number.
 - `src/generationMatrix.test.ts` generates every tooling × option combination (96 projects) in seconds and checks structural invariants. Add an invariant there when you fix a class of generator bug.
 - `fixtures/scaffold-e2e/*.json` covers each option at least once for the slow end-to-end run. Add a fixture when a new option or combination needs a real install, build, or browser test.
 - Write the test first and watch it fail for the reason you expect before you change the code. When you add tests for code that already exists, break the code on purpose to prove the test catches it.

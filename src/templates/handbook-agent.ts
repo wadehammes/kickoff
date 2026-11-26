@@ -236,6 +236,7 @@ ${cursorStop}
 | Dead code / exports | **\`pnpm knip\`** / **\`pnpm knip:ci\`** — [platform.md](platform.md) |
 | Handbook drift vs branch | **\`pnpm handbook:check\`** |
 | Review a branch, or code written outside an agent session, against the handbook | **\`/handbook-review\`** — \`${getAgentDir(a)}/commands/handbook-review.md\` |
+| Keep command output short | Install [rtk](https://www.rtk-ai.app/) (\`brew install rtk\`, then \`rtk init --agent ${a.agentTooling}\`); it condenses test, build, lint, and git output before you read it |
 `;
 };
 

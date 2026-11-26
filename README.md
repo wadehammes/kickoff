@@ -17,6 +17,7 @@
 
 <p>
   <a href="#built-for-agents">Built for agents</a> ·
+  <a href="#built-to-keep-agent-context-small">Token-lean</a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="#what-you-get">What you get</a> ·
   <a href="#the-hands-off-claude-pipeline">Claude pipeline</a> ·
@@ -28,7 +29,7 @@
 
 kickoff is a command-line tool that generates a complete Next.js and TypeScript project, ready for a team or an AI agent to build on.
 
-Plenty of tools scaffold an app. kickoff also writes down how the app is built, stops agents from breaking those rules while they edit, and checks a branch against them before it becomes a PR. An agent working in a kickoff project follows the same conventions as the people who set them, without anyone repeating them in every prompt.
+Besides the app, kickoff writes down how it's built, blocks agent edits that break those rules, and checks each branch against them before it becomes a PR. An agent working in a kickoff project follows the team's conventions without anyone repeating them in every prompt.
 
 ## Built for agents
 
@@ -37,12 +38,12 @@ Plenty of tools scaffold an app. kickoff also writes down how the app is built, 
 Every project gets `docs/handbook/`, which describes how the code is built, one page per part of the work, each rule with an example.
 
 - `non-negotiables.md` puts every always-and-never rule on one page, each linked to the section that explains it.
-- `llms.md` maps tasks and file patterns to the page an agent should read before touching them, and every agent session starts with it loaded.
+- `llms.md` maps tasks and file patterns to the page an agent should read before touching them. Its routing table and the non-negotiables load at the start of every agent session.
 - A glossary, a decisions page for "which pattern fits?", and feature playbooks for new components, API routes, hooks, and factories.
 
 Already have a codebase? [`kickoff handbook`](#generating-just-a-handbook) has the agent of your choice (Claude Code, Cursor, Codex, Gemini, or anything that takes a prompt) study the code and write the same handbook for it, with examples taken from your files.
 
-### Hooks that hold the line
+### Hooks that enforce the rules
 
 Cursor or Claude Code hooks run on every edit, so a rule that's written down is also enforced:
 
@@ -54,6 +55,16 @@ Cursor or Claude Code hooks run on every edit, so a rule that's written down is 
 ### A review command for everything else
 
 `/handbook-review` reviews a branch the way a teammate who knows the handbook would. It routes each changed file to its pages, runs the linters read-only, checks every added line against the non-negotiables, and reports findings with a link to the rule and a suggested fix. Code written outside an agent session never went through the hooks, so this is how it gets the same check. Reply **go** and the agent applies the fixes.
+
+### Built to keep agent context small
+
+A generated project keeps what an agent has to read small, so more of each session goes to the code:
+
+- The handbook is split by topic, and every page stays under about 1,500 tokens. `llms.md` sends an agent to the page that matches the file it's touching, so a CSS change reads the CSS page and nothing else.
+- The non-negotiables load at the start of every session, so an agent never skips them. Together with `CLAUDE.md` and the routing table, that context stays under about 2,750 tokens. The Next.js docs index, about 2,400 tokens on its own, lives in `docs/nextjs.md`, and `CLAUDE.md` points to it.
+- Tests in kickoff fail if a page or the session-start context grows past its budget, so the numbers can't creep up unnoticed.
+- The handbook reminder fires once per file per session, and the quality gate reports only failing checks, trimmed to their errors.
+- Projects recommend [rtk](https://www.rtk-ai.app/), which condenses test, build, lint, and git output before an agent reads it. The quality gate uses it automatically when it's installed.
 
 ## Quick start
 
@@ -198,7 +209,7 @@ After generation, Dependabot keeps the GitHub Actions pins current, with the sam
 cd my-new-site
 cp .env.local.example .env.local   # or: npx vercel link && npx vercel env pull .env.local
 pnpm install
-pnpm next:agents-md                # index the Next.js docs into CLAUDE.md
+pnpm next:agents-md                # index the Next.js docs into docs/nextjs.md
 pnpm dev
 ```
 
@@ -266,8 +277,8 @@ Claude pipeline projects are trunk-based on `main`:
 | `pnpm scaffold MyComponent` | Create a component with its CSS module, interfaces, spec, page object, and test factory |
 | `pnpm handbook:check` | Fail if code changed without a matching handbook update |
 | `pnpm next:upgrade` | Upgrade Next.js and React to the latest minor with the official codemod |
-| `pnpm next:agents-md` | Refresh the Next.js docs index in `CLAUDE.md` |
-| `pnpm test:e2e` | Playwright smoke and accessibility tests (pipeline projects) |
+| `pnpm next:agents-md` | Refresh the Next.js docs index in `docs/nextjs.md` |
+| `pnpm test:e2e` | Playwright smoke and accessibility tests (browser tests add-on, or the pipeline) |
 | `pnpm types:contentful` | Regenerate Contentful types (Contentful projects) |
 
 The main folders:
@@ -280,7 +291,7 @@ src/copy/           page text and repeated content, kept out of components
 src/contentful/     CMS client, getters and parsers (Contentful only)
 src/lib/, src/utils/  shared helpers
 src/tests/          page objects, factories, mocks
-e2e/                Playwright tests (pipeline only)
+e2e/                Playwright tests (browser tests add-on, or the pipeline)
 .github/            CI and, with the pipeline, the Claude workflows and CODEOWNERS
 .claude/, .cursor/  agent hooks and settings
 ```
@@ -302,13 +313,22 @@ Templates and the generated handbook (`src/templates/docs.ts`) have to stay in s
 | `pnpm build` | Compile to `dist/` |
 | `pnpm dev` | Compile in watch mode |
 | `pnpm lint` / `pnpm lint:fix` | Biome |
-| `pnpm test` | Unit and integration tests, plus a matrix that generates all 96 combinations of tooling and options and checks each one |
+| `pnpm test` | Unit and integration tests, plus a matrix that generates all 640 combinations of tooling, hosting, and options and checks each one |
 | `pnpm test:coverage` | The same tests with a coverage report. CI fails below 95% of lines, statements, and functions or 90% of branches |
 | `pnpm test:scaffold-e2e` | Run `kickoff handbook` end to end, then generate each fixture project, install it, run its CI checks and its handbook drift check, and build, serve and smoke-test the ones without Contentful |
 
-The matrix test (`src/generationMatrix.test.ts`) runs in seconds. For every combination it checks for colliding routes, pages without exactly one `<html>` layout, imports that don't resolve, references to `pnpm` scripts that don't exist, invalid JSON, and TypeScript syntax errors. When you fix a class of generator bug, add a check there.
+The matrix test (`src/generationMatrix.test.ts`) takes under a minute. For every combination it checks that:
 
-The end-to-end run is slower and covers each option at least once with a real install. Set `SCAFFOLD_E2E_PLAYWRIGHT=1` to also run the generated Playwright suites for pipeline fixtures, or `SCAFFOLD_E2E_ONLY=claude-static,cursor-static` to run just those fixtures. The run refreshes package versions from npm first, the same way `kickoff` does; set `SCAFFOLD_E2E_REFRESH=0` to use the tested versions. CI does this on every PR to `main`, alongside the build, lint and unit tests.
+- routes don't collide, and each page has exactly one `<html>` layout;
+- imports resolve, `pnpm` scripts that docs mention exist, and JSON and TypeScript parse;
+- every markdown link and anchor resolves;
+- generated code follows its own handbook (arrow functions, test IDs, exports, braces, spacing);
+- projects not hosted on Vercel never mention it;
+- handbook pages and session-start context stay within their token budgets.
+
+When you fix a class of generator bug, add a check there.
+
+The end-to-end run is slower and covers each option at least once with a real install. Set `SCAFFOLD_E2E_PLAYWRIGHT=1` to also run the generated Playwright suites for fixtures that have browser tests, or `SCAFFOLD_E2E_ONLY=claude-static,cursor-static` to run just those fixtures. The run refreshes package versions from npm first, the same way `kickoff` does; set `SCAFFOLD_E2E_REFRESH=0` to use the tested versions. CI does this on every PR to `main`, alongside the build, lint and unit tests.
 
 To release kickoff, run `make release tag=vX.Y.Z` from any branch. It tags the latest `origin/main`, pushes the tag, and follows the release workflow. The workflow checks the tag is `vX.Y.Z` and on `main`, builds and tests, checks that the packed package installs and generates a project (`pnpm verify:package`), publishes `@nthoftype/kickoff` to npm, and creates the GitHub release. The tag is the only source of the version, so npm, the GitHub release, and `kickoff --version` always match; `package.json` keeps `0.0.0-development`. npm publishing uses trusted publishing, so no npm token is stored, and each version shows provenance linking it to its commit.
 

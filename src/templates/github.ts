@@ -543,7 +543,7 @@ jobs:
           git switch -c "$BRANCH"
 ${NODE_SETUP_STEPS}      - name: Run the official Next.js upgrade codemod
         run: pnpm next:upgrade
-      - name: Refresh the Next.js docs index in CLAUDE.md
+      - name: Refresh the Next.js docs index in docs/nextjs.md
         run: pnpm next:agents-md
       - name: Check for changes
         id: diff
@@ -564,7 +564,7 @@ ${NODE_SETUP_STEPS}      - name: Run the official Next.js upgrade codemod
           prompt: |
             The official Next.js upgrade codemod (@next/codemod upgrade) just ran on this branch and was committed.
             Run pnpm tsc:ci, pnpm lint:ci, pnpm lint:css, pnpm test:ci, pnpm knip:ci and pnpm build.
-            Fix failures caused by the upgrade. Use the Next.js docs indexed in CLAUDE.md (bundled under node_modules/next/dist/docs) for migration guidance, and follow the handbook.
+            Fix failures caused by the upgrade. Use the Next.js docs indexed in docs/nextjs.md (bundled under node_modules/next/dist/docs) for migration guidance, and follow the handbook.
             Commit your fixes with git commit. Do not push; the workflow pushes and opens the pull request.
             Never weaken, skip, or delete tests, lint rules, or checks.
             If a failure needs a decision only a person can make, leave it, commit what you have, and explain it in one plain-language sentence.
