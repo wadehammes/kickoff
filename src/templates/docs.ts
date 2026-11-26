@@ -969,6 +969,8 @@ The root DOM element of a tested component should have **\`data-testid="rh<Compo
 
 Export the component as both a **named export** (e.g. \`export const MyComponent\`) and a **default export** (\`export default MyComponent\`) so imports stay consistent with the scaffold and existing folders.
 
+One exception: a multi-part primitive in \`src/ui/\`, like \`Collapsible\`, exports each part by name (\`CollapsibleRoot\`, \`CollapsibleTrigger\`, \`CollapsiblePanel\`) and has no default export, because no single part is "the" component.
+
 ## Dynamic imports
 
 Use **\`next/dynamic\`** when a component is heavy or client-only (\`ssr: false\` when it depends on \`window\` or browser-only APIs).

@@ -21,18 +21,18 @@ export interface BreadcrumbItem {
   url: string;
 }
 
-export function createOrganizationSchema(
+export const createOrganizationSchema = (
   name = "${a.siteName}",
-): Organization {
+): Organization => {
   return {
     "@type": "Organization",
     name,
   };
-}
+};
 
-export function createBreadcrumbSchema(
+export const createBreadcrumbSchema = (
   items: BreadcrumbItem[],
-): BreadcrumbList {
+): BreadcrumbList => {
   return {
     "@type": "BreadcrumbList",
     itemListElement: items.map((item, index) => ({
@@ -42,9 +42,9 @@ export function createBreadcrumbSchema(
       item: item.url,
     })),
   };
-}
+};
 
-export function createPersonSchema({
+export const createPersonSchema = ({
   name,
   description,
   jobTitle,
@@ -58,7 +58,7 @@ export function createPersonSchema({
   url?: string;
   worksFor?: Organization;
   image?: string;
-}): Person {
+}): Person => {
   const schema: Person = {
     "@type": "Person",
     name,
@@ -85,9 +85,9 @@ export function createPersonSchema({
   }
 
   return schema;
-}
+};
 
-export function createVideoObjectSchema({
+export const createVideoObjectSchema = ({
   name,
   description,
   contentUrl,
@@ -109,26 +109,49 @@ export function createVideoObjectSchema({
   publisher?: Organization;
   creator?: Person;
   url?: string;
-}): VideoObject {
+}): VideoObject => {
   const schema: VideoObject = {
     "@type": "VideoObject",
     name,
     contentUrl,
   };
 
-  if (description) schema.description = description;
-  if (embedUrl) schema.embedUrl = embedUrl;
-  if (uploadDate) schema.uploadDate = uploadDate;
-  if (datePublished) schema.datePublished = datePublished;
-  if (dateModified) schema.dateModified = dateModified;
-  if (publisher) schema.publisher = publisher;
-  if (creator) schema.creator = creator;
-  if (url) schema.url = url;
+  if (description) {
+    schema.description = description;
+  }
+
+  if (embedUrl) {
+    schema.embedUrl = embedUrl;
+  }
+
+  if (uploadDate) {
+    schema.uploadDate = uploadDate;
+  }
+
+  if (datePublished) {
+    schema.datePublished = datePublished;
+  }
+
+  if (dateModified) {
+    schema.dateModified = dateModified;
+  }
+
+  if (publisher) {
+    schema.publisher = publisher;
+  }
+
+  if (creator) {
+    schema.creator = creator;
+  }
+
+  if (url) {
+    schema.url = url;
+  }
 
   return schema;
-}
+};
 
-export function createVideoListSchema({
+export const createVideoListSchema = ({
   name,
   description,
   items,
@@ -136,7 +159,7 @@ export function createVideoListSchema({
   name: string;
   description?: string;
   items: VideoObject[];
-}): ItemList {
+}): ItemList => {
   const schema: ItemList = {
     "@type": "ItemList",
     name,
@@ -152,9 +175,9 @@ export function createVideoListSchema({
   }
 
   return schema;
-}
+};
 
-export function createWebPageSchema({
+export const createWebPageSchema = ({
   url,
   name,
   description,
@@ -172,7 +195,7 @@ export function createWebPageSchema({
   breadcrumb?: BreadcrumbList;
   publisher?: Organization;
   video?: VideoObject;
-}): WebPage {
+}): WebPage => {
   const schema: WebPage = {
     "@type": "WebPage",
     "@id": url,
@@ -180,22 +203,39 @@ export function createWebPageSchema({
     name,
   };
 
-  if (description) schema.description = description;
-  if (datePublished) schema.datePublished = datePublished;
-  if (dateModified) schema.dateModified = dateModified;
-  if (breadcrumb) schema.breadcrumb = breadcrumb;
-  if (publisher) schema.publisher = publisher;
-  if (video) schema.video = video;
+  if (description) {
+    schema.description = description;
+  }
+
+  if (datePublished) {
+    schema.datePublished = datePublished;
+  }
+
+  if (dateModified) {
+    schema.dateModified = dateModified;
+  }
+
+  if (breadcrumb) {
+    schema.breadcrumb = breadcrumb;
+  }
+
+  if (publisher) {
+    schema.publisher = publisher;
+  }
+
+  if (video) {
+    schema.video = video;
+  }
 
   return schema;
-}
+};
 
-export function createSchemaGraph(schemas: Thing[]): Graph {
+export const createSchemaGraph = (schemas: Thing[]): Graph => {
   return {
     "@context": "https://schema.org",
     "@graph": schemas,
   };
-}
+};
 `;
 };
 

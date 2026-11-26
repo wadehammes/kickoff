@@ -291,6 +291,100 @@ const findInvalidJson = (root: string): string[] =>
       }
     });
 
+const sourceFiles = (root: string): string[] =>
+  listFiles(path.join(root, "src")).filter((file) => /\.tsx?$/.test(file));
+
+const componentFiles = (root: string): string[] =>
+  sourceFiles(root).filter((file) => file.endsWith(".component.tsx"));
+
+const componentName = (file: string): string =>
+  path.basename(file, ".component.tsx");
+
+const scriptFiles = (root: string): string[] =>
+  existsSync(path.join(root, "scripts"))
+    ? listFiles(path.join(root, "scripts")).filter((file) =>
+        file.endsWith(".ts"),
+      )
+    : [];
+
+const findFunctionDeclarations = (root: string): string[] =>
+  [...sourceFiles(root), ...scriptFiles(root)].flatMap((file) =>
+    readFileSync(file, "utf-8")
+      .split("\n")
+      .flatMap((line, index) =>
+        /^\s*(export\s+)?(default\s+)?(async\s+)?function\b/.test(line)
+          ? [`${path.relative(root, file)}:${index + 1}: ${line.trim()}`]
+          : [],
+      ),
+  );
+
+const linesOf = (
+  root: string,
+  check: (line: string, previous: string) => boolean,
+): string[] =>
+  [...sourceFiles(root), ...scriptFiles(root)].flatMap((file) =>
+    readFileSync(file, "utf-8")
+      .split("\n")
+      .flatMap((line, index, lines) =>
+        check(line, lines[index - 1] ?? "")
+          ? [`${path.relative(root, file)}:${index + 1}: ${line.trim()}`]
+          : [],
+      ),
+  );
+
+const findMissingBlankLines = (root: string): string[] =>
+  linesOf(
+    root,
+    (line, previous) =>
+      /^\s*(const|let) .*;\s*$/.test(previous) &&
+      /^\s*(if|return|for|while|switch|try)\b/.test(line),
+  );
+
+const findIfsWithoutBraces = (root: string): string[] =>
+  linesOf(root, (line) =>
+    /^\s*(if|else if) ?\(.*\)\s*[^{\s].*;\s*$/.test(line),
+  );
+
+const isCompoundPrimitive = (file: string, content: string): boolean =>
+  file.includes(`${path.sep}src${path.sep}ui${path.sep}`) &&
+  !content.includes(`export const ${componentName(file)} `) &&
+  [...content.matchAll(/^export const [A-Z]\w* = /gm)].length > 1;
+
+const findComponentsMissingExports = (root: string): string[] =>
+  componentFiles(root).flatMap((file) => {
+    const content = readFileSync(file, "utf-8");
+    const name = componentName(file);
+
+    if (isCompoundPrimitive(file, content)) {
+      return [];
+    }
+
+    return [
+      ...(content.includes(`export const ${name} `)
+        ? []
+        : [`${path.relative(root, file)}: no named export ${name}`]),
+      ...(content.includes(`export default ${name};`)
+        ? []
+        : [`${path.relative(root, file)}: no default export ${name}`]),
+    ];
+  });
+
+const findComponentsMissingTestIds = (root: string): string[] =>
+  componentFiles(root)
+    .filter((file) =>
+      file.includes(`${path.sep}src${path.sep}components${path.sep}`),
+    )
+    .filter(
+      (file) =>
+        !readFileSync(file, "utf-8").includes(
+          `data-testid="rh${componentName(file)}"`,
+        ),
+    )
+    .map(
+      (file) =>
+        `${path.relative(root, file)}: no data-testid="rh${componentName(file)}"`,
+    );
+
 const findBrokenDocLinks = (root: string): string[] =>
   findBrokenLinks(listFiles(root).filter((file) => file.endsWith(".md"))).map(
     (problem: string) => problem.replaceAll(`${root}/`, ""),
@@ -337,6 +431,26 @@ describe("generation matrix", () => {
       "package.json script files",
     ).toBe("");
     expect(findInvalidJson(root).join("\n"), "invalid JSON").toBe("");
+    expect(
+      findFunctionDeclarations(root).join("\n"),
+      "function declarations (the handbook requires arrow functions)",
+    ).toBe("");
+    expect(
+      findMissingBlankLines(root).join("\n"),
+      "blank line after declarations before control flow or return",
+    ).toBe("");
+    expect(
+      findIfsWithoutBraces(root).join("\n"),
+      "if statements need braces",
+    ).toBe("");
+    expect(
+      findComponentsMissingExports(root).join("\n"),
+      "components need a named and a default export",
+    ).toBe("");
+    expect(
+      findComponentsMissingTestIds(root).join("\n"),
+      "components need a root data-testid",
+    ).toBe("");
     expect(findBrokenDocLinks(root).join("\n"), "broken markdown links").toBe(
       "",
     );

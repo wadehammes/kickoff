@@ -738,13 +738,13 @@ interface PageProps {
   params: Promise<PageParams>;
 }
 
-export async function generateStaticParams(): Promise<PageParams[]> {
+export const generateStaticParams = async (): Promise<PageParams[]> => {
   return [];
-}
+};
 
-export async function generateMetadata({
+export const generateMetadata = async ({
   params,
-}: PageProps): Promise<Metadata> {
+}: PageProps): Promise<Metadata> => {
   const { slug } = await params;
   void slug;
 
@@ -755,7 +755,7 @@ export async function generateMetadata({
         ? "index, follow"
         : "noindex, nofollow",
   };
-}
+};
 
 const Page = async ({ params }: PageProps) => {
   const { slug } = await params;
@@ -824,7 +824,7 @@ interface PageProps {
   params: Promise<PageParams>;
 }
 
-export async function generateStaticParams(): Promise<PageParams[]> {
+export const generateStaticParams = async (): Promise<PageParams[]> => {
   const pages = await fetchPages({ preview: false });
 
   if (pages) {
@@ -848,11 +848,11 @@ export async function generateStaticParams(): Promise<PageParams[]> {
   return pages
     .filter((page) => !EXCLUDED_PAGE_SLUGS_FROM_BUILD.includes(page.pageSlug))
     .map((page) => ({ slug: page.pageSlug }));
-}
+};
 
-export async function generateMetadata({
+export const generateMetadata = async ({
   params,
-}: PageProps): Promise<Metadata> {
+}: PageProps): Promise<Metadata> => {
   const { slug } = await params;
   const draft = await draftMode();
 
@@ -889,9 +889,9 @@ export async function generateMetadata({
       description: page.pageDescription,
     },
   };
-}
+};
 
-async function Page({ params }: PageProps) {
+const Page = async ({ params }: PageProps) => {
   const { slug } = await params;
   const draft = await draftMode();
 
@@ -941,7 +941,7 @@ async function Page({ params }: PageProps) {
       </div>
     </>
   );
-}
+};
 
 export default Page;
 `;

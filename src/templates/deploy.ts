@@ -1594,6 +1594,7 @@ export const DeployButton = (props: DeployButtonProps) => {
 
   return (
     <Button
+      data-testid="rhDeployButton"
       disabled={isInProgress}
       label={isInProgress ? inProgressLabel : label}
       onClick={triggerDeploy}
@@ -1624,6 +1625,7 @@ export class DeployButtonPO extends BasePageObject {
 
   render(props?: Partial<DeployButtonProps>) {
     const mergedProps = { ...this.defaultProps, ...props };
+
     return render(<DeployButton {...mergedProps} />);
   }
 
@@ -2032,11 +2034,11 @@ export const metadata: Metadata = {
   title: "Refresh Site Content | ${a.siteName}",
 };
 
-export default async function RefreshContent({
+const RefreshContent = async ({
   searchParams,
 }: {
   searchParams?: Promise<{ token?: string }>;
-}) {
+}) => {
   const { token } = (await searchParams) ?? {};
 
   if (!isRefreshContentAuthorized(token)) {
@@ -2044,7 +2046,9 @@ export default async function RefreshContent({
   }
 
   return <DeployPage accessToken={token} />;
-}
+};
+
+export default RefreshContent;
 `;
 };
 
@@ -2057,7 +2061,7 @@ import {
   parseDeployTarget,
 } from "src/lib/refreshContentAccess";
 
-export async function POST(request: Request) {
+export const POST = async (request: Request) => {
   try {
     const body = (await request.json()) as {
       target?: string;
@@ -2124,7 +2128,7 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
-}
+};
 `;
 };
 
@@ -2160,7 +2164,7 @@ const parseOptionalTimestamp = (value: string | null): number | undefined => {
   return parsed ?? undefined;
 };
 
-export async function GET(request: NextRequest) {
+export const GET = async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get("token") ?? undefined;
@@ -2220,7 +2224,7 @@ export async function GET(request: NextRequest) {
       { status: 500 },
     );
   }
-}
+};
 `;
 };
 
@@ -2235,10 +2239,11 @@ import {
 } from "src/lib/refreshContentAccess";
 import { fetchAverageBuildTime } from "src/lib/vercelDeploymentStatus";
 
-export async function GET(request: NextRequest) {
+export const GET = async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get("token") ?? undefined;
+
     if (!isRefreshContentAuthorized(token)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -2265,7 +2270,7 @@ export async function GET(request: NextRequest) {
       { status: 500 },
     );
   }
-}
+};
 `;
 };
 
@@ -2288,7 +2293,7 @@ export const DeployBuildStats = ({ accessToken }: DeployBuildStatsProps) => {
   }
 
   return (
-    <div className={styles.buildStats}>
+    <div className={styles.buildStats} data-testid="rhDeployBuildStats">
       <p className={styles.buildStatsLine}>
         Avg build {formatDeployElapsed(stats.averageBuildMs)} (last{" "}
         {stats.sampleSize})
@@ -2336,7 +2341,7 @@ import {
 } from "src/lib/refreshContentAccess";
 import { fetchActiveDeployProgress } from "src/lib/vercelDeploymentStatus";
 
-export async function GET(request: NextRequest) {
+export const GET = async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get("token") ?? undefined;
@@ -2378,6 +2383,6 @@ export async function GET(request: NextRequest) {
       { status: 500 },
     );
   }
-}
+};
 `;
 };
