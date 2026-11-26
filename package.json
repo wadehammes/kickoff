@@ -23,7 +23,7 @@
   "homepage": "https://github.com/wadehammes/kickoff#readme",
   "type": "module",
   "bin": {
-    "kickoff": "./dist/index.js"
+    "kickoff": "dist/index.js"
   },
   "files": [
     "dist/**/*.js",
