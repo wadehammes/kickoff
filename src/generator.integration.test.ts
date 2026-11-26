@@ -245,7 +245,7 @@ describe("generateProject", () => {
         path.join(root, "docs/handbook/non-negotiables.md"),
         "utf-8",
       ),
-    ).toContain("conventions.md#write-the-test-first");
+    ).toContain("testing.md#write-the-test-first");
     const claudeReview = readFileSync(
       path.join(root, ".claude/commands/handbook-review.md"),
       "utf-8",
@@ -520,12 +520,12 @@ describe("generateProject", () => {
     expect(claudeMd).toContain("Hands-off pipeline");
     expect(claudeMd).toContain("Working with non-technical requesters");
     expect(claudeMd).toContain("src/copy/");
-    const platform = readFileSync(
-      path.join(root, "docs/handbook/platform.md"),
+    const releases = readFileSync(
+      path.join(root, "docs/handbook/releases.md"),
       "utf-8",
     );
-    expect(platform).toContain("Hands-off Claude pipeline");
-    expect(platform).not.toContain("make release");
+    expect(releases).toContain("Hands-off Claude pipeline");
+    expect(releases).not.toContain("make release");
   });
 
   it("handbook-sync-check runs in a Claude project and suggests chapters", async () => {

@@ -24,7 +24,7 @@ case "$file" in
   | */src/hooks/queries/*.spec.tsx | src/hooks/queries/*.spec.tsx \
   | */src/hooks/queries/*.test.ts | src/hooks/queries/*.test.ts \
   | */src/hooks/queries/*.test.tsx | src/hooks/queries/*.test.tsx)
-    reason="Blocked: do not add specs under src/hooks/queries/ or src/hooks/mutations/. Cover writes at components or feature hooks with mocked api.* — not mutation/query hook specs. See docs/handbook/conventions.md (Do not test React Query)."
+    reason="Blocked: do not add specs under src/hooks/queries/ or src/hooks/mutations/. Cover writes at components or feature hooks with mocked api.* — not mutation/query hook specs. See docs/handbook/react.md (Do not test React Query)."
     deny_tool "$reason"
     ;;
 esac
@@ -58,7 +58,7 @@ if printf '%s' "$added" | grep -qE "from 'src/hooks/queries/use" \
 fi
 
 if [ -n "$violations" ]; then
-  reason="$(printf 'Blocked handbook testing violation in %s. Feature tests must mock src/api/urls — not query/mutation hooks under src/hooks/queries/ or src/hooks/mutations/, and no specs in those folders. See docs/handbook/conventions.md (Do not test React Query).\n\n%s' "$file" "$violations")"
+  reason="$(printf 'Blocked handbook testing violation in %s. Feature tests must mock src/api/urls — not query/mutation hooks under src/hooks/queries/ or src/hooks/mutations/, and no specs in those folders. See docs/handbook/react.md (Do not test React Query).\n\n%s' "$file" "$violations")"
   deny_tool "$reason"
 fi
 

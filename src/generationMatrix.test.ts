@@ -411,6 +411,49 @@ const findVercelMentions = (root: string): string[] =>
       ),
   );
 
+const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
+
+const TOKEN_BUDGETS = {
+  alwaysLoaded: 2_000,
+  handbookPage: 1_500,
+  reviewCommand: 1_500,
+};
+
+const findOverBudget = (root: string): string[] => {
+  const read = (file: string) =>
+    existsSync(path.join(root, file))
+      ? readFileSync(path.join(root, file), "utf-8")
+      : "";
+  const over = (label: string, tokens: number, budget: number) =>
+    tokens > budget ? [`${label}: ~${tokens} tokens (budget ${budget})`] : [];
+  const handbookDir = path.join(root, "docs/handbook");
+  const reviewCommand =
+    read(".claude/commands/handbook-review.md") ||
+    read(".cursor/commands/handbook-review.md");
+
+  return [
+    ...over(
+      "always loaded (CLAUDE.md + session-start llms.md)",
+      estimateTokens(read("CLAUDE.md") + read("docs/handbook/llms.md")),
+      TOKEN_BUDGETS.alwaysLoaded,
+    ),
+    ...readdirSync(handbookDir)
+      .filter((name) => name.endsWith(".md"))
+      .flatMap((name) =>
+        over(
+          `docs/handbook/${name}`,
+          estimateTokens(read(`docs/handbook/${name}`)),
+          TOKEN_BUDGETS.handbookPage,
+        ),
+      ),
+    ...over(
+      "/handbook-review",
+      estimateTokens(reviewCommand),
+      TOKEN_BUDGETS.reviewCommand,
+    ),
+  ];
+};
+
 const findBrokenDocLinks = (root: string): string[] =>
   findBrokenLinks(listFiles(root).filter((file) => file.endsWith(".md"))).map(
     (problem: string) => problem.replaceAll(`${root}/`, ""),
@@ -457,6 +500,10 @@ describe("generation matrix", () => {
       "package.json script files",
     ).toBe("");
     expect(findInvalidJson(root).join("\n"), "invalid JSON").toBe("");
+    expect(
+      findOverBudget(root).join("\n"),
+      "token budgets for what agents read",
+    ).toBe("");
     if (answers.hosting === "other") {
       expect(
         findVercelMentions(root).slice(0, 40).join("\n"),

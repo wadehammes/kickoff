@@ -104,23 +104,30 @@ import {
   getHandbookComponents,
   getHandbookContentful,
   getHandbookConventions,
+  getHandbookCss,
   getHandbookDataStorage,
   getHandbookDecisions,
   getHandbookDistribution,
   getHandbookDriftCheckMjs,
   getHandbookEditGuard,
   getHandbookEditGuardSpec,
+  getHandbookEnv,
   getHandbookFactories,
   getHandbookGlossary,
   getHandbookIntegrations,
+  getHandbookLanguages,
   getHandbookLlms,
   getHandbookNonNegotiables,
   getHandbookPatterns,
   getHandbookPlatform,
+  getHandbookReact,
   getHandbookReadme,
+  getHandbookRefreshContent,
+  getHandbookReleases,
   getHandbookReviewCommand,
   getHandbookSourceLayout,
   getHandbookSyncCheckSh,
+  getHandbookTesting,
   getHandbookTestRules,
   getHandbookTestRulesSpec,
   getI18nCopyGlobal,
@@ -252,10 +259,26 @@ const writeHandbook = async (a: ProjectAnswers, write: Write) => {
   await write("docs/handbook/data-storage.md", getHandbookDataStorage(a));
   await write("docs/handbook/architecture.md", getHandbookArchitecture(a));
   await write("docs/handbook/conventions.md", getHandbookConventions(a));
-  await write("docs/handbook/contentful.md", getHandbookContentful(a));
+  await write("docs/handbook/react.md", getHandbookReact(a));
+  await write("docs/handbook/css.md", getHandbookCss(a));
+  await write("docs/handbook/testing.md", getHandbookTesting(a));
+  if (a.includeContentful) {
+    await write("docs/handbook/contentful.md", getHandbookContentful(a));
+  }
   await write("docs/handbook/components.md", getHandbookComponents(a));
   await write("docs/handbook/patterns.md", getHandbookPatterns(a));
   await write("docs/handbook/platform.md", getHandbookPlatform(a));
+  await write("docs/handbook/env.md", getHandbookEnv(a));
+  await write("docs/handbook/releases.md", getHandbookReleases(a));
+  if (usesVercel(a)) {
+    await write(
+      "docs/handbook/refresh-content.md",
+      getHandbookRefreshContent(a),
+    );
+  }
+  if (a.includeI18n) {
+    await write("docs/handbook/languages.md", getHandbookLanguages());
+  }
   await write("docs/handbook/integrations.md", getHandbookIntegrations(a));
   await write("docs/handbook/distribution.md", getHandbookDistribution(a));
   await write("docs/handbook/source-layout.md", getHandbookSourceLayout(a));

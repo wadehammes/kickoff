@@ -49,7 +49,7 @@ const getClaudeI18nInstructions = (): string => {
   return `
 ## English and Spanish
 
-This site ships in English (\`/\`) and Spanish (\`/es\`). See **\`docs/handbook/platform.md\`** — **Languages**.
+This site ships in English (\`/\`) and Spanish (\`/es\`). See **\`docs/handbook/languages.md\`**.
 
 - Every copy change updates **both** languages in the same PR. Copy objects are typed \`Record<Locale, ...>\`, so a missing language fails the typecheck, but a stale translation does not; keeping them in sync is on you.
 - Translate in the site's voice rather than word for word. Keep proper nouns, product names, and URLs unchanged.
@@ -62,7 +62,7 @@ const getClaudePipelineInstructions = (): string => {
   return `
 ## Hands-off pipeline
 
-Your PRs merge and deploy to production **without human review** once the required checks pass (CI, Claude Review Gate, Preview E2E, Vercel). See **\`docs/handbook/platform.md\`** — **Hands-off Claude pipeline**.
+Your PRs merge and deploy to production **without human review** once the required checks pass (CI, Claude Review Gate, Preview E2E, Vercel). See **\`docs/handbook/releases.md\`**.
 
 - Work on a branch named **\`claude/<short-description>\`** and open the PR into **\`main\`**. Auto-merge is only enabled for \`claude/*\` branches.
 - **Definition of done:** \`pnpm tsc:ci\`, \`pnpm lint:ci\`, \`pnpm lint:css\`, \`pnpm test:ci\`, and \`pnpm knip:ci\` pass (the Stop hook enforces this); new pages and components have tests, plus a Playwright check in \`e2e/\` when user-facing; the PR template is filled in.
@@ -216,7 +216,7 @@ If you joined an existing project, skip ahead to **[Getting started](#getting-st
 
 1. **GitHub repository** — Create the repo your team will use for this site.
 ${a.includeClaudePipeline ? getPipelineBranchingPrereqs() : getStagingBranchingPrereqs()}
-${prereqBlock}${a.includeClaudePipeline ? `\n${a.includeContentful ? 9 : 8}. **Vercel pipeline settings** — In the Vercel project: enable **Deployment Checks** for production (native \`lint\` and \`typecheck\`, plus the GitHub **Lint/Test** and **Staging Smoke** checks) and restrict **Force Promote**; add ${a.stagingUrl} as a domain (Staging Smoke points it at each new build); set **Deployment Protection** to Standard Protection with Vercel Authentication and create a **Protection Bypass for Automation** secret; turn on the team policy **Separate Production Secret Values** and mark credentials **Sensitive**. See **[docs/handbook/platform.md](docs/handbook/platform.md)** — **Hands-off Claude pipeline**.` : ""}
+${prereqBlock}${a.includeClaudePipeline ? `\n${a.includeContentful ? 9 : 8}. **Vercel pipeline settings** — In the Vercel project: enable **Deployment Checks** for production (native \`lint\` and \`typecheck\`, plus the GitHub **Lint/Test** and **Staging Smoke** checks) and restrict **Force Promote**; add ${a.stagingUrl} as a domain (Staging Smoke points it at each new build); set **Deployment Protection** to Standard Protection with Vercel Authentication and create a **Protection Bypass for Automation** secret; turn on the team policy **Separate Production Secret Values** and mark credentials **Sensitive**. See **[docs/handbook/releases.md](docs/handbook/releases.md)**.` : ""}
 
 ## Getting started
 
@@ -316,7 +316,7 @@ const getPipelineDeploymentReadme = (a: ProjectAnswers): string => {
 
 ## Hands-off Claude pipeline
 
-Requests go to Claude (the Code tab in the Claude desktop or mobile app, claude.ai/code in a browser, or \`@claude\` on an issue or PR). Claude opens a PR from a \`claude/*\` branch; **Lint/Test**, **Claude Review Gate**, **Preview E2E**, and the Vercel build must pass; auto-merge squashes it into \`main\`. Changes to paths in \`.github/CODEOWNERS\` also need a code owner approval. If a check fails, **Claude Fix** retries up to twice before asking an engineer. Non-technical requesters: start with **[docs/working-with-claude.md](docs/working-with-claude.md)**. Details, required settings, and rollback recovery: **[docs/handbook/platform.md](docs/handbook/platform.md)**.
+Requests go to Claude (the Code tab in the Claude desktop or mobile app, claude.ai/code in a browser, or \`@claude\` on an issue or PR). Claude opens a PR from a \`claude/*\` branch; **Lint/Test**, **Claude Review Gate**, **Preview E2E**, and the Vercel build must pass; auto-merge squashes it into \`main\`. Changes to paths in \`.github/CODEOWNERS\` also need a code owner approval. If a check fails, **Claude Fix** retries up to twice before asking an engineer. Non-technical requesters: start with **[docs/working-with-claude.md](docs/working-with-claude.md)**. Details, required settings, and rollback recovery: **[docs/handbook/releases.md](docs/handbook/releases.md)**.
 
 ## Releases
 
@@ -336,7 +336,7 @@ export const getHandbookNonNegotiables = (a: ProjectAnswers): string => {
     ? "| `react-hook-form` with a `zod` schema and `zodResolver`, validated again in the Route Handler | Hand-rolled form state, or validation only in the browser | [patterns.md](patterns.md#forms) |\n"
     : "";
   const copyRow = a.includeI18n
-    ? "| User-facing text in `src/copy/`, in English and Spanish | Hard-coded text in a component, or a change to one language only | [platform.md](platform.md#languages-english-and-spanish) |\n"
+    ? "| User-facing text in `src/copy/`, in English and Spanish | Hard-coded text in a component, or a change to one language only | [languages.md](languages.md) |\n"
     : "";
 
   return `# Non-negotiables
@@ -349,14 +349,14 @@ These apply to code you add or rewrite. Older code that breaks one can stay unti
 
 | Always | Never | Page |
 | ------ | ----- | ---- |
-| Write a failing test first, then the code that makes it pass | Code first and tests after, or a bug fix with no test | [conventions.md](conventions.md#write-the-test-first) |
+| Write a failing test first, then the code that makes it pass | Code first and tests after, or a bug fix with no test | [testing.md](testing.md#write-the-test-first) |
 | Start a component with \`pnpm scaffold <Name>\` | Create a component folder by hand | [components.md](components.md#scaffold) |
 | \`export const Foo = (props: FooProps) => {}\` and \`export default Foo\` | \`function\` declarations, \`React.FC\`, or a component with only one of the two exports | [components.md](components.md#exports) |
 | Imports from \`src/...\` (a co-located CSS module uses \`./\`) | Relative \`../\` imports, or \`index.ts\` files that re-export | [conventions.md](conventions.md#typescript) |
 | Real types, and \`as const\` objects with a derived union | \`any\`, the non-null \`!\`, or enums | [conventions.md](conventions.md#typescript) |
 | Names that explain the code | Comments that restate it | [conventions.md](conventions.md#comments) |
-| A CSS module with alphabetized properties, mobile-first nested \`@media\`, and \`classNames(styles.a, { [styles.b]: isOpen })\` | Template literals or ternaries to join classes, \`margin-top\`, or top-level \`@media\` | [conventions.md](conventions.md#css-and-styling) |
-| \`data-testid="rh<ComponentName>"\` on the component's root element | A tested component with no root test ID | [conventions.md](conventions.md#test-ids) |
+| A CSS module with alphabetized properties, mobile-first nested \`@media\`, and \`classNames(styles.a, { [styles.b]: isOpen })\` | Template literals or ternaries to join classes, \`margin-top\`, or top-level \`@media\` | [css.md](css.md) |
+| \`data-testid="rh<ComponentName>"\` on the component's root element | A tested component with no root test ID | [testing.md](testing.md#test-ids) |
 
 ## Data
 
@@ -369,9 +369,9 @@ ${contentfulRow}${formsRow}${copyRow}
 
 | Always | Never | Page |
 | ------ | ----- | ---- |
-| Page objects that hold render setup, mocks, and test data | \`screen\` queries inside a page object | [conventions.md](conventions.md#page-object-pattern) |
+| Page objects that hold render setup, mocks, and test data | \`screen\` queries inside a page object | [testing.md](testing.md#page-object-pattern) |
 | Factories in \`src/tests/factories/\`, with Faker data for every key | Inline test objects, or a factory next to the component | [factories.md](factories.md#always-use-factories) |
-| Mocks for \`api.*\` | Mocks for a query or mutation hook, or tests of React Query itself | [conventions.md](conventions.md#what-to-mock-and-what-not-to) |
+| Mocks for \`api.*\` | Mocks for a query or mutation hook, or tests of React Query itself | [testing.md](testing.md#what-to-mock-and-what-not-to) |
 `;
 };
 
@@ -381,15 +381,14 @@ ${contentfulRow}${formsRow}${copyRow}
 
 export const getHandbookReadme = (a: ProjectAnswers): string => {
   const s = a.siteName;
-  const platformTopics = [
-    "CI",
-    "env vars",
-    "`pnpm` scripts",
-    "`next.config`",
-    "`src/proxy.ts`",
-    ...(a.includeClaudePipeline ? ["the Claude pipeline"] : []),
-    ...(a.includeI18n ? ["languages"] : []),
-  ];
+  const hostingRows = [
+    usesVercel(a)
+      ? "| [refresh-content.md](refresh-content.md) | Change the token-protected page that redeploys the site |\n"
+      : "",
+    a.includeI18n
+      ? "| [languages.md](languages.md) | Change copy, add a page, or touch routing in English and Spanish |\n"
+      : "",
+  ].join("");
   const contentfulRow = a.includeContentful
     ? "| [contentful.md](contentful.md) | Change a content type, getter, parser, or Rich Text rendering |\n"
     : "";
@@ -407,13 +406,18 @@ This handbook covers how ${s} is built: one page per part of the work, with the 
 | [non-negotiables.md](non-negotiables.md) | Start any change. The rules every change follows, on one page, each linked to its page |
 | [decisions.md](decisions.md) | Can't tell which of two patterns fits, or want the steps for a new component, API route, hook, or factory |
 | [architecture.md](architecture.md) | Are new to the repo, or need the folder map and how a request becomes a page |
-| [conventions.md](conventions.md) | Write TypeScript, React, CSS, or a test |
+| [conventions.md](conventions.md) | Write TypeScript |
+| [react.md](react.md) | Write a component's TSX, fetch data with React Query, or check accessibility |
+| [css.md](css.md) | Write or change styles |
+| [testing.md](testing.md) | Write a spec, a page object, or a mock |
 | [components.md](components.md) | Add or change a component |
 | [patterns.md](patterns.md) | Load data, build a form, or set page metadata |
 | [api-routes.md](api-routes.md) | Add or change a Route Handler or an \`api.*\` method |
 | [factories.md](factories.md) | Build test data |
-${contentfulRow}| [platform.md](platform.md) | Touch ${platformTopics.join(", ")} |
-| [integrations.md](integrations.md) | Add analytics or a third-party tag |
+${contentfulRow}| [platform.md](platform.md) | Touch CI, \`pnpm\` scripts, agent hooks, or Next.js upgrades |
+| [env.md](env.md) | Add an env var, or change draft preview or \`src/proxy.ts\` |
+| [releases.md](releases.md) | Ship a change to production |
+${hostingRows}| [integrations.md](integrations.md) | Add analytics or a third-party tag |
 | [distribution.md](distribution.md) | Change the sitemap or robots |
 | [source-layout.md](source-layout.md) | Need to know where a util, interface, or \`src/lib\` file goes |
 | [data-storage.md](data-storage.md) | Store something in the browser |
@@ -440,7 +444,7 @@ export const getHandbookLlms = (a: ProjectAnswers): string => {
     ],
     [
       "Adding a feature or fixing a bug, before writing any code",
-      "[conventions.md → Write the test first](conventions.md#write-the-test-first)",
+      "[testing.md → Write the test first](testing.md#write-the-test-first)",
     ],
     [
       "Unsure which of two patterns fits (Server Component or React Query, page object or spec, `api.*` or `fetch`)",
@@ -451,14 +455,10 @@ export const getHandbookLlms = (a: ProjectAnswers): string => {
       "[decisions.md → Feature playbooks](decisions.md#feature-playbooks-touch-order)",
     ],
     ["`src/components/**`, `pnpm scaffold`", "[components.md](components.md)"],
-    [
-      "`*.ts`, `*.tsx`, `*.module.css`, `src/styles/**`",
-      "[conventions.md](conventions.md)",
-    ],
-    [
-      "`*.spec.ts(x)`, `*.po.tsx`",
-      "[conventions.md → Testing](conventions.md#testing)",
-    ],
+    ["`*.ts`", "[conventions.md](conventions.md)"],
+    ["`*.tsx`, `src/hooks/**`", "[react.md](react.md)"],
+    ["`*.module.css`, `src/styles/**`", "[css.md](css.md)"],
+    ["`*.spec.ts(x)`, `*.po.tsx`", "[testing.md](testing.md)"],
     ["`src/tests/factories/**`", "[factories.md](factories.md)"],
     [
       "`src/app/**/page.tsx`, `layout.tsx`, metadata, forms, `src/hooks/**`",
@@ -477,14 +477,24 @@ export const getHandbookLlms = (a: ProjectAnswers): string => {
       ? [
           [
             "`src/copy/**`, `src/i18n/**`, `src/app/[locale]/**`",
-            "[platform.md → Languages](platform.md#languages-english-and-spanish)",
+            "[languages.md](languages.md)",
           ],
         ]
       : []),
     [
-      `\`package.json\`, \`.github/**\`, \`next.config.ts\`, \`src/proxy.ts\`, env vars${usesPlaywright(a) ? ", `e2e/**`, `playwright.config.ts`" : ""}`,
+      `\`package.json\`, \`.github/**\`${usesPlaywright(a) ? ", `e2e/**`, `playwright.config.ts`" : ""}`,
       "[platform.md](platform.md)",
     ],
+    ["`next.config.ts`, `src/proxy.ts`, env vars", "[env.md](env.md)"],
+    ["Shipping a release", "[releases.md](releases.md)"],
+    ...(usesVercel(a)
+      ? [
+          [
+            "`src/app/refresh-content/**`, deploy hooks",
+            "[refresh-content.md](refresh-content.md)",
+          ],
+        ]
+      : []),
     [
       "`src/utils/**`, `src/interfaces/**`, `src/lib/**`",
       "[source-layout.md](source-layout.md)",
@@ -547,7 +557,7 @@ If you are new here, this page is your map. It explains how the site is structur
 
 - **\`next.config.ts\`** — env exposure, images, Turbopack/SVG rules, security headers, redirects.
 - **\`biome.json\`** — lint and format. Run \`pnpm lint\`, \`pnpm lint:fix\`.
-- **Branching**: ${a.includeClaudePipeline ? "Trunk-based. PRs target `main`; each merge deploys to production through the hands-off Claude pipeline ([platform.md](platform.md))." : "Default branch is `staging`. Releases use `make release tag=vX.X.X`."}
+- **Branching**: ${a.includeClaudePipeline ? "Trunk-based. PRs target `main`; each merge deploys to production through the hands-off Claude pipeline ([releases.md](releases.md))." : "Default branch is `staging`. Releases use `make release tag=vX.X.X`."}
 - **Provisioning**: Greenfield steps (GitHub, ${usesVercel(a) ? "Vercel" : "your host"}) live in the repo root **README** under **Prerequisites (greenfield bootstrap)**.
 `;
   }
@@ -660,7 +670,7 @@ flowchart LR
 
 - **\`next.config.ts\`** — env exposure, images, Turbopack/SVG rules, security headers, redirects.
 - **\`biome.json\`** — lint and format (includes CSS). Run \`pnpm lint\`, \`pnpm lint:fix\`.
-- **Branching**: ${a.includeClaudePipeline ? "Trunk-based. PRs target `main`; each merge deploys to production through the hands-off Claude pipeline ([platform.md](platform.md))." : "Default branch is `staging`. Releases use `make release tag=vX.X.X`."}
+- **Branching**: ${a.includeClaudePipeline ? "Trunk-based. PRs target `main`; each merge deploys to production through the hands-off Claude pipeline ([releases.md](releases.md))." : "Default branch is `staging`. Releases use `make release tag=vX.X.X`."}
 - **Provisioning**: Hosting bootstrap (GitHub, ${usesVercel(a) ? "Vercel" : "your host"}, Contentful) is documented under **Prerequisites (greenfield bootstrap)** in the repo root README.
 `;
 };
@@ -672,7 +682,7 @@ flowchart LR
 export const getHandbookConventions = (a: ProjectAnswers): string => {
   return `# Conventions
 
-This is the house style: how we format TypeScript and React, how we structure CSS and tests, and the small habits that keep reviews short. The goal is for the repo to read like one careful team wrote it. When something here conflicts with a local shortcut, follow the doc (or open a PR to change the doc if the rule is wrong).
+Read this before writing TypeScript in this repo: the house style for code, formatting, and comments. Component code is in [react.md](react.md), styles in [css.md](css.md), and tests in [testing.md](testing.md).
 
 If you are unsure, copy a nearby file that already does the right thing and run **\`pnpm lint\`** before you push.
 
@@ -697,24 +707,6 @@ ${a.includeContentful ? "- **Contentful types**: Content types are generated int
 - **API and forms**: When adding new API or form payloads, define interfaces in the relevant module, next to \`src/api/urls.ts\`, or alongside the route handler under \`src/app/api/\`.
 - **Site constants**: App-wide slugs, Contentful entry IDs, and similar **data constants** belong in \`src/utils/constants.ts\`, not scattered as magic strings.
 
-## React / JSX
-
-We favor plain functions with typed props—no \`React.FC\`—and explicit conditionals so we never accidentally render a stray \`0\` or \`false\`.
-
-- **Component types**: Do not use \`FC\` or \`React.FC\`. Type props explicitly and let the return type be inferred.
-- **Conditional components**: Use a ternary (\`condition ? <Component /> : null\`) instead of short-circuit (\`condition && <Component />\`) so the render branch is explicit and avoids accidentally rendering falsy values (e.g. \`0\`). Write conditionals as multi-line statement blocks.
-- **Multiple or conditional class names**: Use the \`classnames\` package (import as \`classNames\`) instead of template literals or string concatenation. For **conditional** classes, use **object notation**: \`classNames(styles.a, { [styles.active]: isActive })\` — avoid \`isActive && styles.active\` and avoid ternaries that return class strings. For static lists use multiple arguments: \`classNames(styles.a, styles.b)\`. When accepting an optional \`className\` prop: \`classNames(styles.container, className)\`.
-- **Raster images in UI**: Use **\`next/image\`** (\`import Image from "next/image"\`). Avoid bare \`<img>\` for content images unless you have a documented exception. Every \`Image\` needs an \`alt\`.
-- **Links**: Use **\`next/link\`**'s **\`Link\`** for all navigational links—internal paths, external URLs, \`mailto:\`, \`tel:\`, and the like—not a bare \`<a>\` unless you have a rare, documented exception. For new tabs, set \`target\` and \`rel="noopener noreferrer"\`. Do not use Base UI \`Button\` for navigation.
-
-### Base UI
-
-Headless UI comes from **[Base UI](https://base-ui.com/react/overview/quick-start)** (\`@base-ui/react\`). Import from package subpaths; style with CSS Modules and \`data-*\` state attributes. Add \`src/ui/<Name>/\` only when shared CSS or behavior is needed beyond what Base UI provides. Mark wrappers \`"use client"\`.
-
-### Large components and state
-
-- **Extract state into a custom hook when a component has many state items.** If a component uses several \`useState\`/\`useEffect\` calls and many derived values, move that logic into a dedicated hook (e.g. \`useMyComponentState\`) in the same folder. The hook should accept the minimal props/data it needs and return a single object. The main component file stays focused on composition and JSX.
-
 ## Formatting and linting
 
 We standardize on **Biome** for both lint and format of TS/JS/CSS, plus **Stylelint** for CSS-specific rules.
@@ -731,42 +723,123 @@ We standardize on **Biome** for both lint and format of TS/JS/CSS, plus **Stylel
 - **Notable rules**: no unused imports/variables, no inferrable types, use \`as const\` where appropriate, \`noDangerouslySetInnerHtml\` is a warning.
 - Run lint/format before committing so CI passes.
 
-## CSS and styling
+## Comments
 
-### Technology choice
+Avoid redundant comments. Prefer clear names and small, focused functions so that intent is obvious. Add comments only when explaining non-obvious behavior, workarounds, or business rules.
+
+## Editor
+
+The repo uses \`.editorconfig\`: indent 2 spaces, UTF-8, insert final newline, trim trailing whitespace.
+`;
+};
+
+// ---------------------------------------------------------------------------
+// docs/handbook/react.md
+// ---------------------------------------------------------------------------
+
+export const getHandbookReact = (_a: ProjectAnswers): string => {
+  return `# React
+
+Read this when you write or change a component's TSX, fetch data with React Query, or check accessibility.
+
+## Components
+
+We favor plain functions with typed props—no \`React.FC\`—and explicit conditionals so we never accidentally render a stray \`0\` or \`false\`.
+
+- **Component types**: Do not use \`FC\` or \`React.FC\`. Type props explicitly and let the return type be inferred.
+- **Conditional components**: Use a ternary (\`condition ? <Component /> : null\`) instead of short-circuit (\`condition && <Component />\`) so the render branch is explicit and avoids accidentally rendering falsy values (e.g. \`0\`). Write conditionals as multi-line statement blocks.
+- **Multiple or conditional class names**: Use the \`classnames\` package (import as \`classNames\`) instead of template literals or string concatenation. For **conditional** classes, use **object notation**: \`classNames(styles.a, { [styles.active]: isActive })\` — avoid \`isActive && styles.active\` and avoid ternaries that return class strings. For static lists use multiple arguments: \`classNames(styles.a, styles.b)\`. When accepting an optional \`className\` prop: \`classNames(styles.container, className)\`.
+- **Raster images in UI**: Use **\`next/image\`** (\`import Image from "next/image"\`). Avoid bare \`<img>\` for content images unless you have a documented exception. Every \`Image\` needs an \`alt\`.
+- **Links**: Use **\`next/link\`**'s **\`Link\`** for all navigational links—internal paths, external URLs, \`mailto:\`, \`tel:\`, and the like—not a bare \`<a>\` unless you have a rare, documented exception. For new tabs, set \`target\` and \`rel="noopener noreferrer"\`. Do not use Base UI \`Button\` for navigation.
+
+## Base UI
+
+Headless UI comes from **[Base UI](https://base-ui.com/react/overview/quick-start)** (\`@base-ui/react\`). Import from package subpaths; style with CSS Modules and \`data-*\` state attributes. Add \`src/ui/<Name>/\` only when shared CSS or behavior is needed beyond what Base UI provides. Mark wrappers \`"use client"\`.
+
+## Large components and state
+
+- **Extract state into a custom hook when a component has many state items.** If a component uses several \`useState\`/\`useEffect\` calls and many derived values, move that logic into a dedicated hook (e.g. \`useMyComponentState\`) in the same folder. The hook should accept the minimal props/data it needs and return a single object. The main component file stays focused on composition and JSX.
+
+## Accessibility
+
+Ship UI that works with a keyboard and a screen reader whenever the design allows.
+
+- Use **semantic HTML** first: correct heading levels, \`<button>\` for actions, \`Link\` from \`next/link\` for navigation, lists for list content.
+- **Forms**: Associate every input with a label (\`htmlFor\` / \`id\`) or an accessible name via \`aria-label\` / \`aria-labelledby\`.
+- **Images**: \`alt\` is required on every \`Image\`—accurate text when the image conveys information; \`alt=""\` when purely decorative. If you introduce a new external image hostname, add it to \`images.remotePatterns\` in \`next.config.ts\`.
+- **Keyboard**: Interactive controls must be focusable and operable without a pointer; overlays and menus should not leave focus in a hidden layer.
+- **Motion**: Prefer honoring \`prefers-reduced-motion\` for large or looping animations.
+
+## React Query
+
+Keep data-fetching hooks in their own files under \`src/hooks/queries/\` and \`src/hooks/mutations/\`. Components should call a named hook and react to \`data\`, \`isLoading\`, and \`isError\`—not own the \`useQuery\` wiring inline.
+
+- **Always create a dedicated query hook file.** Do not inline \`useQuery\` (or \`useMutation\`) in components. Add hooks under \`src/hooks/queries/\` and \`src/hooks/mutations/\`.
+- **Hook params must be a single object.** Pass one argument object to the hook instead of multiple positional arguments.
+- **Keep query hooks dumb.** Query files should only call \`useQuery\` / \`useMutation\` with standard options. Do not add side effects or callbacks in the query file.
+- **Handle errors and side effects at the call site.**
+
+### Do not test React Query
+
+- Do **not** add specs under **\`src/hooks/mutations/\`** or **\`src/hooks/queries/\`**.
+- In feature tests, mock **\`src/api/urls\`** and let real query/mutation hooks run in the shared test \`render\` wrapper. Do **not** \`jest.mock\` or \`jest.mocked\` hooks from those folders.
+- Rules are enforced in **\`handbookTestRules.ts\`** and Cursor **\`block-query-hook-mocks.sh\`**.
+`;
+};
+
+// ---------------------------------------------------------------------------
+// docs/handbook/css.md
+// ---------------------------------------------------------------------------
+
+export const getHandbookCss = (_a: ProjectAnswers): string => {
+  return `# CSS
+
+Read this when you write or change a CSS module or a design token.
+
+## Technology choice
 
 - **Components use CSS Modules** (\`.module.css\`) co-located with the component.
 
-### File naming and location
+## File naming and location
 
 Place the CSS module next to the component, e.g. \`MyComponent.component.tsx\` and \`MyComponent.module.css\`. Import the module and use the class names object (e.g. \`styles.wrapper\`).
 
-### Modern CSS
+## Modern CSS
 
 - **Nesting**: Use nesting for scoped styles and for nested media queries.
 - **Custom properties**: Prefer variables from the global design system. All design tokens live in \`src/styles/variables.css\`, imported by \`globals.css\`. Semantic tokens include **\`--color-toast-*\`**, **\`--toast-width\`**, and **\`--toast-offset\`** for Base UI toasts (\`ToastHost\` / \`appToast\`). If you need to inject a custom property at render time (inline \`style={{ "--foo": value }}\`), declare it in the same file as \`--foo: initial;\` so Stylelint recognizes it.
 - **Runtime font variables**: Next.js \`localFont\` injects font variables via a class on \`<html>\` at runtime. Do not declare them in CSS. Register them in \`src/styles/runtime-variables.json\` for Stylelint.
 - **Modern features**: Use \`color-mix()\`, \`clamp()\` where they simplify code. Keep styles DRY.
 
-### Mobile-first
+## Mobile-first
 
 Write base styles for mobile; override for larger viewports.
 
 - **In CSS**: Use standard media queries (e.g. \`@media (min-width: 800px)\`). Do not use \`@custom-media\`.
 - **In JS/TS**: Prefer keeping media queries in CSS modules.
 
-### Style rules
+## Style rules
 
 - **Alphabetize** CSS properties within each rule block.
 - **Nest** selectors where it makes sense, but **avoid deep nesting**. If a block has many nested rules, break it into separate top-level rules. Keep nesting to one level for structure; use flat rules for clarity.
 - **Spacing**: Do not use \`margin-top\`. Prefer flexbox with \`gap\` for vertical and horizontal spacing between siblings.
 - Do not add redundant comments in CSS; class names and structure should be self-explanatory.
 
-## Testing
+`;
+};
+
+// ---------------------------------------------------------------------------
+// docs/handbook/testing.md
+// ---------------------------------------------------------------------------
+
+export const getHandbookTesting = (_a: ProjectAnswers): string => {
+  return `# Testing
+
+Read this when you write or change a spec, a page object, or a mock.
 
 Tests use Jest, **page objects** for **render setup, mocks, and shared test data only**. **Do not call \`screen\` / \`queryBy*\`** from page objects—put all DOM queries in **\`<Name>.spec.tsx\`** via **\`screen\`**, **\`userEvent\`**, and **\`within\`** as needed.
 
-### Write the test first
+## Write the test first
 
 Build with test-driven development: start each change with a failing test, then write the code that makes it pass.
 
@@ -776,36 +849,27 @@ Build with test-driven development: start each change with a failing test, then 
 
 For a bug, the failing test proves you reproduced it and keeps it from coming back. Run just the spec you're working on while you go, like \`pnpm exec jest Navigation\`.
 
-### Page object pattern
+## Page object pattern
 
 - **Base class**: \`src/tests/basePageObject.po.ts\` (optional \`debug\`, \`raiseOnFind\`).
 - **Per-component page object**: In \`<Name>.po.tsx\`, define a class that extends \`BasePageObject\`, sets \`testId = "rh<ComponentName>"\`, implements \`render<Name>()\` using the custom \`render\` from test-utils, and holds test data and setup (factories, \`jest.resetAllMocks()\`, mock implementations). No \`screen\` queries in the PO.
 - **Tests**: In \`<Name>.spec.tsx\`, import **\`describe\`**, **\`it\`**, **\`expect\`**, **\`beforeEach\`** from **\`@jest/globals\`**. Matchers: **\`@testing-library/jest-dom/jest-globals\`** in [\`.jest/setupTests.ts\`](../../.jest/setupTests.ts). Instantiate the page object in \`beforeEach\`, then query the DOM with **\`screen\`** / **\`userEvent\`** (e.g. \`expect(screen.getByTestId(po.testId)).toBeInTheDocument()\`).
 - **Custom render**: Always use the \`render\` from \`src/tests/test-utils.tsx\`. It wraps the tree with the same providers as the app.
 
-### Test data
+## Test data
 
-- **\`BaseFactory\`** (\`src/tests/factories/BaseFactory.ts\`) is the base class for all test factories. Subclass it and export a singleton instance. **All factories live in \`src/tests/factories/\`** — never next to the component.
-- **Factory shape**: Each factory declares its own \`<Name>FactoryOptions\` type (use \`Record<string, never>\` when no options are needed) and implements \`build(attributes?, _options?)\`. Inside \`build\`, construct an \`instance\` literal with \`satisfies <Type>\`, then return \`{ ...instance, ...(attributes ?? {}) }\`. Include the \`KeysMatch\` guard (\`const _allKeysMustBeInTheInstance: KeysMatch<Type, typeof instance> = undefined;\`) so missing keys break the build instead of silently shipping \`undefined\`.
-- **Every key gets random Faker data — no exceptions.** Required, optional, nullable — every property in the \`instance\` literal must be a \`faker.*\` call. Never use hard-coded strings, numbers, \`null\`, or \`undefined\` as defaults. Tests that specifically need a fixed value must override with \`.build({ field: value })\`.
-- **For nullable fields (\`T | null\`), use \`nullish\`** from \`src/utils/factory.helpers.ts\`. \`nullish([value])\` randomly returns \`null\` or the provided value, so both branches are exercised across builds. Tests that need a non-null value must override at the call site.
-- **One factory per file.** Each \`<Name>.factory.ts\` exports exactly one factory singleton. The filename matches the singleton.
-- **Use nested factories for compound shapes.** If a type contains a \`Document\` (rich text), a \`ContentfulAsset\`, etc., use the existing factory (e.g. \`richTextDocumentFactory.build()\`, \`contentfulAssetFactory.build()\`) instead of inlining a literal.
-- **No function wrappers.** Each call to \`.build()\` runs the body fresh, so write \`id: faker.string.uuid()\` directly — no \`() => faker.string.uuid()\` wrappers.
-- **Explicitly set any field the test queries or asserts on.** If a spec finds an element by a factory-driven string, pass that value to \`.build({ field: "My Label" })\` and use the **literal string** in the query/assertion. Do not read it back via \`po.metadata.field\`.
-- **Repeat the literal in the PO and the spec; do not share via a constant.** Two identical literals separated by file is the desired state — the duplication is the point.
-- **Use factories for structured test data.** When a factory exists for a type, use it with overrides instead of inline objects.
+Build test data with factories from \`src/tests/factories/\`, never inline objects. The rules (Faker data for every key, \`nullish\` for nullable fields, one factory per file, overriding the fields a test asserts on) are in [factories.md](factories.md).
 
-### What to mock (and what not to)
+## What to mock (and what not to)
 
 Default to running **in-repo utilities** for real in component tests — URL builders, string helpers, and other pure helpers in \`src/utils/\`. Stubbing them hides what the component actually produces.
 
 - **Don't mock**: anything under \`src/utils/\` — URL builders, string helpers, etc. Let them run.
 - **Do mock**: external dependencies — \`src/api/*\` calls, \`src/lib/analytics\`, \`next/navigation\`, \`next/script\`, \`IntersectionObserver\`, and similar.
 - **Toasts in specs**: Jest maps \`src/lib/toast/appToast\` to \`src/tests/mocks/appToast.mock.ts\`. Re-export \`mockToast\` from the page object when asserting deploy/API toasts.
-- **Handbook test rules**: \`src/tests/utils/handbookTestRules.ts\` and \`handbookTestRules.spec.ts\` enforce the **Do not test React Query** rules below; Cursor \`block-query-hook-mocks.sh\` blocks new violations on edit.
+- **Handbook test rules**: \`src/tests/utils/handbookTestRules.ts\` and \`handbookTestRules.spec.ts\` enforce the **Do not test React Query** rules in [react.md](react.md#do-not-test-react-query); Cursor \`block-query-hook-mocks.sh\` blocks new violations on edit.
 
-### Jest and \`next/script\`
+## Jest and \`next/script\`
 
 Unit tests that assert on DOM from **\`next/script\`** (e.g. JSON-LD \`<script id="schema-structured-data">\`) should **mock** \`next/script\` so injection is synchronous; the real component loads \`afterInteractive\` and can miss timing in JSDOM.
 
@@ -823,39 +887,6 @@ jest.mock("next/script", () => ({
 - Every component that is tested (or likely to be) should have a **root element** with \`data-testid="rh<ComponentName>"\` (e.g. \`rhNavigation\`, \`rhFooter\`). Use PascalCase to match the component name.
 - The page object's **\`testId\`** must match the component root \`data-testid\` so specs can use \`screen.getByTestId(po.testId)\`.
 - Do not use generic or non-standard test IDs for the component root.
-
-## Accessibility
-
-Ship UI that works with a keyboard and a screen reader whenever the design allows.
-
-- Use **semantic HTML** first: correct heading levels, \`<button>\` for actions, \`Link\` from \`next/link\` for navigation, lists for list content.
-- **Forms**: Associate every input with a label (\`htmlFor\` / \`id\`) or an accessible name via \`aria-label\` / \`aria-labelledby\`.
-- **Images**: \`alt\` is required on every \`Image\`—accurate text when the image conveys information; \`alt=""\` when purely decorative. If you introduce a new external image hostname, add it to \`images.remotePatterns\` in \`next.config.ts\`.
-- **Keyboard**: Interactive controls must be focusable and operable without a pointer; overlays and menus should not leave focus in a hidden layer.
-- **Motion**: Prefer honoring \`prefers-reduced-motion\` for large or looping animations.
-
-## Comments
-
-Avoid redundant comments. Prefer clear names and small, focused functions so that intent is obvious. Add comments only when explaining non-obvious behavior, workarounds, or business rules.
-
-## Editor
-
-The repo uses \`.editorconfig\`: indent 2 spaces, UTF-8, insert final newline, trim trailing whitespace.
-
-## React Query
-
-Keep data-fetching hooks in their own files under \`src/hooks/queries/\` and \`src/hooks/mutations/\`. Components should call a named hook and react to \`data\`, \`isLoading\`, and \`isError\`—not own the \`useQuery\` wiring inline.
-
-- **Always create a dedicated query hook file.** Do not inline \`useQuery\` (or \`useMutation\`) in components. Add hooks under \`src/hooks/queries/\` and \`src/hooks/mutations/\`.
-- **Hook params must be a single object.** Pass one argument object to the hook instead of multiple positional arguments.
-- **Keep query hooks dumb.** Query files should only call \`useQuery\` / \`useMutation\` with standard options. Do not add side effects or callbacks in the query file.
-- **Handle errors and side effects at the call site.**
-
-### Do not test React Query
-
-- Do **not** add specs under **\`src/hooks/mutations/\`** or **\`src/hooks/queries/\`**.
-- In feature tests, mock **\`src/api/urls\`** and let real query/mutation hooks run in the shared test \`render\` wrapper. Do **not** \`jest.mock\` or \`jest.mocked\` hooks from those folders.
-- Rules are enforced in **\`handbookTestRules.ts\`** and Cursor **\`block-query-hook-mocks.sh\`**.
 `;
 };
 
@@ -933,7 +964,7 @@ Modules (content cards, copy blocks, slides, etc.) **live inside** sections.
 2. **Parser**: Add or extend \`src/contentful/parse<Name>.ts\` with a normalized type and \`parseContentful…\` function. Append \`satisfies ContentfulParseShape<MyType>\` to the terminal return literal so every key must be set explicitly. Use \`ContentfulTypeCheck\` and \`ExtractSymbolType\` where appropriate.
 3. **ContentRenderer**: Handle the new content type: parse the entry and render the component with typed props.
 4. **Section parser**: If the block appears inside a section's content array, ensure the sections parser includes the new type in its content union and parsing logic.
-5. **Component**: Implement the UI with CSS Modules per [conventions.md](conventions.md).
+5. **Component**: Implement the UI with CSS Modules per [css.md](css.md).
 
 ## Rich Text
 
@@ -986,15 +1017,19 @@ One directory per component under \`src/components/<ComponentName>/\`. Use **Pas
 
 Run **\`pnpm scaffold <ComponentName>\`** when you want a head start — it drops in the usual filenames and stubs (component, CSS module, interfaces, page object, spec) under \`src/components/<Name>/\`, plus a factory at \`src/tests/factories/<Name>.factory.ts\`.
 
-After scaffolding, follow **[conventions.md \u2192 Testing](conventions.md#testing)** for page object vs spec responsibilities.
+After scaffolding, follow **[testing.md](testing.md)** for page object vs spec responsibilities.
 
-**Heads-up:** For Contentful-backed components, treat the scaffold as a starting point only — the default **interfaces** / **factory** are generic stubs, not CMS parsers:
+${
+  a.includeContentful
+    ? `**Heads-up:** For Contentful-backed components, treat the scaffold as a starting point only — the default **interfaces** / **factory** are generic stubs, not CMS parsers:
 
 1. Drop or replace the default **interfaces** when your props come from a parser type in \`src/contentful/\`.
 2. Wire types and parsers from \`src/contentful/\` as in [contentful.md](contentful.md).
 3. Take a prop typed as the parser output (e.g. \`metadata: MyBlockType\`) when the block is CMS-driven.
 
-## Test ID
+`
+    : ""
+}## Test ID
 
 The root DOM element of a tested component should have **\`data-testid="rh<ComponentName>"\`** (e.g. \`rhNavigation\`). The page object should set **\`testId = "rh<ComponentName>"\`** to match; specs assert with \`screen.getByTestId(po.testId)\`.
 
@@ -1010,7 +1045,7 @@ Use **\`next/dynamic\`** when a component is heavy or client-only (\`ssr: false\
 
 ## Links
 
-Use **\`next/link\`**'s **\`Link\`** for all navigational links — internal paths, external URLs, \`mailto:\`, \`tel:\`, and the like. For new tabs, set \`target\` and \`rel="noopener noreferrer"\` on \`Link\`. See [conventions.md](conventions.md#react--jsx).
+Use **\`next/link\`**'s **\`Link\`** for all navigational links — internal paths, external URLs, \`mailto:\`, \`tel:\`, and the like. For new tabs, set \`target\` and \`rel="noopener noreferrer"\` on \`Link\`. See [react.md](react.md#components).
 
 ## Base UI
 
@@ -1051,13 +1086,13 @@ Mutation hooks live in **\`src/hooks/mutations/\`**.
 
 ## React Query — queries
 
-When you add client-side queries, place them under **\`src/hooks/queries/\`**, use a stable **\`queryKey\`**, and call through \`src/api/urls.ts\` inside \`queryFn\`. Follow the hook rules in [conventions.md](conventions.md) (single params object, no side effects in the hook file).
+When you add client-side queries, place them under **\`src/hooks/queries/\`**, use a stable **\`queryKey\`**, and call through \`src/api/urls.ts\` inside \`queryFn\`. Follow the hook rules in [react.md](react.md#react-query) (single params object, no side effects in the hook file).
 
 ${
   usesVercel(a)
     ? `## Refresh content
 
-**\`src/app/refresh-content/page.tsx\`** is **\`force-dynamic\`** and **\`noindex\`**. Access is gated by **\`REFRESH_CONTENT_ACCESS_TOKEN\`** when set — see [platform.md](platform.md). **\`DeployPage\`** triggers redeploys through **\`POST /api/refresh-content/deploy\`**. **\`DeployButton\`** uses **\`useDeployMonitor\`** (React Query mutation + polled status/active queries). **\`startedAt\`** (click time) drives elapsed labels and status **\`since\`**; **\`furthestDeployStatus\`** keeps phase labels monotonic (**Starting** → **Building**). Completion toasts fire from status polls and the elapsed timer without a page refresh.
+**\`src/app/refresh-content/page.tsx\`** is **\`force-dynamic\`** and **\`noindex\`**. Access is gated by **\`REFRESH_CONTENT_ACCESS_TOKEN\`** when set — see [refresh-content.md](refresh-content.md). **\`DeployPage\`** triggers redeploys through **\`POST /api/refresh-content/deploy\`**. **\`DeployButton\`** uses **\`useDeployMonitor\`** (React Query mutation + polled status/active queries). **\`startedAt\`** (click time) drives elapsed labels and status **\`since\`**; **\`furthestDeployStatus\`** keeps phase labels monotonic (**Starting** → **Building**). Completion toasts fire from status polls and the elapsed timer without a page refresh.
 
 `
     : ""
@@ -1092,10 +1127,6 @@ Use **\`next/dynamic\`** for code-splitting when a component is heavy or must be
 export const getHandbookPlatform = (a: ProjectAnswers): string => {
   const port = a.devPort;
   const base = getBaseBranch(a);
-  const intro = a.includeContentful
-    ? "This page covers **CI**, **env vars**, **draft preview**, and **`src/proxy.ts`**."
-    : "This page covers **CI**, **env vars**, and **`src/proxy.ts`**. (No CMS draft routes—this scaffold was generated without Contentful.)";
-
   const greenfieldBranching = a.includeClaudePipeline
     ? "the `main` ruleset, CODEOWNERS, Claude GitHub App and Actions secrets,"
     : "default branch (`staging`), branch protections, seeding **`v0.0.0`**,";
@@ -1111,11 +1142,6 @@ export const getHandbookPlatform = (a: ProjectAnswers): string => {
     : `| \`pnpm dev:preview\` | Starts Next dev only (no \`/api/draft\` auto-open when Contentful is omitted). |
 `;
 
-  const notableContentful = a.includeContentful
-    ? `- **Contentful** — space, delivery/preview tokens, preview secret, CMA token for codegen.
-`
-    : "";
-
   const agentHooksSection =
     a.agentTooling === "cursor"
       ? `## Agent hooks (Cursor)
@@ -1129,23 +1155,9 @@ This project includes **Claude Code** hooks under **\`.claude/\`** (\`settings.j
 
 `;
 
-  const draftSection = a.includeContentful
-    ? `## Preview and draft mode
+  return `# Platform, CI, and scripts
 
-Draft mode uses App Router APIs:
-
-- **Enable draft**: \`src/app/api/draft/route.ts\` checks \`previewSecret\` against **\`CONTENTFUL_PREVIEW_SECRET\`**, enables draft mode, then redirects.
-- **Disable draft**: \`src/app/api/disable-draft/route.ts\`.
-- **Preview content**: Getters accept \`preview: true\` and use the preview client from \`src/contentful/client.ts\`.
-`
-    : `## Preview and draft mode
-
-This scaffold was generated **without** Contentful, so **\`/api/draft\`** and **\`/api/disable-draft\`** are not present. Enable **Contentful** in kickoff or add your own preview workflow.
-`;
-
-  return `# Platform, CI, and environment
-
-${intro}
+Read this when you touch CI, package scripts, agent hooks, or Next.js upgrades. Env vars and request handling are in [env.md](env.md), and shipping is in [releases.md](releases.md).
 
 ## Greenfield prerequisites
 
@@ -1189,6 +1201,34 @@ ${usesPlaywright(a) ? "| `pnpm test:e2e` | Playwright (`e2e/`) against `BASE_URL
 ${scriptRowsExtra}
 The full list lives in **\`package.json\`**.
 
+${agentHooksSection}${a.includePlaywright && !a.includeClaudePipeline ? getHandbookBrowserTestsSection(a) : ""}${getHandbookUpgradingSection(a)}`;
+};
+
+// ---------------------------------------------------------------------------
+// docs/handbook/env.md
+// ---------------------------------------------------------------------------
+
+export const getHandbookEnv = (a: ProjectAnswers): string => {
+  const notableContentful = a.includeContentful
+    ? `- **Contentful** — space, delivery/preview tokens, preview secret, CMA token for codegen.
+`
+    : "";
+  const draftSection = a.includeContentful
+    ? `## Preview and draft mode
+
+Draft mode uses App Router APIs:
+
+- **Enable draft**: \`src/app/api/draft/route.ts\` checks \`previewSecret\` against **\`CONTENTFUL_PREVIEW_SECRET\`**, enables draft mode, then redirects.
+- **Disable draft**: \`src/app/api/disable-draft/route.ts\`.
+- **Preview content**: Getters accept \`preview: true\` and use the preview client from \`src/contentful/client.ts\`.
+
+`
+    : "";
+
+  return `# Environment and requests
+
+Read this when you add or change an env var, draft preview, or \`src/proxy.ts\`.
+
 ## Environment variables and \`next.config\`
 
 **\`next.config.ts\`** \`env: { ... }\` inlines values into the build—including client bundles wherever they are referenced—so list **only values that are safe to expose** (\`ENVIRONMENT\`, public site keys). Server-only secrets (${usesVercel(a) ? "`VERCEL_API_TOKEN`, " : ""}Contentful preview keys, \`RESEND_API_KEY\`, \`RECAPTCHA_SECRET_KEY\`) are read from \`process.env\` in Route Handlers and server code; never add them to \`env:\` or give them a \`NEXT_PUBLIC_*\` name.
@@ -1210,9 +1250,40 @@ ${
     : ""
 }- **Optional** — HubSpot, Resend, reCAPTCHA — used by Route Handlers and forms when configured.
 
+${draftSection}## \`src/proxy.ts\`
+
 ${
-  usesVercel(a)
-    ? `## Refresh content and deploy hooks
+  a.includeI18n
+    ? "`src/proxy.ts` runs **next-intl** locale routing (`createMiddleware(routing)`): it detects the visitor's language and rewrites `/` to the default locale. Its `matcher` skips `api`, `_next`, " +
+      (usesVercel(a) ? "`_vercel`, " : "") +
+      "and files with an extension. If you add more request handling, wrap the next-intl handler rather than replacing it."
+    : "`src/proxy.ts` attaches **`x-pathname`** to request headers for downstream use. If you add **Next.js middleware**, import and call `proxy` from there so the behavior is applied on each request."
+}
+`;
+};
+
+// ---------------------------------------------------------------------------
+// docs/handbook/releases.md
+// ---------------------------------------------------------------------------
+
+export const getHandbookReleases = (a: ProjectAnswers): string =>
+  `# Releases
+
+Read this when you ship: ${a.includeClaudePipeline ? "how a merged PR reaches production through the hands-off pipeline" : "how a tagged release reaches production"}.
+
+${a.includeClaudePipeline ? getHandbookPipelineSection(a) : getHandbookReleaseSection(a)}`;
+
+// ---------------------------------------------------------------------------
+// docs/handbook/refresh-content.md (Vercel hosting)
+// ---------------------------------------------------------------------------
+
+export const getHandbookRefreshContent = (
+  _a: ProjectAnswers,
+): string => `# Refresh content
+
+Read this when you change the token-protected page that redeploys the site, or its API routes.
+
+## Refresh content and deploy hooks
 
 - **Page**: **\`src/app/refresh-content/page.tsx\`** is **\`force-dynamic\`**, **\`noindex\`**, and gated by **\`isRefreshContentAuthorized\`** in **\`refreshContentAccess.ts\`**.
 - **Access**: When **\`REFRESH_CONTENT_ACCESS_TOKEN\`** is set, the page and deploy API require a matching **\`?token=\`** on every environment. When unset, only **\`ENVIRONMENT=local\`** may access without a token.
@@ -1229,21 +1300,17 @@ ${
 
 - **Deploy monitoring**: After a hook trigger, **\`POST /api/refresh-content/deploy\`** returns **\`createdAt\`**, **\`deployHookId\`**, and **\`projectId\`**. Route handlers share **\`parseDeployTarget\`**, **\`parseDeployHookUrl\`**, and **\`resolveDeployHookMetadata\`** from **\`refreshContentAccess.ts\`**; **\`vercelDeploymentStatus.ts\`** handles Vercel List Deployments polling. **\`useDeployMonitor\`** (used by **\`DeployButton\`**) calls **\`api.deploy.*\`** via React Query: a **mutation** for trigger, **polled queries** for **\`GET /api/refresh-content/deploy/status\`**, and an **active** query for **\`GET /api/refresh-content/deploy/active\`** on load. **\`GET /api/refresh-content/deploy/build-stats\`** returns Vercel build timing when **\`VERCEL_API_TOKEN\`** is set (**\`useDeployBuildStats\`** / **\`DeployBuildStats\`**). **\`startedAt\`** (button click time) is persisted in **\`localStorage\`** and used for the elapsed label and as the status **\`since\`** value. Status and active routes are **\`force-dynamic\`** with **\`Cache-Control: no-store\`**; Vercel fetches use **\`cache: 'no-store'\`**. Client **\`api.deploy.status\`** / **\`api.deploy.active\`** also pass **\`cache: 'no-store'\`**. Polling stops on terminal status (**\`ready\`**, **\`error\`**, **\`canceled\`**) or when **\`monitoring: false\`** (no API token). Without **\`VERCEL_API_TOKEN\`**, the button counts up for **\`DEPLOY_ESTIMATED_MS\`** (2 minutes) then shows **Refresh may be complete**. Labels use monotonic **\`displayStatus\`** via **\`furthestDeployStatus\`** (**Starting (m:ss)**, **Building (m:ss)**, etc.). Completion toasts use **\`appToast\`** via **\`ToastHost\`** in **\`providers.tsx\`** (tokens in **\`variables.css\`**).
 
-`
-    : ""
-}${draftSection}
-${agentHooksSection}${a.includePlaywright && !a.includeClaudePipeline ? getHandbookBrowserTestsSection(a) : ""}${a.includeClaudePipeline ? getHandbookPipelineSection(a) : getHandbookReleaseSection(a)}
-${a.includeI18n ? getHandbookLanguagesSection() : ""}${getHandbookUpgradingSection(a)}## \`src/proxy.ts\`
-
-${
-  a.includeI18n
-    ? "`src/proxy.ts` runs **next-intl** locale routing (`createMiddleware(routing)`): it detects the visitor's language and rewrites `/` to the default locale. Its `matcher` skips `api`, `_next`, " +
-      (usesVercel(a) ? "`_vercel`, " : "") +
-      "and files with an extension. If you add more request handling, wrap the next-intl handler rather than replacing it."
-    : "`src/proxy.ts` attaches **`x-pathname`** to request headers for downstream use. If you add **Next.js middleware**, import and call `proxy` from there so the behavior is applied on each request."
-}
 `;
-};
+
+// ---------------------------------------------------------------------------
+// docs/handbook/languages.md (i18n)
+// ---------------------------------------------------------------------------
+
+export const getHandbookLanguages = (): string => `# Languages
+
+Read this when you change copy, add a page, or touch routing in a site that ships in English and Spanish.
+
+${getHandbookLanguagesSection().replace(/^## Languages \(English and Spanish\)\n\n/, "")}`;
 
 const getHandbookUpgradingSection = (a: ProjectAnswers): string => {
   const scheduled = a.includeClaudePipeline

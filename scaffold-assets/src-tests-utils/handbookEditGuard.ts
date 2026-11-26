@@ -96,7 +96,7 @@ const validateFlatDescribe = (
         line: index + 1,
         rule: "nested-describe",
         message:
-          'Use one flat describe per hook/util spec — no nested describe("when …"). Fold scenarios into it("when …") names. See docs/handbook/conventions.md (Hook and feature spec checklist → Structure).',
+          'Use one flat describe per hook/util spec — no nested describe("when …"). Fold scenarios into it("when …") names. See docs/handbook/testing.md.',
         excerpt: line.trim(),
       });
     }

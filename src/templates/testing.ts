@@ -393,12 +393,12 @@ const FORBIDDEN_HOOK_LAYER_SPEC_PATH =
   /^src\\/hooks\\/(mutations|queries)\\/.+\\.(spec|test|po)\\.(ts|tsx)$/;
 
 const FORBIDDEN_HOOK_LAYER_SPEC_MESSAGE =
-  "Do not add specs under src/hooks/queries/ or src/hooks/mutations/. Cover read/write behavior at call sites (components, feature hooks) with mocked api.*. See docs/handbook/conventions.md (Do not test React Query).";
+  "Do not add specs under src/hooks/queries/ or src/hooks/mutations/. Cover read/write behavior at call sites (components, feature hooks) with mocked api.*. See docs/handbook/react.md (Do not test React Query).";
 
 const QUERY_HOOK_MOCK_LINE_RULES = [
   {
     message:
-      "Do not jest.mock query hooks under src/hooks/queries/. Mock src/api/urls and let the real query hook run in TestProviders. See docs/handbook/conventions.md (Do not test React Query).",
+      "Do not jest.mock query hooks under src/hooks/queries/. Mock src/api/urls and let the real query hook run in TestProviders. See docs/handbook/react.md (Do not test React Query).",
     pattern: /jest\\.mock\\s*\\(\\s*["']src\\/hooks\\/queries\\//,
     rule: "jest-mock-query-hook",
   },
@@ -407,7 +407,7 @@ const QUERY_HOOK_MOCK_LINE_RULES = [
 const MUTATION_HOOK_MOCK_LINE_RULES = [
   {
     message:
-      "Do not jest.mock mutation hooks under src/hooks/mutations/. Mock src/api/urls and assert outcomes in components or feature hooks. See docs/handbook/conventions.md (Do not test React Query).",
+      "Do not jest.mock mutation hooks under src/hooks/mutations/. Mock src/api/urls and assert outcomes in components or feature hooks. See docs/handbook/react.md (Do not test React Query).",
     pattern: /jest\\.mock\\s*\\(\\s*["']src\\/hooks\\/mutations\\//,
     rule: "jest-mock-mutation-hook",
   },
@@ -515,7 +515,7 @@ export const validateFeatureTestSource = (
         filePath,
         line: index + 1,
         message:
-          "Do not jest.mocked() query hooks from src/hooks/queries/. Mock src/api/urls instead. See docs/handbook/conventions.md (Do not test React Query).",
+          "Do not jest.mocked() query hooks from src/hooks/queries/. Mock src/api/urls instead. See docs/handbook/react.md (Do not test React Query).",
         rule: "jest-mocked-query-hook",
       });
     }
@@ -526,7 +526,7 @@ export const validateFeatureTestSource = (
         filePath,
         line: index + 1,
         message:
-          "Do not jest.mocked() mutation hooks from src/hooks/mutations/. Mock src/api/urls instead. See docs/handbook/conventions.md (Do not test React Query).",
+          "Do not jest.mocked() mutation hooks from src/hooks/mutations/. Mock src/api/urls instead. See docs/handbook/react.md (Do not test React Query).",
         rule: "jest-mocked-mutation-hook",
       });
     }

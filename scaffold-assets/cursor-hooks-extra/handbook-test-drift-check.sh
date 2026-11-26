@@ -32,7 +32,7 @@ jest_status=0
 jest_output="$(run_pnpm exec jest src/tests/utils/handbookTestRules.spec.ts --runInBand --no-cache 2>&1)" || jest_status=$?
 
 if [ "$jest_status" -ne 0 ]; then
-  reason="$(printf 'Handbook testing drift check failed. Feature tests must mock src/api/urls — not query/mutation hooks under src/hooks/queries/ or src/hooks/mutations/, and no specs in those folders. Rules: src/tests/utils/handbookTestRules.ts. Handbook: docs/handbook/conventions.md (Do not test React Query).\n\nChanged test files:\n%s\n\nTest output:\n%s' "$feature_tests_changed" "$jest_output")"
+  reason="$(printf 'Handbook testing drift check failed. Feature tests must mock src/api/urls — not query/mutation hooks under src/hooks/queries/ or src/hooks/mutations/, and no specs in those folders. Rules: src/tests/utils/handbookTestRules.ts. Handbook: docs/handbook/react.md (Do not test React Query).\n\nChanged test files:\n%s\n\nTest output:\n%s' "$feature_tests_changed" "$jest_output")"
   jq -n --arg r "$reason" '{ followup_message: $r }'
   exit 0
 fi
