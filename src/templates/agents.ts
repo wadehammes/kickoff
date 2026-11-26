@@ -973,6 +973,14 @@ Search the handbook for the feature area; read that chapter. Do not guess projec
 `;
 };
 
+export const getAgentDir = (a: ProjectAnswers): ".cursor" | ".claude" =>
+  a.agentTooling === "cursor" ? ".cursor" : ".claude";
+
+const getCommandsSection = (dir: string): string => `## Commands
+
+- \`/handbook-review [base branch or file paths]\` ([\`${dir}/commands/handbook-review.md\`](../commands/handbook-review.md)) reviews the branch against the handbook and reports findings without editing anything. Use it on code written outside an agent session, which never went through these hooks.
+`;
+
 export const getCursorHooksReadme = (): string => {
   return `# Cursor hooks
 
@@ -999,10 +1007,7 @@ Shared team files under \`.cursor/\` are tracked in git (\`hooks.json\`, \`hooks
 | \`check-css-nesting.sh\` | \`postToolUse\` | Advisory when CSS nests selectors 4+ levels deep. |
 | \`handbook-drift-check.sh\` | \`stop\` | One follow-up if \`src/\` changed without a handbook update. |
 
-## Commands
-
-- \`/handbook-review [base branch or file paths]\` ([\`.cursor/commands/handbook-review.md\`](../commands/handbook-review.md)) reviews the branch against the handbook and reports findings without editing anything. Use it on code written outside an agent session, which never went through these hooks.
-
+${getCommandsSection(".cursor")}
 ## Requirements
 
 - \`bash\`, \`jq\`, \`git\` on \`PATH\`
@@ -1049,10 +1054,7 @@ Shared team files under \`.claude/\` are tracked in git (\`settings.json\`, \`ho
 | \`check-css-nesting.sh\` | \`PostToolUse\` | Advisory when CSS nests selectors 4+ levels deep. |
 | \`handbook-drift-check.sh\` | \`Stop\` | One follow-up if \`src/\` changed without a handbook update. |
 ${pipelineRow}${pipelinePermissions}
-## Commands
-
-- \`/handbook-review [base branch or file paths]\` ([\`.claude/commands/handbook-review.md\`](../commands/handbook-review.md)) reviews the branch against the handbook and reports findings without editing anything. Use it on code written outside an agent session, which never went through these hooks.
-
+${getCommandsSection(".claude")}
 ## Requirements
 
 - \`bash\`, \`jq\`, \`git\` on \`PATH\`
@@ -1062,7 +1064,7 @@ ${pipelineRow}${pipelinePermissions}
 
 export const getHandbookReviewCommand = (a: ProjectAnswers): string => {
   const base = getBaseBranch(a);
-  const dir = a.agentTooling === "cursor" ? ".cursor" : ".claude";
+  const dir = getAgentDir(a);
   const keepPaths = [
     "`src/`",
     "`jest.config.ts`",
