@@ -8,8 +8,14 @@ import chalk from "chalk";
 import prompts from "prompts";
 import { generateProject, getScaffoldRoot } from "./generator.js";
 import { runHandbookCommand } from "./handbook/command.js";
+import {
+  DEFAULT_VERSIONS,
+  KEEP_PINNED,
+  type Versions,
+} from "./templates/config.js";
 import type { ProjectAnswers } from "./types.js";
 import { readAnswersFile, validateProjectAnswers } from "./validateAnswers.js";
+import { fetchFromNpm, refreshVersions } from "./versions/refreshVersions.js";
 
 const banner = `
 ${chalk.cyan("🚀 kickoff")} ${chalk.white("—")} ${chalk.gray("Next.js + TypeScript project scaffolder")}
@@ -34,8 +40,52 @@ Options:
   --force            Allow scaffolding into a non-empty directory
   --dry-run          List files that would be written; no disk writes
   --verbose          Log each file as it is written
+  --no-refresh       Use kickoff's tested package versions instead of checking npm
+  --latest-majors    Also move packages to newer major versions (kickoff was tested on the current ones)
   -h, --help         Show this help
 `);
+};
+
+const refreshPackageVersions = async (
+  includeMajors: boolean,
+): Promise<Versions> => {
+  console.log(
+    `${chalk.cyan("→")} Checking npm for newer package versions (at least 7 days old) ...`,
+  );
+
+  const result = await refreshVersions({
+    fetchMetadata: fetchFromNpm,
+    includeMajors,
+    keep: KEEP_PINNED,
+    versions: DEFAULT_VERSIONS,
+  });
+
+  if (result.updated.length > 0) {
+    console.log(
+      `  Updated ${result.updated.length} packages to the newest version in their major.`,
+    );
+  }
+
+  if (result.newerMajors.length > 0) {
+    console.log(
+      chalk.yellow(
+        "  Newer major versions are out. kickoff was tested on the current ones; pass --latest-majors to use them:",
+      ),
+    );
+    for (const { available, current, name } of result.newerMajors) {
+      console.log(chalk.gray(`    ${name} ${available} (using ${current})`));
+    }
+  }
+
+  if (result.failed.length > 0) {
+    console.log(
+      chalk.yellow(
+        `  Couldn't check ${result.failed.length} packages on npm, so they keep kickoff's tested versions.`,
+      ),
+    );
+  }
+
+  return result.versions;
 };
 
 const scaffoldTargetIsNonEmpty = (root: string): boolean =>
@@ -56,6 +106,8 @@ export const main = async () => {
       "dry-run": { type: "boolean", default: false },
       help: { default: false, short: "h", type: "boolean" },
       verbose: { type: "boolean", default: false },
+      "latest-majors": { type: "boolean", default: false },
+      "no-refresh": { type: "boolean", default: false },
     },
     strict: true,
   });
@@ -298,8 +350,13 @@ export const main = async () => {
     `\n${chalk.cyan("→")} Generating ${chalk.bold(projectAnswers.siteName)} into ${chalk.bold(destination)}${dryRun ? chalk.dim(" (dry-run)") : ""} ...\n`,
   );
 
+  const versions =
+    dryRun || values["no-refresh"]
+      ? DEFAULT_VERSIONS
+      : await refreshPackageVersions(values["latest-majors"]);
+
   try {
-    await generateProject(projectAnswers, { dryRun, verbose });
+    await generateProject(projectAnswers, { dryRun, verbose, versions });
   } catch (err) {
     console.error(
       `\n${chalk.red("✖ Error generating project:")}`,

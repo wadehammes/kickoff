@@ -1,4 +1,5 @@
 import type { ProjectAnswers } from "../types.js";
+import { DEFAULT_VERSIONS, type Versions } from "./config.js";
 
 const CHECKOUT_ACTION =
   "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2";
@@ -6,7 +7,6 @@ const CLAUDE_CODE_ACTION =
   "anthropics/claude-code-action@4fa93a88de49bbef68b10eb15aabedf28ca0e1ed # v1.0.271";
 const VERCEL_DISPATCH_STATUS_ACTION =
   "vercel/repository-dispatch/actions/status@30f760c6640485cd92f8c785ef361382555fb712 # v1";
-const VERCEL_CLI_VERSION = "65.14.0";
 
 /** Adds the same `if:` to every step in a block of workflow steps. */
 const indentIf = (condition: string, steps: string): string =>
@@ -148,6 +148,12 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 0
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
 `;
 };
 
@@ -586,7 +592,10 @@ ${NODE_SETUP_STEPS}      - name: Run the official Next.js upgrade codemod
 // .github/workflows/staging-smoke.yml
 // ---------------------------------------------------------------------------
 
-export const getStagingSmokeWorkflow = (a: ProjectAnswers): string => {
+export const getStagingSmokeWorkflow = (
+  a: ProjectAnswers,
+  versions: Versions = DEFAULT_VERSIONS,
+): string => {
   const stagingHost = new URL(a.stagingUrl).host;
 
   return `name: Staging Smoke
@@ -625,7 +634,7 @@ ${NODE_SETUP_STEPS}      - name: Install Playwright browser
           DEPLOYMENT_URL: \${{ github.event.client_payload.url }}
           VERCEL_TEAM_SLUG: \${{ vars.VERCEL_TEAM_SLUG }}
           VERCEL_TOKEN: \${{ secrets.VERCEL_TOKEN }}
-        run: npx --yes vercel@${VERCEL_CLI_VERSION} alias set "$DEPLOYMENT_URL" ${stagingHost} --token "$VERCEL_TOKEN" --scope "$VERCEL_TEAM_SLUG" --non-interactive
+        run: npx --yes vercel@${versions.vercel} alias set "$DEPLOYMENT_URL" ${stagingHost} --token "$VERCEL_TOKEN" --scope "$VERCEL_TEAM_SLUG" --non-interactive
       - name: Smoke test staging
         run: pnpm test:e2e --grep @smoke
         env:
@@ -647,7 +656,10 @@ ${NODE_SETUP_STEPS}      - name: Install Playwright browser
 // .github/workflows/production-smoke.yml
 // ---------------------------------------------------------------------------
 
-export const getProductionSmokeWorkflow = (a: ProjectAnswers): string => {
+export const getProductionSmokeWorkflow = (
+  a: ProjectAnswers,
+  versions: Versions = DEFAULT_VERSIONS,
+): string => {
   return `name: Production Smoke
 on:
   repository_dispatch:
@@ -696,7 +708,7 @@ ${NODE_SETUP_STEPS}      - name: Install Playwright browser
             echo "::error::Production smoke failed and there is no earlier production deployment to roll back to"
             exit 1
           fi
-          npx --yes vercel@${VERCEL_CLI_VERSION} rollback "$previous" --token "$VERCEL_TOKEN" --scope "$VERCEL_TEAM_SLUG" --non-interactive
+          npx --yes vercel@${versions.vercel} rollback "$previous" --token "$VERCEL_TOKEN" --scope "$VERCEL_TEAM_SLUG" --non-interactive
           echo "::error::Production smoke failed; rolled back to $previous. New merges stay off production until a fixed deployment is promoted (vercel promote)."
       - name: Open an issue for the team
         if: always() && steps.smoke.outcome == 'failure'

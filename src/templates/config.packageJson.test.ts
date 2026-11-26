@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { ProjectAnswers } from "../types.js";
-import { getPackageJson } from "./config.js";
+import { DEFAULT_VERSIONS, getPackageJson } from "./config.js";
+import {
+  getProductionSmokeWorkflow,
+  getStagingSmokeWorkflow,
+} from "./github.js";
 
 const answers = (overrides: Partial<ProjectAnswers> = {}): ProjectAnswers => ({
   agentTooling: "cursor",
@@ -90,5 +94,48 @@ describe("getPackageJson", () => {
     expect(pkg.scripts?.["lint:all"]).toContain("knip:ci");
     expect(pkg.scripts?.knip).toBe("knip");
     expect(pkg.devDependencies?.knip).toBe("^6.43.0");
+  });
+
+  it("lists every package any option can add in DEFAULT_VERSIONS", () => {
+    const everything = parse(
+      answers({
+        agentTooling: "claude",
+        includeClaudePipeline: true,
+        includeContentful: true,
+        includeGA: true,
+        includeI18n: true,
+        includeRecaptcha: true,
+        includeResend: true,
+      }),
+    );
+    const names = [
+      ...Object.keys(everything.dependencies ?? {}),
+      ...Object.keys(everything.devDependencies ?? {}),
+    ];
+
+    expect(names.filter((name) => !(name in DEFAULT_VERSIONS))).toEqual([]);
+  });
+
+  it("uses the versions it is given, including the codemod and Vercel CLI pins", () => {
+    const versions = {
+      ...DEFAULT_VERSIONS,
+      "@next/codemod": "16.9.0",
+      next: "^16.9.0",
+      vercel: "65.20.0",
+    };
+    const pipeline = answers({
+      agentTooling: "claude",
+      includeClaudePipeline: true,
+    });
+    const pkg = JSON.parse(getPackageJson(pipeline, versions)) as PkgJson;
+
+    expect(pkg.dependencies?.next).toBe("^16.9.0");
+    expect(pkg.scripts?.["next:upgrade"]).toContain("@next/codemod@16.9.0");
+    expect(getStagingSmokeWorkflow(pipeline, versions)).toContain(
+      "vercel@65.20.0",
+    );
+    expect(getProductionSmokeWorkflow(pipeline, versions)).toContain(
+      "vercel@65.20.0",
+    );
   });
 });

@@ -4,6 +4,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readdirSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -51,6 +52,42 @@ const previousCwd = process.cwd();
 const previousArgv = process.argv;
 
 const output = () => stdout.join("\n");
+
+const daysAgo = (days: number) =>
+  new Date(Date.now() - days * 86_400_000).toISOString();
+
+const stubRegistry = (published: Record<string, Record<string, number>>) => {
+  const fetchMock = vi.fn(async (url: string | URL) => {
+    const name = decodeURIComponent(
+      String(url).replace("https://registry.npmjs.org/", ""),
+    );
+    const versions = published[name] ?? {};
+
+    return new Response(
+      JSON.stringify({
+        time: Object.fromEntries(
+          Object.entries(versions).map(([version, days]) => [
+            version,
+            daysAgo(days),
+          ]),
+        ),
+        versions: Object.fromEntries(
+          Object.keys(versions).map((version) => [version, {}]),
+        ),
+      }),
+    );
+  });
+
+  vi.stubGlobal("fetch", fetchMock);
+
+  return fetchMock;
+};
+
+const packageJson = () =>
+  JSON.parse(readFileSync(path.join(root, "package.json"), "utf-8")) as {
+    dependencies: Record<string, string>;
+    scripts: Record<string, string>;
+  };
 const errors = () => stderr.join("\n");
 
 const run = async (...args: string[]): Promise<number | null> => {
@@ -82,10 +119,17 @@ beforeEach(() => {
     throw new ExitError(Number(code ?? 0));
   });
   vi.mocked(prompts).mockReset();
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => {
+      throw new Error("offline");
+    }),
+  );
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   process.argv = previousArgv;
   process.chdir(previousCwd);
   chmodSync(root, 0o755);
@@ -259,5 +303,54 @@ describe("kickoff CLI", () => {
 
     expect(await run()).toBe(0);
     expect(output()).toContain("Scaffolding cancelled.");
+  });
+
+  it("refreshes package versions within their major before generating", async () => {
+    stubRegistry({
+      "@next/codemod": { "16.4.6": 30, "16.9.0": 10 },
+      next: { "16.4.3": 60, "16.9.0": 10, "16.10.0": 2, "17.0.0": 9 },
+    });
+
+    expect(await run("--answers", fixture("cursor-static.json"))).toBeNull();
+    expect(packageJson().dependencies.next).toBe("^16.9.0");
+    expect(packageJson().scripts["next:upgrade"]).toContain(
+      "@next/codemod@16.9.0",
+    );
+    expect(output()).toContain("Updated 2 packages");
+    expect(output()).toContain("next 17.0.0");
+    expect(output()).toContain("--latest-majors");
+  });
+
+  it("moves to newer majors with --latest-majors", async () => {
+    stubRegistry({ next: { "16.4.3": 60, "17.0.0": 9 } });
+
+    expect(
+      await run("--answers", fixture("cursor-static.json"), "--latest-majors"),
+    ).toBeNull();
+    expect(packageJson().dependencies.next).toBe("^17.0.0");
+  });
+
+  it("skips the refresh with --no-refresh and on a dry run", async () => {
+    const fetchMock = stubRegistry({ next: { "16.9.0": 10 } });
+
+    expect(
+      await run("--answers", fixture("cursor-static.json"), "--no-refresh"),
+    ).toBeNull();
+    expect(packageJson().dependencies.next).toBe("^16.4.3");
+
+    rmSync(root, { force: true, recursive: true });
+    mkdirSync(root);
+
+    expect(
+      await run("--answers", fixture("cursor-static.json"), "--dry-run"),
+    ).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the tested versions when npm can't be reached", async () => {
+    expect(await run("--answers", fixture("cursor-static.json"))).toBeNull();
+    expect(packageJson().dependencies.next).toBe("^16.4.3");
+    expect(output()).toContain("Couldn't check");
+    expect(output()).toContain("kickoff's tested versions");
   });
 });

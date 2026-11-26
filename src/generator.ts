@@ -4,6 +4,7 @@ import fsExtra from "fs-extra";
 
 const { ensureDir, writeFile } = fsExtra;
 
+import { DEFAULT_VERSIONS, type Versions } from "./templates/config.js";
 import {
   type AgentHookScriptName,
   getAgentHookScriptContent,
@@ -205,6 +206,7 @@ import type { ProjectAnswers } from "./types.js";
 export type GenerateProjectOptions = {
   dryRun?: boolean;
   verbose?: boolean;
+  versions?: Versions;
 };
 
 type Write = (
@@ -274,13 +276,14 @@ export const generateProject = async (
   const root = getScaffoldRoot(a);
   const dryRun = options?.dryRun ?? false;
   const write = createWriter(root, options);
+  const versions = options?.versions ?? DEFAULT_VERSIONS;
 
   if (!dryRun) {
     await ensureDir(root);
   }
 
   // ── Root config files ──────────────────────────────────────────────────────
-  await write("package.json", getPackageJson(a));
+  await write("package.json", getPackageJson(a, versions));
   await write("tsconfig.json", getTsConfig());
   await write("biome.json", getBiomeConfig());
   await write("stylelint.config.mjs", getStylelintConfig());
@@ -392,11 +395,11 @@ export const generateProject = async (
     await write(".github/workflows/next-upgrade.yml", getNextUpgradeWorkflow());
     await write(
       ".github/workflows/staging-smoke.yml",
-      getStagingSmokeWorkflow(a),
+      getStagingSmokeWorkflow(a, versions),
     );
     await write(
       ".github/workflows/production-smoke.yml",
-      getProductionSmokeWorkflow(a),
+      getProductionSmokeWorkflow(a, versions),
     );
     await write(".github/CODEOWNERS", getCodeowners());
     await write(".github/pull_request_template.md", getPullRequestTemplate());
