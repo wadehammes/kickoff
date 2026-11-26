@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, join, normalize } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const MAX_REPORTED = 20;
 
@@ -62,10 +63,35 @@ const docPaths = () =>
     existsSync(doc),
   );
 
-const headingSlugs = (path) => {
+const withoutFencedCode = (markdown) => {
+  const kept = [];
+  let fence = null;
+
+  for (const line of markdown.split("\n")) {
+    const marker = line.match(/^ {0,3}(`{3,}|~{3,})/)?.[1];
+
+    if (fence === null && marker) {
+      fence = marker;
+    } else if (
+      fence !== null &&
+      marker &&
+      marker[0] === fence[0] &&
+      marker.length >= fence.length &&
+      line.trim() === marker
+    ) {
+      fence = null;
+    } else if (fence === null) {
+      kept.push(line);
+    }
+  }
+
+  return kept.join("\n");
+};
+
+export const headingSlugs = (path) => {
   const slugs = new Set();
 
-  for (const [, heading] of readFileSync(path, "utf8").matchAll(
+  for (const [, heading] of withoutFencedCode(readFileSync(path, "utf8")).matchAll(
     /^#+\s+(.*)$/gm,
   )) {
     slugs.add(
@@ -81,16 +107,16 @@ const headingSlugs = (path) => {
   return slugs;
 };
 
-const findBrokenLinks = () => {
+export const findBrokenLinks = (docs = docPaths()) => {
   const broken = [];
 
-  for (const doc of docPaths()) {
+  for (const doc of docs) {
     const base = dirname(doc) || ".";
 
-    for (const [, target] of readFileSync(doc, "utf8").matchAll(
+    for (const [, target] of withoutFencedCode(readFileSync(doc, "utf8")).matchAll(
       /\[[^\]]+\]\(([^)\s]+)\)/g,
     )) {
-      if (/^(https?:\/\/|mailto:|#)/.test(target)) {
+      if (/^([a-z][a-z0-9+.-]*:|#)/i.test(target)) {
         continue;
       }
 
@@ -114,7 +140,7 @@ const findBrokenLinks = () => {
     }
   }
 
-  return broken.slice(0, MAX_REPORTED);
+  return broken;
 };
 
 const fencedAndInlineCodeIn = (body) => [
@@ -175,7 +201,7 @@ const collectFindings = () => {
   );
 
   const findings = [];
-  const brokenLinks = findBrokenLinks();
+  const brokenLinks = findBrokenLinks().slice(0, MAX_REPORTED);
   const missingScripts = findMissingScripts();
 
   if (brokenLinks.length > 0) {
@@ -210,7 +236,7 @@ const collectFindings = () => {
     }
 
     findings.push(
-      `This session changed code or config but no handbook chapter. If any change shifted documented behavior or conventions, update the matching chapter now (docs/handbook/llms.md routes task → chapter). If nothing documented changed, you may stop.\n\n${scope.join("\n")}`,
+      `This session changed code or config but no handbook chapter. If any change affects how we build things, name the matching page and section (docs/handbook/llms.md routes them) and update it, asking the engineer first if CLAUDE.md says to. If nothing documented changed, you may stop.\n\n${scope.join("\n")}`,
     );
   }
 
@@ -249,4 +275,17 @@ const main = async () => {
   process.stdout.write(JSON.stringify({ decision: "block", reason }));
 };
 
-await main();
+const isEntryPoint = () => {
+  try {
+    return (
+      realpathSync(process.argv[1] ?? "") ===
+      realpathSync(fileURLToPath(import.meta.url))
+    );
+  } catch {
+    return false;
+  }
+};
+
+if (isEntryPoint()) {
+  await main();
+}

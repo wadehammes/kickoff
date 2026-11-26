@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { findBrokenLinks } from "../scaffold-assets/claude-hooks/handbook-drift-check.mjs";
 import { generateProject } from "./generator.js";
 import type { ProjectAnswers } from "./types.js";
 
@@ -290,6 +291,11 @@ const findInvalidJson = (root: string): string[] =>
       }
     });
 
+const findBrokenDocLinks = (root: string): string[] =>
+  findBrokenLinks(listFiles(root).filter((file) => file.endsWith(".md"))).map(
+    (problem: string) => problem.replaceAll(`${root}/`, ""),
+  );
+
 let matrixRoot: string;
 let previousCwd: string;
 
@@ -331,6 +337,9 @@ describe("generation matrix", () => {
       "package.json script files",
     ).toBe("");
     expect(findInvalidJson(root).join("\n"), "invalid JSON").toBe("");
+    expect(findBrokenDocLinks(root).join("\n"), "broken markdown links").toBe(
+      "",
+    );
     expect(
       findTypeScriptSyntaxErrors(root).join("\n"),
       "TypeScript syntax errors",

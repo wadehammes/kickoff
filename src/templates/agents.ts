@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import type { ProjectAnswers } from "../types.js";
 import { getBaseBranch } from "./config.js";
+import { getHandbookChangePolicy } from "./docs.js";
 
 const scaffoldAssetsDir = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -531,7 +532,7 @@ case "$file" in
     exit 0 ;;
 esac
 
-ctx="Handbook-sync check: you just edited $file. If this change shifts documented behavior or conventions, update docs/handbook/$chapter in the same change so the handbook stays accurate."
+ctx="Handbook-sync check: you just edited $file. If this edit changes how we build things here, docs/handbook/$chapter needs the same change. Follow CLAUDE.md on whether to ask the engineer before editing the handbook."
 
 advise_context "$ctx"
 exit 0
@@ -611,7 +612,7 @@ code_changed="$(printf '%s\\n' "$changed" | grep -E '^src/.*\\.(ts|tsx|css)$' ||
 docs_changed="$(printf '%s\\n' "$changed" | grep -E '^docs/handbook/.*\\.md$' || true)"
 
 if [ -n "$code_changed" ] && [ -z "$docs_changed" ]; then
-  reason="$(printf 'Handbook-drift check: this session changed code under src/ but no docs/handbook/*.md. If any change shifted documented behavior or conventions, update the matching chapter now (see docs/handbook/llms.md for routing). If nothing documented changed, reply that the handbook is still accurate.\\n\\nChanged code files:\\n%s' "$code_changed")"
+  reason="$(printf 'Handbook-drift check: this session changed code under src/ but no docs/handbook/*.md. If any change affects how we build things, name the matching page and section (docs/handbook/llms.md routes them) and update it, asking the engineer first if CLAUDE.md says to. If nothing documented changed, reply that the handbook is still accurate.\\n\\nChanged code files:\\n%s' "$code_changed")"
   stop_followup "$reason"
 fi
 
@@ -936,7 +937,7 @@ export const getClaudeSettingsJson = (a: ProjectAnswers): string => {
   )}\n`;
 };
 
-export const getCursorRulesHandbook = (_a: ProjectAnswers): string => {
+export const getCursorRulesHandbook = (a: ProjectAnswers): string => {
   return `---
 description: Mandatory handbook-first workflow before substantive repo work
 alwaysApply: true
@@ -950,7 +951,7 @@ alwaysApply: true
 
 On **substantive** work (features, refactors, App Router handlers, CSS/layout, tests for new behavior, CI/env):
 
-1. **Read** \`docs/handbook/README.md\` (skim index).
+1. **Read** \`docs/handbook/non-negotiables.md\`.
 2. **Route** the task via \`docs/handbook/llms.md\` → read **every matching chapter** before the first code change.
 3. **Reuse documented patterns** — extend existing components and helpers; do not reimplement parallel logic.
 
@@ -964,7 +965,8 @@ On **substantive** work (features, refactors, App Router handlers, CSS/layout, t
 
 ## Before finishing
 
-- If behavior, files, or conventions changed → **update the matching \`docs/handbook/*.md\` chapter** in the same PR (or immediate follow-up). Do not leave the handbook stale.
+- ${getHandbookChangePolicy(a)}
+- Run \`/handbook-review\` to check the branch against the handbook.
 - Run relevant checks from the chapter (e.g. \`pnpm lint:css\`, targeted tests).
 
 ## If unsure
@@ -1076,7 +1078,7 @@ export const getHandbookReviewCommand = (a: ProjectAnswers): string => {
     ? ", generated Contentful types (`src/contentful/types/`)"
     : "";
   const i18nCheck = a.includeI18n
-    ? "- Copy: user-facing text in `src/copy/` with no Spanish (`es`) entry, or a page with hard-coded strings instead of copy ([platform.md → Languages](docs/handbook/platform.md#languages-english-and-spanish)).\n"
+    ? "- Copy: user-facing text in `src/copy/` with no Spanish (`es`) entry, or a page with hard-coded strings instead of copy ([`docs/handbook/platform.md`](../../docs/handbook/platform.md#languages-english-and-spanish)).\n"
     : "";
 
   const frontmatter =
@@ -1110,11 +1112,12 @@ Skip deleted files, lockfiles, snapshots${skipGenerated}, and \`${dir}/\` edits 
 
 ## 2. Read the matching chapters
 
-Route every changed file through \`docs/handbook/llms.md\` before reading any code, and read every chapter it points to in full. Also read:
+Route every changed file through [\`docs/handbook/llms.md\`](../../docs/handbook/llms.md) before reading any code, and read every chapter it points to in full. Also read:
 
-- [conventions.md](docs/handbook/conventions.md), always, for TypeScript, React, CSS, and test changes
-- [decisions.md](docs/handbook/decisions.md) → Feature playbooks, when the branch adds a component, API route, hook, or factory
-- The hooks table in [\`${dir}/hooks/README.md\`](${dir}/hooks/README.md). Code written outside an agent session never went through those hooks, so check the same rules: added comments, \`margin-top\`, top-level \`@media\`, barrel files, factories outside \`src/tests/factories/\`, and component folders not made with \`pnpm scaffold\`.
+- [\`docs/handbook/non-negotiables.md\`](../../docs/handbook/non-negotiables.md), always. Most findings come from these rules
+- [\`docs/handbook/conventions.md\`](../../docs/handbook/conventions.md), always, for TypeScript, React, CSS, and test changes
+- [\`docs/handbook/decisions.md#feature-playbooks-touch-order\`](../../docs/handbook/decisions.md#feature-playbooks-touch-order), when the branch adds a component, API route, hook, or factory
+- The hooks table in \`${dir}/hooks/README.md\`. Code written outside an agent session never went through those hooks, so check the same rules: added comments, \`margin-top\`, top-level \`@media\`, barrel files, factories outside \`src/tests/factories/\`, and component folders not made with \`pnpm scaffold\`.
 
 Read the whole changed file, not just the hunk, so you can tell new code from code that was already there.
 
@@ -1126,8 +1129,8 @@ Run \`pnpm exec biome check <changed files>\`. If the branch changes CSS, also r
 
 Check each added or changed line against the chapters you read. Look for:
 
-- Rules a chapter states outright: arrow functions, named and default exports, \`src/\` imports, \`classNames\` for conditional classes, no \`any\`, \`as const\` instead of enums, \`data-testid="rh<ComponentName>"\` on component roots, alphabetized CSS properties, flex \`gap\` instead of \`margin-top\`.
-- Tests: a behavior change or bug fix with no spec change, a new module with no spec, test data built by hand instead of with a factory, and specs that query or mock differently from [conventions.md → Testing](docs/handbook/conventions.md#testing).
+- Every row in non-negotiables.md, and any other rule a chapter states outright.
+- Tests: a behavior change or bug fix with no spec change, a new module with no spec, test data built by hand instead of with a factory, and specs that query or mock differently from [\`docs/handbook/conventions.md#testing\`](../../docs/handbook/conventions.md#testing).
 - Patterns that work but don't match how the handbook builds the same thing, like a new helper where a chapter names an existing one, or a raw \`fetch\` where \`api.*\` fits.
 ${i18nCheck}- Docs: \`src/\` behavior or conventions changed but \`docs/handbook/\` did not. Report it as a process finding, not a line violation.
 

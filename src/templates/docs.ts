@@ -1,6 +1,11 @@
 import type { ProjectAnswers } from "../types.js";
 import { getBaseBranch } from "./config.js";
 
+export const getHandbookChangePolicy = (a: ProjectAnswers): string =>
+  a.includeClaudePipeline
+    ? "These pages describe what the code does today. When a change affects how we build something, update the matching page in the same PR. No one reviews these PRs by hand, so a stale page misleads the next agent."
+    : "These pages describe what the code does today and are team agreements. When a change seems to affect how we build something, name the page and section, describe the update you'd make, and ask the engineer you're working with before editing it. A broken link or typo can be fixed directly. Once they agree, update the page in the same PR.";
+
 // ---------------------------------------------------------------------------
 // CLAUDE.md
 // ---------------------------------------------------------------------------
@@ -9,13 +14,15 @@ export const getClaude = (a: ProjectAnswers): string => {
   const cmsClause = a.includeContentful ? "Contentful/CMS changes, " : "";
   return `# Agent instructions
 
-Before **substantive** work in this repo—features, refactors, ${cmsClause}patterns that touch the App Router or API routes, CI or env, analytics—read **\`docs/handbook/README.md\`** and the handbook **chapter** that matches the task. Use **\`docs/handbook/llms.md\`** for a compact task→chapter map. When unsure which pattern to use, read **\`docs/handbook/decisions.md\`** first.
+Before **substantive** work in this repo (features, refactors, ${cmsClause}patterns that touch the App Router or API routes, CI or env, analytics), read **\`docs/handbook/non-negotiables.md\`** and the handbook page that matches the task. **\`docs/handbook/llms.md\`** maps tasks and files to pages. When unsure which pattern to use, read **\`docs/handbook/decisions.md\`** first.
 
 Follow documented patterns.
 
-**Keep the handbook accurate:** Whenever a change would make the handbook wrong or incomplete—new flows (CI, env, tags), moved files, scaffold or convention changes, Contentful/parser patterns, or anything a future reader would be misled by—update the relevant **\`docs/handbook/*.md\`** in the **same PR** when practical, or in a small follow-up right away. Do not leave docs stale on purpose.
+**Keep the handbook accurate:** ${getHandbookChangePolicy(a)}
 
 You can skip a full handbook pass for **narrow** edits (typos, single obvious lines, mechanical fixes) that do not change behavior or documented expectations.
+
+Run **\`/handbook-review\`** to check a branch against the handbook before you open a PR.
 ${a.includeI18n ? getClaudeI18nInstructions() : ""}${a.includeClaudePipeline ? getClaudePipelineInstructions() : ""}`;
 };
 
@@ -219,7 +226,7 @@ pnpm dev
 | \`pnpm lint:css\` | Run Stylelint |
 | \`pnpm lint:css:fix\` | Auto-fix Stylelint issues |
 | \`pnpm lint:all\` | \`lint:check\`, Stylelint fix, \`tsc:ci\`, and \`knip:ci\` |
-| \`pnpm knip\` / \`pnpm knip:ci\` | Dead-code / unused export analysis ([knip.json](../../knip.json)) |
+| \`pnpm knip\` / \`pnpm knip:ci\` | Dead-code / unused export analysis ([knip.json](knip.json)) |
 | \`pnpm next:upgrade\` | Upgrade Next.js and React to the latest minor with the official codemod |
 | \`pnpm next:agents-md\` | Refresh the Next.js docs index in \`CLAUDE.md\` |
 | \`pnpm test:ci\` | Run Jest test suite |
@@ -301,92 +308,101 @@ There is no manual release step: each merge to \`main\` deploys to production. U
 };
 
 // ---------------------------------------------------------------------------
+// docs/handbook/non-negotiables.md
+// ---------------------------------------------------------------------------
+
+export const getHandbookNonNegotiables = (a: ProjectAnswers): string => {
+  const contentfulRow = a.includeContentful
+    ? "| Getters fetch entries and parsers turn them into component props | Components that read raw Contentful entries, or edits to `src/contentful/types/` | [contentful.md](contentful.md) |\n"
+    : "";
+  const copyRow = a.includeI18n
+    ? "| User-facing text in `src/copy/`, in English and Spanish | Hard-coded text in a component, or a change to one language only | [platform.md](platform.md#languages-english-and-spanish) |\n"
+    : "";
+
+  return `# Non-negotiables
+
+The rules every change follows, on one page. They're the ones that come up most in review and the ones the agent hooks enforce. Read this before your first change, and check your work against it before you open a PR. Each row links to the page that explains the rule.
+
+These apply to code you add or rewrite. Older code that breaks one can stay until you're making real changes to that file.
+
+## Building
+
+| Always | Never | Page |
+| ------ | ----- | ---- |
+| Write a failing test first, then the code that makes it pass | Code first and tests after, or a bug fix with no test | [conventions.md](conventions.md#write-the-test-first) |
+| Start a component with \`pnpm scaffold <Name>\` | Create a component folder by hand | [components.md](components.md#scaffold) |
+| \`export const Foo = (props: FooProps) => {}\` and \`export default Foo\` | \`function\` declarations, \`React.FC\`, or a component with only one of the two exports | [components.md](components.md#exports) |
+| Imports from \`src/...\` (a co-located CSS module uses \`./\`) | Relative \`../\` imports, or \`index.ts\` files that re-export | [conventions.md](conventions.md#typescript) |
+| Real types, and \`as const\` objects with a derived union | \`any\`, the non-null \`!\`, or enums | [conventions.md](conventions.md#typescript) |
+| Names that explain the code | Comments that restate it | [conventions.md](conventions.md#comments) |
+| A CSS module with alphabetized properties, mobile-first nested \`@media\`, and \`classNames(styles.a, { [styles.b]: isOpen })\` | Template literals or ternaries to join classes, \`margin-top\`, or top-level \`@media\` | [conventions.md](conventions.md#css-and-styling) |
+| \`data-testid="rh<ComponentName>"\` on the component's root element | A tested component with no root test ID | [conventions.md](conventions.md#test-ids) |
+
+## Data
+
+| Always | Never | Page |
+| ------ | ----- | ---- |
+| Server Components load page data; client code calls \`api.*\` from \`src/api/urls.ts\` | \`fetch("/api/...")\` written out in client code | [patterns.md](patterns.md#api-layer-and-route-handlers) |
+| A Route Handler for every \`api.*\` method, listed in the route map | An \`api.*\` method with no documented handler | [api-routes.md](api-routes.md) |
+${contentfulRow}${copyRow}
+## Tests
+
+| Always | Never | Page |
+| ------ | ----- | ---- |
+| Page objects that hold render setup, mocks, and test data | \`screen\` queries inside a page object | [conventions.md](conventions.md#page-object-pattern) |
+| Factories in \`src/tests/factories/\`, with Faker data for every key | Inline test objects, or a factory next to the component | [factories.md](factories.md#always-use-factories) |
+| Mocks for \`api.*\` | Mocks for a query or mutation hook, or tests of React Query itself | [conventions.md](conventions.md#what-to-mock-and-what-not-to) |
+`;
+};
+
+// ---------------------------------------------------------------------------
 // docs/handbook/README.md
 // ---------------------------------------------------------------------------
 
 export const getHandbookReadme = (a: ProjectAnswers): string => {
   const s = a.siteName;
-  const introSecond = a.includeContentful
-    ? "how Contentful feeds the UI"
-    : "how the app is structured";
-
-  const agentIndexRows = `| [glossary.md](glossary.md) | Domain terms (PO, \`api.*\`, deploy, handbook). |
-| [decisions.md](decisions.md) | **X vs Y** choices and feature playbooks for agents. |
-| [agent-workflow.md](agent-workflow.md) | Agent finish checklist, hooks, \`pnpm lint:all\` / \`handbook:check\`. |
-| [api-routes.md](api-routes.md) | \`api.*\` → Route Handler map and extension rules. |
-| [factories.md](factories.md) | \`BaseFactory\`, \`KeysMatch\`, factories under \`src/tests/factories/\`. |
-| [data-storage.md](data-storage.md) | Client storage (e.g. deploy progress) and doc checklist. |
-`;
-
-  const howToRead = a.includeContentful
-    ? `0. **Pattern choice** — [decisions.md](decisions.md) when you are unsure **X vs Y**.
-1. **Orientation** — [architecture.md](architecture.md): stack, folders, App Router, and how data gets from Contentful to the screen.
-2. **Day-to-day coding** — [conventions.md](conventions.md): TypeScript, React, CSS, tests, accessibility.
-3. **CMS work** — [contentful.md](contentful.md): types, getters, parsers, sections and content blocks.
-4. **UI structure** — [components.md](components.md): folders, files, tests.
-5. **App patterns** — [patterns.md](patterns.md): App Router data loading, React Query, API routes, forms, SEO.
-6. **Operations & tooling** — [platform.md](platform.md): CI, env, and \`proxy.ts\`.
-7. **Analytics & tags** — [integrations.md](integrations.md): GA, data layer, third parties.
-8. **Sitemaps** — [distribution.md](distribution.md): sitemap generation and public output.
-9. **Where things live** — [source-layout.md](source-layout.md): interfaces, \`src/utils\`, \`src/lib\`.`
-    : `0. **Pattern choice** — [decisions.md](decisions.md) when you are unsure **X vs Y**.
-1. **Orientation** — [architecture.md](architecture.md): stack, folders, App Router.
-2. **Day-to-day coding** — [conventions.md](conventions.md): TypeScript, React, CSS, tests, accessibility.
-3. **UI structure** — [components.md](components.md): folders, files, tests.
-4. **App patterns** — [patterns.md](patterns.md): App Router data loading, React Query, API routes, forms, SEO.
-5. **Operations & tooling** — [platform.md](platform.md): CI, env, and \`proxy.ts\`.
-6. **Analytics & tags** — [integrations.md](integrations.md): GA, data layer, third parties.
-7. **Sitemaps** — [distribution.md](distribution.md): sitemap generation and public output.
-8. **Where things live** — [source-layout.md](source-layout.md): interfaces, \`src/utils\`, \`src/lib\`.`;
-
-  const indexTable = a.includeContentful
-    ? `${agentIndexRows}| [architecture.md](architecture.md) | Tech stack, directory map, \`src/app\`, data flow, key config. Start here. |
-| [conventions.md](conventions.md) | TypeScript, Biome, CSS Modules, testing, test IDs, accessibility, comments, editor, React Query hook rules. |
-| [contentful.md](contentful.md) | Generated types, getters, parsers, sections vs modules, Rich Text, client. |
-| [components.md](components.md) | Component folder layout, \`pnpm scaffold\`, test IDs, exports, dynamic imports, links. |
-| [patterns.md](patterns.md) | Server components, serialization, React Query, \`src/api\`, forms, layout, metadata, JSON-LD. |
-| [platform.md](platform.md) | GitHub CI, releases${a.includeClaudePipeline ? ", hands-off Claude pipeline, Playwright" : ""}, knip, \`pnpm\` scripts, \`next.config\` (env, redirects), draft mode APIs, \`src/proxy.ts\`. |
-| [integrations.md](integrations.md) | Google Analytics, data layer, related env. |
-| [distribution.md](distribution.md) | Sitemap generation and \`public/\` output. |
-| [source-layout.md](source-layout.md) | \`src/interfaces\`, \`src/utils\` map, \`src/lib\`. |
-| [llms.md](llms.md) | Task-to-chapter routing for tools; copy-paste blurb for non-Cursor agents. |`
-    : `${agentIndexRows}| [architecture.md](architecture.md) | Tech stack, \`src/app\`, key config. Start here. |
-| [conventions.md](conventions.md) | TypeScript, Biome, CSS Modules, testing, test IDs, accessibility, comments, editor, React Query hook rules. |
-| [components.md](components.md) | Component folder layout, \`pnpm scaffold\`, test IDs, exports, dynamic imports, links. |
-| [patterns.md](patterns.md) | Server components, serialization, React Query, \`src/api\`, forms, layout, metadata, JSON-LD. |
-| [platform.md](platform.md) | GitHub CI, releases${a.includeClaudePipeline ? ", hands-off Claude pipeline, Playwright" : ""}, knip, \`pnpm\` scripts, \`next.config\` (env, redirects), \`src/proxy.ts\`. |
-| [integrations.md](integrations.md) | Google Analytics, data layer, related env. |
-| [distribution.md](distribution.md) | Sitemap generation and \`public/\` output. |
-| [source-layout.md](source-layout.md) | \`src/interfaces\`, \`src/utils\` map, \`src/lib\`. |
-| [llms.md](llms.md) | Task-to-chapter routing for tools; copy-paste blurb for non-Cursor agents. |`;
-
-  const devSetupPrereq = a.includeContentful
-    ? "GitHub, Vercel, Contentful"
-    : "GitHub, Vercel";
+  const platformTopics = [
+    "CI",
+    "env vars",
+    "`pnpm` scripts",
+    "`next.config`",
+    "`src/proxy.ts`",
+    ...(a.includeClaudePipeline ? ["the Claude pipeline"] : []),
+    ...(a.includeI18n ? ["languages"] : []),
+  ];
+  const contentfulRow = a.includeContentful
+    ? "| [contentful.md](contentful.md) | Change a content type, getter, parser, or Rich Text rendering |\n"
+    : "";
 
   return `# ${s} handbook
 
-This is the **${s} handbook**: how the site is put together, how we write code, ${introSecond}, and where to look when you are debugging or adding a feature.
+How ${s} is built: one page per part of the work, with the rules we follow and an example for each. Agents route through [llms.md](llms.md) instead of this index.
 
-You do not have to read everything in one sitting. Skim the index, bookmark what you need, and come back when you touch that area. **Do keep these docs honest**—when behavior in the repo changes, update the matching page here so the next person (or tool) is not led astray.
+## Pages
 
-**For tools and LLMs** (custom GPTs, other agents): **[llms.md](llms.md)** has a compact **task → chapter** map and a copy-paste blurb. Start with **[decisions.md](decisions.md)** when unsure which pattern to use.
+| Page | Read it when you… |
+| ---- | ----------------- |
+| [non-negotiables.md](non-negotiables.md) | Start any change. The rules every change follows, on one page, each linked to its page |
+| [decisions.md](decisions.md) | Can't tell which of two patterns fits, or want the steps for a new component, API route, hook, or factory |
+| [architecture.md](architecture.md) | Are new to the repo, or need the folder map and how a request becomes a page |
+| [conventions.md](conventions.md) | Write TypeScript, React, CSS, or a test |
+| [components.md](components.md) | Add or change a component |
+| [patterns.md](patterns.md) | Load data, build a form, or set page metadata |
+| [api-routes.md](api-routes.md) | Add or change a Route Handler or an \`api.*\` method |
+| [factories.md](factories.md) | Build test data |
+${contentfulRow}| [platform.md](platform.md) | Touch ${platformTopics.join(", ")} |
+| [integrations.md](integrations.md) | Add analytics or a third-party tag |
+| [distribution.md](distribution.md) | Change the sitemap or robots |
+| [source-layout.md](source-layout.md) | Need to know where a util, interface, or \`src/lib\` file goes |
+| [data-storage.md](data-storage.md) | Store something in the browser |
+| [agent-workflow.md](agent-workflow.md) | Finish a task as an agent, or want to know what the hooks check |
+| [glossary.md](glossary.md) | Hit a term you don't know |
 
-## How to read this handbook
+Setup for a new machine (prerequisites, env, first \`pnpm dev\`) is in the root [README.md](../../README.md).
 
-The order below is the path we recommend for a full onboarding. If you are in a hurry, read **[architecture.md](architecture.md)** first, then jump to the chapter that matches your task.
+## Keep it accurate
 
-${howToRead}
-
-## Index of docs
-
-| File | What it covers |
-|------|----------------|
-${indexTable}
-
-## Development setup
-
-Ordered **greenfield prerequisites** (${devSetupPrereq}) and everyday machine setup (ASDF, pnpm, env pull, first \`pnpm dev\`) live in the root **[README.md](../../README.md)**.
+${getHandbookChangePolicy(a)}
 `;
 };
 
@@ -395,68 +411,89 @@ Ordered **greenfield prerequisites** (${devSetupPrereq}) and everyday machine se
 // ---------------------------------------------------------------------------
 
 export const getHandbookLlms = (a: ProjectAnswers): string => {
-  const s = a.siteName;
+  const rows = [
+    [
+      "Any change, before anything else",
+      "[non-negotiables.md](non-negotiables.md)",
+    ],
+    [
+      "Adding a feature or fixing a bug, before writing any code",
+      "[conventions.md → Write the test first](conventions.md#write-the-test-first)",
+    ],
+    [
+      "Unsure which of two patterns fits (Server Component or React Query, page object or spec, `api.*` or `fetch`)",
+      "[decisions.md](decisions.md)",
+    ],
+    [
+      "Steps for a new component, API route, hook, or factory",
+      "[decisions.md → Feature playbooks](decisions.md#feature-playbooks-touch-order)",
+    ],
+    ["`src/components/**`, `pnpm scaffold`", "[components.md](components.md)"],
+    [
+      "`*.ts`, `*.tsx`, `*.module.css`, `src/styles/**`",
+      "[conventions.md](conventions.md)",
+    ],
+    [
+      "`*.spec.ts(x)`, `*.po.tsx`",
+      "[conventions.md → Testing](conventions.md#testing)",
+    ],
+    ["`src/tests/factories/**`", "[factories.md](factories.md)"],
+    [
+      "`src/app/**/page.tsx`, `layout.tsx`, metadata, forms, `src/hooks/**`",
+      "[patterns.md](patterns.md)",
+    ],
+    ["`src/app/api/**`, `src/api/**`", "[api-routes.md](api-routes.md)"],
+    ...(a.includeContentful
+      ? [
+          [
+            "`src/contentful/**`, content types, parsers, Rich Text",
+            "[contentful.md](contentful.md)",
+          ],
+        ]
+      : []),
+    ...(a.includeI18n
+      ? [
+          [
+            "`src/copy/**`, `src/i18n/**`, `src/app/[locale]/**`",
+            "[platform.md → Languages](platform.md#languages-english-and-spanish)",
+          ],
+        ]
+      : []),
+    [
+      `\`package.json\`, \`.github/**\`, \`next.config.ts\`, \`src/proxy.ts\`, env vars${a.includeClaudePipeline ? ", `e2e/**`, `playwright.config.ts`" : ""}`,
+      "[platform.md](platform.md)",
+    ],
+    [
+      "`src/utils/**`, `src/interfaces/**`, `src/lib/**`",
+      "[source-layout.md](source-layout.md)",
+    ],
+    [
+      "Analytics, `dataLayer`, third-party tags",
+      "[integrations.md](integrations.md)",
+    ],
+    ["The sitemap, `src/app/robots.ts`", "[distribution.md](distribution.md)"],
+    [
+      "`localStorage`, `sessionStorage`, cookies",
+      "[data-storage.md](data-storage.md)",
+    ],
+    [
+      "Finishing a task, or a hook blocked an edit",
+      "[agent-workflow.md](agent-workflow.md)",
+    ],
+    ["An unfamiliar term", "[glossary.md](glossary.md)"],
+  ];
 
-  const agentTaskRows = `| Domain term (PO, \`api.*\`, deploy target, handbook) | [glossary.md](glossary.md) |
-| Unsure which pattern (RSC vs Query, PO vs spec, \`api.*\` vs raw \`fetch\`) | [decisions.md](decisions.md) |
-| Step-by-step: component, API route, hook, factory | [decisions.md](decisions.md) → Feature playbooks |
-| Agent session: what to read / run before finishing | [agent-workflow.md](agent-workflow.md), [CLAUDE.md](../../CLAUDE.md) |
-| New or changed Route Handler / \`api.*\` method | [api-routes.md](api-routes.md) |
-| Client storage, deploy progress \`localStorage\` | [data-storage.md](data-storage.md) |
-| Test factories, \`KeysMatch\`, \`build()\` | [factories.md](factories.md) |
-| Cursor hooks, \`enforce-handbook-edit\`, stop orchestrator | [agent-workflow.md](agent-workflow.md) + [platform.md](platform.md) |
-| Fix failing CI / \`pnpm handbook:check\` | [platform.md](platform.md) + [agent-workflow.md](agent-workflow.md) |
-`;
+  return `# Handbook routing
 
-  const taskRows = a.includeContentful
-    ? `${agentTaskRows}| Stack, folders, App Router layout, Contentful → page render flow | [architecture.md](architecture.md) |
-| TypeScript / React style, Biome, CSS Modules, tests, test IDs, a11y, \`next/image\`, React Query hooks | [conventions.md](conventions.md) |
-| Contentful types/codegen, getters, parsers, sections vs content blocks, ContentRenderer, Rich Text | [contentful.md](contentful.md) |
-| Component folder layout, \`pnpm scaffold\`, exports, dynamic imports, internal/external links | [components.md](components.md) |
-| Server components, caching, React Query, \`src/api\`, forms, metadata / JSON-LD | [patterns.md](patterns.md) |
-| CI, releases${a.includeClaudePipeline ? ", Claude pipeline, Playwright `e2e/`" : ""}, knip, \`pnpm\` scripts, \`next.config\` (env, redirects), draft APIs, \`src/proxy.ts\` | [platform.md](platform.md) |
-| Google Analytics, \`dataLayer\`, client analytics | [integrations.md](integrations.md) |
-| Sitemaps, \`public/\` XML output | [distribution.md](distribution.md) |
-| \`src/interfaces\`, \`src/utils\` map, \`src/lib\` | [source-layout.md](source-layout.md) |`
-    : `${agentTaskRows}| Stack, folders, App Router layout | [architecture.md](architecture.md) |
-| TypeScript / React style, Biome, CSS Modules, tests, test IDs, a11y, \`next/image\`, React Query hooks | [conventions.md](conventions.md) |
-| Component folder layout, \`pnpm scaffold\`, exports, dynamic imports, internal/external links | [components.md](components.md) |
-| Server components, caching, React Query, \`src/api\`, forms, metadata / JSON-LD | [patterns.md](patterns.md) |
-| CI, releases${a.includeClaudePipeline ? ", Claude pipeline, Playwright `e2e/`" : ""}, knip, \`pnpm\` scripts, \`next.config\` (env, redirects), \`src/proxy.ts\` | [platform.md](platform.md) |
-| Google Analytics, \`dataLayer\`, client analytics | [integrations.md](integrations.md) |
-| Sitemaps, \`public/\` XML output | [distribution.md](distribution.md) |
-| \`src/interfaces\`, \`src/utils\` map, \`src/lib\` | [source-layout.md](source-layout.md) |`;
+Which page to read before a task. Written for agents and tools; people should start at [README.md](README.md). Paths are relative to this folder (\`docs/handbook/\`) unless they start with \`src/\` or name a root file.
 
-  const prereqOutside = a.includeContentful
-    ? "Greenfield prerequisites (GitHub, Vercel, Contentful bootstrap order); local install, env, first run"
-    : "Greenfield prerequisites (GitHub, Vercel bootstrap order); local install, env, first run";
+| Task or file | Read first |
+| ------------ | ---------- |
+${rows.map(([task, page]) => `| ${task} | ${page} |`).join("\n")}
 
-  return `# Handbook routing (for tools and LLMs)
+Outside this folder: setup and prerequisites are in the root [README.md](../../README.md), and agent defaults are in [CLAUDE.md](../../CLAUDE.md).${a.includeClaudePipeline ? " How people who aren't engineers request changes is in [working-with-claude.md](../working-with-claude.md)." : ""}
 
-Use this page to choose **which markdown file to read first**. It mirrors the full handbook index in **[README.md](README.md)**—paste the relevant paths (or this whole file) into custom GPT instructions, other agents, or docs that do not load Cursor rules.
-
-**Convention:** paths are relative to \`docs/handbook/\`.
-
-<!-- site: ${s} -->
-
-## Task → chapter
-
-| Task or question | Read first |
-|------------------|------------|
-${taskRows}
-
-## Outside this folder
-
-| Task | Location |
-|------|----------|
-| ${prereqOutside} | Repo root **[README.md](../../README.md)** |
-| Agent defaults (read handbook, keep it updated) | Repo root **[CLAUDE.md](../../CLAUDE.md)** |
-${a.includeClaudePipeline ? "| How non-technical people request changes (pipeline) | **[working-with-claude.md](../working-with-claude.md)** |\n" : ""}
-## Suggested instruction blurb (copy-paste)
-
-\`\`\`text
-Before any work, read docs/handbook/README.md and the chapter that matches the task (see docs/handbook/llms.md for a task→chapter map). When unsure which pattern to use, read docs/handbook/decisions.md first. Follow documented patterns. When your change affects behavior, setup, or conventions, update the relevant docs/handbook/*.md in the same PR or an immediate follow-up so the handbook stays accurate. When user-facing features, routes, setup, or tech stack listed in the root README change, update README.md too.
-\`\`\`
+${getHandbookChangePolicy(a)}
 `;
 };
 
@@ -696,6 +733,16 @@ Write base styles for mobile; override for larger viewports.
 
 Tests use Jest, **page objects** for **render setup, mocks, and shared test data only**. **Do not call \`screen\` / \`queryBy*\`** from page objects—put all DOM queries in **\`<Name>.spec.tsx\`** via **\`screen\`**, **\`userEvent\`**, and **\`within\`** as needed.
 
+### Write the test first
+
+Build with test-driven development: start each change with a failing test, then write the code that makes it pass.
+
+1. Write a test for the behavior you're adding or the bug you're fixing, and run it. Check that it fails for the reason you expect.
+2. Write the smallest change that makes it pass.
+3. Clean up the code while the test keeps passing.
+
+For a bug, the failing test proves you reproduced it and keeps it from coming back. Run just the spec you're working on while you go, like \`pnpm exec jest Navigation\`.
+
 ### Page object pattern
 
 - **Base class**: \`src/tests/basePageObject.po.ts\` (optional \`debug\`, \`raiseOnFind\`).
@@ -932,7 +979,7 @@ Use **\`next/link\`**'s **\`Link\`** for all navigational links — internal pat
 
 ## Base UI
 
-New headless behavior should use **[Base UI](https://base-ui.com/react/overview/quick-start)** (\`@base-ui/react\`): import from the package subpath (e.g. \`@base-ui/react/dialog\`, \`@base-ui/react/field\`) — **no barrel re-exports**. Style with CSS Modules + design tokens. Add **\`src/ui/<Name>/\`** only when behavior or shared CSS is needed (e.g. **\`Collapsible\`**, **\`FieldErrorMessage\`**). See **[src/ui/README.md](../../src/ui/README.md)** for portal setup (**\`.appRoot\`** on the layout \`main\` in [\`layout.tsx\`](../app/layout.tsx)). **\`Button\`**, **\`DeployButton\`**, and **\`DeployPage\`** demonstrate styled Base UI usage.
+New headless behavior should use **[Base UI](https://base-ui.com/react/overview/quick-start)** (\`@base-ui/react\`): import from the package subpath (e.g. \`@base-ui/react/dialog\`, \`@base-ui/react/field\`) — **no barrel re-exports**. Style with CSS Modules + design tokens. Add **\`src/ui/<Name>/\`** only when behavior or shared CSS is needed (e.g. **\`Collapsible\`**, **\`FieldErrorMessage\`**). See **[src/ui/README.md](../../src/ui/README.md)** for portal setup (**\`.appRoot\`** on the layout \`main\` in [\`layout.tsx\`](../../src/app/layout.tsx)). **\`Button\`**, **\`DeployButton\`**, and **\`DeployPage\`** demonstrate styled Base UI usage.
 `;
 };
 

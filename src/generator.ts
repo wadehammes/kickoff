@@ -108,6 +108,7 @@ import {
   getHandbookGlossary,
   getHandbookIntegrations,
   getHandbookLlms,
+  getHandbookNonNegotiables,
   getHandbookPatterns,
   getHandbookPlatform,
   getHandbookReadme,
@@ -273,6 +274,7 @@ export const generateProject = async (
   // ── docs/handbook/ ─────────────────────────────────────────────────────────
   await write("docs/handbook/README.md", getHandbookReadme(a));
   await write("docs/handbook/llms.md", getHandbookLlms(a));
+  await write("docs/handbook/non-negotiables.md", getHandbookNonNegotiables(a));
   await write("docs/handbook/glossary.md", getHandbookGlossary(a));
   await write("docs/handbook/decisions.md", getHandbookDecisions(a));
   await write("docs/handbook/agent-workflow.md", getHandbookAgentWorkflow(a));

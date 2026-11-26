@@ -233,6 +233,12 @@ describe("generateProject", () => {
     ).toBe(true);
     expect(existsSync(path.join(root, "scripts/git-commit.sh"))).toBe(true);
     expect(existsSync(path.join(root, ".githooks/commit-msg"))).toBe(true);
+    expect(
+      readFileSync(
+        path.join(root, "docs/handbook/non-negotiables.md"),
+        "utf-8",
+      ),
+    ).toContain("conventions.md#write-the-test-first");
     const claudeReview = readFileSync(
       path.join(root, ".claude/commands/handbook-review.md"),
       "utf-8",
