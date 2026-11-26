@@ -227,6 +227,26 @@ describe("generateProject", () => {
     expect(existsSync(path.join(root, ".cursor/hooks.json"))).toBe(false);
   });
 
+  it("promotes staging to main with a token that can bypass the main ruleset", async () => {
+    const root = await runInTemp(baseAnswers({ projectName: "release-site" }));
+    const workflow = readFileSync(
+      path.join(root, ".github/workflows/release.yml"),
+      "utf-8",
+    );
+
+    expect(workflow).toContain("persist-credentials: false");
+    expect(workflow).toContain(
+      "RELEASE_PUSH_TOKEN: $" + "{{ secrets.RELEASE_PUSH_TOKEN }}",
+    );
+    expect(workflow).toContain(
+      "::error::Add repository secret RELEASE_PUSH_TOKEN",
+    );
+    expect(workflow).toContain("github.ref }}:main");
+    expect(workflow.indexOf("persist-credentials: false")).toBeLessThan(
+      workflow.indexOf("name: Reset Main"),
+    );
+  });
+
   it("keeps server-only secrets out of next.config env", async () => {
     const root = await runInTemp(
       baseAnswers({

@@ -196,7 +196,7 @@ The matrix test (`src/generationMatrix.test.ts`) runs in seconds. For every comb
 
 The end-to-end run is slower and covers each option at least once with a real install. Set `SCAFFOLD_E2E_PLAYWRIGHT=1` to also run the generated Playwright suites for pipeline fixtures. CI does this on every PR to `main`, alongside the build, lint and unit tests.
 
-To release kickoff, run `make release tag=vX.Y.Z`. It pushes the tag, and the release workflow creates the GitHub release.
+To release kickoff, run `make release tag=vX.Y.Z` from an up-to-date `staging`. It tags `staging`, pushes the tag, and follows the release workflow, which fast-forwards `main` to the tag and publishes the GitHub release. The workflow needs a `RELEASE_PUSH_TOKEN` repository secret: a personal access token (Contents read/write) whose owner can bypass the `main` ruleset.
 
 ## License
 

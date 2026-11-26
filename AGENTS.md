@@ -100,7 +100,8 @@ node dist/index.js      # run the CLI (interactive; or --answers / --dry-run / -
 ## Releasing
 
 ```sh
-make release tag=v1.0.0
+git switch staging && git pull
+make release tag=v1.3.0
 ```
 
-Pushes the tag → triggers `.github/workflows/release.yml` → creates a GitHub release.
+Same flow as filtermydiscogs, minus the Vercel check (kickoff isn't deployed). PRs merge into `staging`. `make release` runs only from `staging`: it tags `staging`, pushes the tag, and `scripts/watch-release.sh` follows the run. `.github/workflows/release.yml` fast-forwards `main` to the tag with the `RELEASE_PUSH_TOKEN` secret (a personal access token whose owner can bypass the `main` ruleset), then publishes the GitHub release.
