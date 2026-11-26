@@ -60,9 +60,12 @@ package_name="$(node -p "require('$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pw
 version="${tag#v}"
 published="$(npm view "${package_name}@${version}" version 2>/dev/null || true)"
 if [[ "${published}" != "${version}" ]]; then
-	printf '\nThe %s release exists, but npm does not have %s@%s.\n' "${tag}" "${package_name}" "${version}" >&2
-	printf '  https://github.com/%s/actions/runs/%s\n' "${repo}" "${run_id}" >&2
-	exit 1
+	# The workflow stages the version; it goes public when a maintainer approves it.
+	printf '\nRelease %s created, and %s@%s is staged on npm. Approve it with 2FA to publish it:\n' "${tag}" "${package_name}" "${version}"
+	printf '  npm stage list %s\n' "${package_name}"
+	printf '  npm stage approve <stage-id>\n'
+	printf '  %s\n' "${release_url}"
+	exit 0
 fi
 
 printf '\nRelease %s published, and %s@%s is on npm.\n' "${tag}" "${package_name}" "${version}"
