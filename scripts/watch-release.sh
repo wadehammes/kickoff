@@ -26,10 +26,12 @@ if ! command -v gh >/dev/null; then
 fi
 
 # GitHub creates the run asynchronously after the push, so poll until it shows up.
-# For a tag push the run's headBranch is the tag name.
+# Match the tagged commit too: a tag that was deleted and pushed again still has
+# its older runs, and those carry the same tag name.
+sha="$(git rev-parse "${tag}^{commit}")"
 run_id=""
 for _ in $(seq 1 30); do
-	run_id="$(gh run list --repo "${repo}" --workflow=release.yml --branch "${tag}" \
+	run_id="$(gh run list --repo "${repo}" --workflow=release.yml --branch "${tag}" --commit "${sha}" \
 		--limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null || true)"
 	[[ -n "${run_id}" ]] && break
 	sleep 2
