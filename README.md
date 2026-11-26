@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src=".github/assets/logo.svg" alt="kickoff logo" width="120" height="120" />
+<img src="public/logo.svg" alt="A sneaker kicking a pair of curly braces" width="360" />
 
 <h1>kickoff</h1>
 
