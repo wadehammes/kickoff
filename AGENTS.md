@@ -15,7 +15,7 @@ src/
 ├── verifyScaffoldE2e.ts  ← E2E: generate fixture projects and run their CI scripts
 └── templates/
     ├── index.ts          ← Barrel re-export
-    ├── agents.ts         ← .cursor/ and .claude/ hooks, rules, READMEs for generated projects
+    ├── agents.ts         ← .cursor/ and .claude/ hooks, rules, commands, READMEs for generated projects
     ├── api.ts            ← src/api/ helpers and urls
     ├── app.ts            ← src/app/ layout, pages, routes, error, manifest
     ├── components.ts     ← Navigation, Footer, ExitDraftModeLink, NotFoundPage
@@ -51,6 +51,7 @@ Examples:
 - Change import paths (e.g. `src/utils/helpers` → `src/utils/environment.helpers`) → update any handbook chapter that references it
 - Add a new prompt/option → update `getHandbookPlatform` scripts table and `getReadme`, and root `README.md` (Options table, `--answers` example, Working in a generated project)
 - Add or change agent hooks → update `src/templates/agents.ts`, handbook `platform.md`, and root `README.md` (What you get, Options)
+- Change the `/handbook-review` command (`getHandbookReviewCommand` in `agents.ts`) → keep its checklist in step with `getHandbookConventions` and the hooks tables in `getClaudeHooksReadme` / `getCursorHooksReadme`
 - Change the Claude pipeline (`includeClaudePipeline`: workflows in `github.ts`, quality gate in `agents.ts`, Playwright in `testing.ts`) → update `getHandbookPipelineSection` / `getPipeline*` helpers in `docs.ts`, `getClaudePipelineInstructions` (generated `CLAUDE.md`), `getWorkingWithClaudeGuide` (`docs/working-with-claude.md` for non-technical requesters), root `README.md`, and `fixtures/scaffold-e2e/claude-pipeline.json` if answers change
 
 ## Conventions the scaffolded code must follow

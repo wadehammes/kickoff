@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { ProjectAnswers } from "../types.js";
+import { getBaseBranch } from "./config.js";
 
 const scaffoldAssetsDir = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -972,6 +973,14 @@ Search the handbook for the feature area; read that chapter. Do not guess projec
 `;
 };
 
+export const getAgentDir = (a: ProjectAnswers): ".cursor" | ".claude" =>
+  a.agentTooling === "cursor" ? ".cursor" : ".claude";
+
+const getCommandsSection = (dir: string): string => `## Commands
+
+- \`/handbook-review [base branch or file paths]\` ([\`${dir}/commands/handbook-review.md\`](../commands/handbook-review.md)) reviews the branch against the handbook and reports findings without editing anything. Use it on code written outside an agent session, which never went through these hooks.
+`;
+
 export const getCursorHooksReadme = (): string => {
   return `# Cursor hooks
 
@@ -979,7 +988,7 @@ Project hooks that keep agent work aligned with \`docs/handbook/\`. Adapted from
 
 Config: [\`.cursor/hooks.json\`](../hooks.json). Scripts: [\`.cursor/hooks/\`](./).
 
-Shared team files under \`.cursor/\` are tracked in git (\`hooks.json\`, \`hooks/\`, \`rules/\`). Local/runtime Cursor state stays gitignored — see root [\`.gitignore\`](../../.gitignore).
+Shared team files under \`.cursor/\` are tracked in git (\`hooks.json\`, \`hooks/\`, \`rules/\`, \`commands/\`). Local/runtime Cursor state stays gitignored — see root [\`.gitignore\`](../../.gitignore).
 
 ## Hooks
 
@@ -998,6 +1007,7 @@ Shared team files under \`.cursor/\` are tracked in git (\`hooks.json\`, \`hooks
 | \`check-css-nesting.sh\` | \`postToolUse\` | Advisory when CSS nests selectors 4+ levels deep. |
 | \`handbook-drift-check.sh\` | \`stop\` | One follow-up if \`src/\` changed without a handbook update. |
 
+${getCommandsSection(".cursor")}
 ## Requirements
 
 - \`bash\`, \`jq\`, \`git\` on \`PATH\`
@@ -1025,7 +1035,7 @@ Project hooks that keep agent work aligned with \`docs/handbook/\`. Adapted from
 
 Config: [\`.claude/settings.json\`](../settings.json). Scripts: [\`.claude/hooks/\`](./).
 
-Shared team files under \`.claude/\` are tracked in git (\`settings.json\`, \`hooks/\`). Local/runtime Claude state stays gitignored — see root [\`.gitignore\`](../../.gitignore).
+Shared team files under \`.claude/\` are tracked in git (\`settings.json\`, \`hooks/\`, \`commands/\`). Local/runtime Claude state stays gitignored — see root [\`.gitignore\`](../../.gitignore).
 
 ## Hooks
 
@@ -1044,10 +1054,100 @@ Shared team files under \`.claude/\` are tracked in git (\`settings.json\`, \`ho
 | \`check-css-nesting.sh\` | \`PostToolUse\` | Advisory when CSS nests selectors 4+ levels deep. |
 | \`handbook-drift-check.sh\` | \`Stop\` | One follow-up if \`src/\` changed without a handbook update. |
 ${pipelineRow}${pipelinePermissions}
+${getCommandsSection(".claude")}
 ## Requirements
 
 - \`bash\`, \`jq\`, \`git\` on \`PATH\`
 - Hook scripts must be executable (\`chmod +x .claude/hooks/*.sh\`)
+`;
+};
+
+export const getHandbookReviewCommand = (a: ProjectAnswers): string => {
+  const base = getBaseBranch(a);
+  const dir = getAgentDir(a);
+  const keepPaths = [
+    "`src/`",
+    "`jest.config.ts`",
+    "`next.config.ts`",
+    ...(a.includeClaudePipeline ? ["`e2e/`", "`playwright.config.ts`"] : []),
+    "`docs/handbook/`, when the branch also changes handbook text (check that it is accurate, not its style)",
+  ];
+  const skipGenerated = a.includeContentful
+    ? ", generated Contentful types (`src/contentful/types/`)"
+    : "";
+  const i18nCheck = a.includeI18n
+    ? "- Copy: user-facing text in `src/copy/` with no Spanish (`es`) entry, or a page with hard-coded strings instead of copy ([platform.md → Languages](docs/handbook/platform.md#languages-english-and-spanish)).\n"
+    : "";
+
+  const frontmatter =
+    a.agentTooling === "claude"
+      ? '---\ndescription: Review the changes in this branch against docs/handbook and CLAUDE.md.\nargument-hint: "[base branch or file paths]"\n---\n\n'
+      : "";
+  const argumentsLine =
+    a.agentTooling === "claude"
+      ? "Arguments: $ARGUMENTS"
+      : "Arguments: whatever the engineer typed after the command, if anything.";
+
+  return `${frontmatter}# Handbook review
+
+Review the code this branch changes against the handbook, and report where it doesn't follow it. Don't edit any code or handbook files; this is a review. After the report, the engineer may reply **go** for a separate pass that applies the fixes and runs \`pnpm lint:all\`.
+
+## 1. Find the changes
+
+${argumentsLine}
+
+- If the arguments are paths that exist, review those files and their pairs (\`.po.tsx\`, \`.spec.ts(x)\`).
+- If the argument is a branch, diff against it.
+- With no arguments, use the PR's base branch (\`gh pr view --json baseRefName -q .baseRefName\`), so a stacked branch is compared with its parent. If there's no PR, or \`gh\` fails, use \`${base}\`.
+
+Use the local base branch if it exists, otherwise \`origin/<base>\` (run \`git fetch origin <base>\` first). \`git diff $(git merge-base HEAD <base>)\` covers committed and uncommitted changes to tracked files. Add untracked files from \`git status --porcelain\`.
+
+Keep changes under:
+
+${keepPaths.map((p) => `- ${p}`).join("\n")}
+
+Skip deleted files, lockfiles, snapshots${skipGenerated}, and \`${dir}/\` edits unless the arguments ask for them. If nothing is left, say so and stop.
+
+## 2. Read the matching chapters
+
+Route every changed file through \`docs/handbook/llms.md\` before reading any code, and read every chapter it points to in full. Also read:
+
+- [conventions.md](docs/handbook/conventions.md), always, for TypeScript, React, CSS, and test changes
+- [decisions.md](docs/handbook/decisions.md) → Feature playbooks, when the branch adds a component, API route, hook, or factory
+- The hooks table in [\`${dir}/hooks/README.md\`](${dir}/hooks/README.md). Code written outside an agent session never went through those hooks, so check the same rules: added comments, \`margin-top\`, top-level \`@media\`, barrel files, factories outside \`src/tests/factories/\`, and component folders not made with \`pnpm scaffold\`.
+
+Read the whole changed file, not just the hunk, so you can tell new code from code that was already there.
+
+## 3. Run the linters
+
+Run \`pnpm exec biome check <changed files>\`. If the branch changes CSS, also run \`pnpm lint:css\`. Don't pass \`--write\` or \`--fix\`. Report failures in their own group instead of repeating them as findings, and spend the review on what the linters can't catch. When the diff is small, also run \`pnpm handbook:check\` and say whether it fails.
+
+## 4. Check the changed lines
+
+Check each added or changed line against the chapters you read. Look for:
+
+- Rules a chapter states outright: arrow functions, named and default exports, \`src/\` imports, \`classNames\` for conditional classes, no \`any\`, \`as const\` instead of enums, \`data-testid="rh<ComponentName>"\` on component roots, alphabetized CSS properties, flex \`gap\` instead of \`margin-top\`.
+- Tests: a behavior change or bug fix with no spec change, a new module with no spec, test data built by hand instead of with a factory, and specs that query or mock differently from [conventions.md → Testing](docs/handbook/conventions.md#testing).
+- Patterns that work but don't match how the handbook builds the same thing, like a new helper where a chapter names an existing one, or a raw \`fetch\` where \`api.*\` fits.
+${i18nCheck}- Docs: \`src/\` behavior or conventions changed but \`docs/handbook/\` did not. Report it as a process finding, not a line violation.
+
+Report only problems on changed lines. If changed code copies an older pattern from the surrounding file, report it once and say the file already uses it. Don't flag something the handbook doesn't cover as a violation.
+
+## 5. Report
+
+Group findings by file. For each one, give:
+
+- \`path:line\` and the code
+- the rule, as a link to the chapter and section, like \`docs/handbook/conventions.md#test-ids\`
+- the fix, as a short code snippet when it helps
+
+Put the most important findings first: wrong behavior and missing tests, then rule violations, then pattern mismatches, then handbook sync. End with:
+
+- **Linters:** what Biome, Stylelint, and \`handbook:check\` reported, or that they passed.
+- **Clean files:** changed files with nothing to report, so the reader knows they were checked.
+- **Handbook gaps:** code that follows a pattern the handbook doesn't cover or contradicts. Name the chapter and section you'd update and what you'd write, then ask the engineer. Don't edit the handbook.
+
+If there are no findings, say which files you checked and which chapters you checked them against.
 `;
 };
 

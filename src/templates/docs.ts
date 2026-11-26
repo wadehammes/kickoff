@@ -164,12 +164,12 @@ Or use \`pnpm dev:preview\` which auto-opens draft mode after the server starts.
     a.agentTooling === "cursor"
       ? `## Agent hooks (Cursor)
 
-This project includes **Cursor** hooks under **\`.cursor/\`** (\`hooks.json\`, \`hooks/*.sh\`, \`rules/handbook.mdc\`). They enforce handbook conventions (no added comments, CSS rules, \`pnpm scaffold\` for new components, handbook sync). The \`stop\` hook runs \`session-stop-checks.sh\` (handbook drift, \`pnpm lint:all\`, and handbook test rules in one follow-up; dedupe state under \`.cursor/hooks-state/\`). Requires \`bash\`, \`jq\`, \`git\`, and \`pnpm\` on PATH. See **\`.cursor/hooks/README.md\`**.
+This project includes **Cursor** hooks under **\`.cursor/\`** (\`hooks.json\`, \`hooks/*.sh\`, \`rules/handbook.mdc\`, \`commands/handbook-review.md\`). They enforce handbook conventions (no added comments, CSS rules, \`pnpm scaffold\` for new components, handbook sync). The \`stop\` hook runs \`session-stop-checks.sh\` (handbook drift, \`pnpm lint:all\`, and handbook test rules in one follow-up; dedupe state under \`.cursor/hooks-state/\`). Requires \`bash\`, \`jq\`, \`git\`, and \`pnpm\` on PATH. Run **\`/handbook-review\`** to check a branch against the handbook. See **\`.cursor/hooks/README.md\`**.
 
 `
       : `## Agent hooks (Claude Code)
 
-This project includes **Claude Code** hooks under **\`.claude/\`** (\`settings.json\`, \`hooks/*.sh\`). Same handbook enforcement as the Cursor variant.${a.includeClaudePipeline ? " A **quality gate** Stop hook runs the CI checks before Claude finishes, and `settings.json` pre-allows package scripts and `claude/*` pushes for headless sessions." : ""} Requires \`bash\`, \`jq\`, and \`git\` on PATH. See **\`.claude/hooks/README.md\`**.
+This project includes **Claude Code** hooks under **\`.claude/\`** (\`settings.json\`, \`hooks/*.sh\`, \`commands/handbook-review.md\`). Same handbook enforcement as the Cursor variant.${a.includeClaudePipeline ? " A **quality gate** Stop hook runs the CI checks before Claude finishes, and `settings.json` pre-allows package scripts and `claude/*` pushes for headless sessions." : ""} Requires \`bash\`, \`jq\`, and \`git\` on PATH. Run **\`/handbook-review\`** to check a branch against the handbook. See **\`.claude/hooks/README.md\`**.
 
 `;
 
@@ -1036,12 +1036,12 @@ export const getHandbookPlatform = (a: ProjectAnswers): string => {
     a.agentTooling === "cursor"
       ? `## Agent hooks (Cursor)
 
-This project includes **Cursor** hooks under **\`.cursor/\`** (\`hooks.json\`, \`hooks/*.sh\`, \`rules/handbook.mdc\`). They enforce handbook conventions (no added comments, CSS rules, \`pnpm scaffold\` for new components, handbook sync). The \`stop\` hook runs \`session-stop-checks.sh\` (handbook drift, \`pnpm lint:all\`, and handbook test rules in one follow-up; dedupe state under \`.cursor/hooks-state/\`). Requires \`bash\`, \`jq\`, \`git\`, and \`pnpm\` on PATH. See **\`.cursor/hooks/README.md\`**.
+This project includes **Cursor** hooks under **\`.cursor/\`** (\`hooks.json\`, \`hooks/*.sh\`, \`rules/handbook.mdc\`, \`commands/handbook-review.md\`). They enforce handbook conventions (no added comments, CSS rules, \`pnpm scaffold\` for new components, handbook sync). The \`stop\` hook runs \`session-stop-checks.sh\` (handbook drift, \`pnpm lint:all\`, and handbook test rules in one follow-up; dedupe state under \`.cursor/hooks-state/\`). Requires \`bash\`, \`jq\`, \`git\`, and \`pnpm\` on PATH. Run **\`/handbook-review\`** to check a branch against the handbook. See **\`.cursor/hooks/README.md\`**.
 
 `
       : `## Agent hooks (Claude Code)
 
-This project includes **Claude Code** hooks under **\`.claude/\`** (\`settings.json\`, \`hooks/*.sh\`). Same handbook enforcement as the Cursor variant. Requires \`bash\`, \`jq\`, and \`git\` on PATH. See **\`.claude/hooks/README.md\`**.
+This project includes **Claude Code** hooks under **\`.claude/\`** (\`settings.json\`, \`hooks/*.sh\`, \`commands/handbook-review.md\`). Same handbook enforcement as the Cursor variant. Requires \`bash\`, \`jq\`, and \`git\` on PATH. Run **\`/handbook-review\`** to check a branch against the handbook. See **\`.claude/hooks/README.md\`**.
 
 `;
 

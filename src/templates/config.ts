@@ -389,11 +389,12 @@ export const getGitignore = (): string => {
   return `# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 .swc
 
-# Cursor — track shared hooks/rules; ignore local runtime state
+# Cursor — track shared hooks/rules/commands; ignore local runtime state
 .cursor/*
 !.cursor/hooks.json
 !.cursor/hooks/
 !.cursor/rules/
+!.cursor/commands/
 .cursor/hooks-state/
 .cursor/mcp.json
 .cursor/*.log
@@ -403,10 +404,11 @@ export const getGitignore = (): string => {
 .cursor/agent-registry.json
 .cursor/**/*.local.json
 
-# Claude Code — track shared hooks/settings; ignore local runtime state
+# Claude Code — track shared hooks/settings/commands; ignore local runtime state
 .claude/*
 !.claude/settings.json
 !.claude/hooks/
+!.claude/commands/
 .claude/settings.local.json
 .claude/*.log
 

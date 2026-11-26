@@ -111,6 +111,7 @@ import {
   getHandbookPatterns,
   getHandbookPlatform,
   getHandbookReadme,
+  getHandbookReviewCommand,
   getHandbookSourceLayout,
   getHandbookSyncCheckSh,
   getHandbookTestRules,
@@ -308,6 +309,10 @@ export const generateProject = async (
     }
     await write(".cursor/hooks/README.md", getCursorHooksReadme());
     await write(".cursor/rules/handbook.mdc", getCursorRulesHandbook(a));
+    await write(
+      ".cursor/commands/handbook-review.md",
+      getHandbookReviewCommand(a),
+    );
   } else {
     await write(".claude/settings.json", getClaudeSettingsJson(a));
     await write(".claude/hooks/_lib.sh", getClaudeHooksLib(), {
@@ -336,6 +341,10 @@ export const generateProject = async (
       );
     }
     await write(".claude/hooks/README.md", getClaudeHooksReadme(a));
+    await write(
+      ".claude/commands/handbook-review.md",
+      getHandbookReviewCommand(a),
+    );
     await write("scripts/git-commit.sh", getGitCommitSh(), {
       executable: true,
     });
