@@ -665,6 +665,7 @@ export const getKnipConfig = (a: ProjectAnswers): string => {
         "src/api/helpers.ts": ["types", "enumMembers"],
         "src/components/**": ["exports"],
         "src/lib/schema.ts": ["exports"],
+        "src/lib/toast/appToast.ts": ["exports"],
       },
       rules: {
         dependencies: "warn",
