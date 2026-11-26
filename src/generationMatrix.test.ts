@@ -10,7 +10,7 @@ import { builtinModules, stripTypeScriptTypes } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { findBrokenLinks } from "../scaffold-assets/claude-hooks/handbook-drift-check.mjs";
 import { generateProject } from "./generator.js";
 import type { ProjectAnswers } from "./types.js";
@@ -536,6 +536,18 @@ beforeAll(() => {
   previousCwd = process.cwd();
   matrixRoot = mkdtempSync(path.join(tmpdir(), "kickoff-matrix-"));
   process.chdir(matrixRoot);
+});
+
+// Remove each project as soon as its checks finish; deleting all of them in
+// afterAll outlasts the hook timeout on CI runners.
+afterEach(() => {
+  for (const entry of readdirSync(matrixRoot)) {
+    rmSync(path.join(matrixRoot, entry), {
+      force: true,
+      maxRetries: 3,
+      recursive: true,
+    });
+  }
 });
 
 afterAll(() => {

@@ -578,6 +578,42 @@ describe("generateProject", () => {
     expect(result.stdout).toContain("deny");
   });
 
+  it("blocks mocked() wrappers on query and mutation hooks", async () => {
+    const root = await runInTemp(baseAnswers({ testRunner: "vitest" }));
+    const runHook = (content: string) =>
+      spawnSync(
+        path.join(root, ".cursor/hooks/block-query-hook-mocks.sh"),
+        [],
+        {
+          cwd: root,
+          encoding: "utf-8",
+          input: JSON.stringify({
+            tool_input: {
+              content,
+              file_path: path.join(root, "src/components/Thing/Thing.spec.tsx"),
+            },
+            tool_name: "Write",
+          }),
+        },
+      ).stdout;
+
+    expect(
+      runHook(
+        'import { useSaveThingMutation } from "src/hooks/mutations/useSaveThing";\nvi.mocked(useSaveThingMutation);\n',
+      ),
+    ).toContain("src/hooks/mutations/");
+    expect(
+      runHook(
+        "import { useThingQuery } from 'src/hooks/queries/useThing';\nvi.mocked(useThingQuery);\n",
+      ),
+    ).toContain("src/hooks/queries/");
+    expect(
+      runHook(
+        'import { render } from "src/tests/test-utils";\nvi.mocked(fetch);\n',
+      ),
+    ).toBe("");
+  });
+
   it("keeps server-only secrets out of next.config env", async () => {
     const root = await runInTemp(
       baseAnswers({

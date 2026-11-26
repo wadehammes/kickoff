@@ -47,14 +47,14 @@ if printf '%s' "$added" | grep -qE '(jest|vi)\.mock\("src/hooks/mutations/' \
   violations="${violations}Added a module mock of src/hooks/mutations/* — mock src/api/urls and test outcomes at the call site instead.\n"
 fi
 
-if printf '%s' "$added" | grep -qE 'from "src/hooks/queries/use' \
+if printf '%s' "$added" | grep -qE "from [\"']src/hooks/queries/use" \
   && printf '%s' "$added" | grep -qE '(jest|vi)\.mocked\([[:space:]]*use[A-Z][a-zA-Z0-9]*Query[[:space:]]*\)'; then
   violations="${violations}Added a mocked() wrapper on a query hook from src/hooks/queries/ — mock src/api/urls instead.\n"
 fi
 
-if printf '%s' "$added" | grep -qE "from 'src/hooks/queries/use" \
-  && printf '%s' "$added" | grep -qE '(jest|vi)\.mocked\([[:space:]]*use[A-Z][a-zA-Z0-9]*Query[[:space:]]*\)'; then
-  violations="${violations}Added a mocked() wrapper on a query hook from src/hooks/queries/ — mock src/api/urls instead.\n"
+if printf '%s' "$added" | grep -qE "from [\"']src/hooks/mutations/use" \
+  && printf '%s' "$added" | grep -qE '(jest|vi)\.mocked\([[:space:]]*use[A-Z][a-zA-Z0-9]*Mutation[[:space:]]*\)'; then
+  violations="${violations}Added a mocked() wrapper on a mutation hook from src/hooks/mutations/ — mock src/api/urls and test outcomes at the call site instead.\n"
 fi
 
 if [ -n "$violations" ]; then
