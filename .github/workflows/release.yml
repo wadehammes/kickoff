@@ -3,7 +3,7 @@ on:
   push:
     tags:
       - "v*"
-# Only this workflow should update main: `make release` tags staging, and Reset Main fast-forwards main to the tag.
+# `make release` tags origin/main; this workflow builds, publishes that commit to npm, and creates the GitHub release.
 permissions:
   contents: read
 jobs:
@@ -24,8 +24,13 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-          # The default checkout persists GITHUB_TOKEN as git HTTP auth, which would override the PAT below and push as github-actions[bot] (no ruleset bypass).
           persist-credentials: false
+      - name: Check the tag is on main
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tag $GITHUB_REF_NAME points at a commit that is not on main. Release with make release, which tags origin/main."
+            exit 1
+          fi
       - name: Setup PNPM
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
         with:
@@ -49,19 +54,6 @@ jobs:
         run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
       - name: Check the package installs and runs
         run: bash scripts/verify-package.sh
-      - name: Reset Main
-        id: reset_main
-        env:
-          RELEASE_PUSH_TOKEN: ${{ secrets.RELEASE_PUSH_TOKEN }}
-        run: |
-          if [ -z "$RELEASE_PUSH_TOKEN" ]; then
-            echo "::error::Add repository secret RELEASE_PUSH_TOKEN (PAT with Contents read/write; owner allowed to bypass the main ruleset)."
-            exit 1
-          fi
-          git config --global --unset-all "http.https://github.com/.extraheader" || true
-          git config --local --unset-all "http.https://github.com/.extraheader" || true
-          git remote set-url origin "https://x-access-token:${RELEASE_PUSH_TOKEN}@github.com/${{ github.repository }}.git"
-          git push origin "${{ github.ref }}:main"
       - name: Publish to npm
         run: |
           name="$(node -p "require('./package.json').name")"

@@ -65,6 +65,6 @@ if [[ "${published}" != "${version}" ]]; then
 	exit 1
 fi
 
-printf '\nRelease %s published, main fast-forwarded, and %s@%s is on npm.\n' "${tag}" "${package_name}" "${version}"
+printf '\nRelease %s published, and %s@%s is on npm.\n' "${tag}" "${package_name}" "${version}"
 printf '  %s\n' "${release_url}"
 printf '  https://www.npmjs.com/package/%s/v/%s\n' "${package_name}" "${version}"
