@@ -169,6 +169,15 @@ describe("generateProject", () => {
     expect(existsSync(path.join(root, ".cursor/rules/handbook.mdc"))).toBe(
       true,
     );
+    const cursorReview = readFileSync(
+      path.join(root, ".cursor/commands/handbook-review.md"),
+      "utf-8",
+    );
+    expect(cursorReview).toContain("use `staging`");
+    expect(cursorReview).toContain(".cursor/hooks/README.md");
+    expect(readFileSync(path.join(root, ".gitignore"), "utf-8")).toContain(
+      "!.cursor/commands/",
+    );
     expect(existsSync(path.join(root, ".claude/settings.json"))).toBe(false);
     expect(
       existsSync(path.join(root, ".cursor/hooks/block-query-hook-mocks.sh")),
@@ -224,6 +233,14 @@ describe("generateProject", () => {
     ).toBe(true);
     expect(existsSync(path.join(root, "scripts/git-commit.sh"))).toBe(true);
     expect(existsSync(path.join(root, ".githooks/commit-msg"))).toBe(true);
+    const claudeReview = readFileSync(
+      path.join(root, ".claude/commands/handbook-review.md"),
+      "utf-8",
+    );
+    expect(claudeReview).toContain(".claude/hooks/README.md");
+    expect(readFileSync(path.join(root, ".gitignore"), "utf-8")).toContain(
+      "!.claude/commands/",
+    );
     expect(existsSync(path.join(root, ".cursor/hooks.json"))).toBe(false);
   });
 
@@ -330,6 +347,12 @@ describe("generateProject", () => {
     ]) {
       expect(existsSync(path.join(root, file)), file).toBe(false);
     }
+    expect(
+      readFileSync(
+        path.join(root, ".claude/commands/handbook-review.md"),
+        "utf-8",
+      ),
+    ).toContain("use `main`");
 
     const ci = readFileSync(
       path.join(root, ".github/workflows/ci.yml"),

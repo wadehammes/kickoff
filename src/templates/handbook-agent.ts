@@ -221,6 +221,7 @@ ${cursorStop}
 | Unsure which chapter | [decisions.md](decisions.md) → [llms.md](llms.md) |
 | Dead code / exports | **\`pnpm knip\`** / **\`pnpm knip:ci\`** — [platform.md](platform.md) |
 | Handbook drift vs branch | **\`pnpm handbook:check\`** |
+| Review a branch, or code written outside an agent session, against the handbook | **\`/handbook-review\`** — \`${a.agentTooling === "cursor" ? ".cursor" : ".claude"}/commands/handbook-review.md\` |
 `;
 };
 

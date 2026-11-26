@@ -38,7 +38,7 @@ Every generated project includes:
 | Deployment | Vercel, plus a token-protected page for triggering a redeploy |
 | CI | GitHub Actions with every action pinned to a commit, Dependabot, PR labeling |
 | Dependencies | pnpm 12, installs limited to package versions published at least 7 days ago |
-| Agent tooling | A handbook in `docs/handbook/` with a routing page for agents, `CLAUDE.md`, and hooks for Cursor or Claude Code that block edits breaking the conventions |
+| Agent tooling | A handbook in `docs/handbook/` with a routing page for agents, `CLAUDE.md`, and hooks for Cursor or Claude Code that block edits breaking the conventions, plus a `/handbook-review` command that checks a branch against the handbook |
 | Upgrades | `pnpm next:upgrade` and `pnpm next:agents-md`, which wrap the official Next.js codemods |
 
 ## Options
@@ -50,7 +50,7 @@ Every generated project includes:
 | Google Analytics | GA through `@next/third-parties` |
 | Resend | The Resend email package and env vars |
 | reCAPTCHA | `react-google-recaptcha` and env vars |
-| Agent tooling | Cursor (`.cursor/` hooks and rules) or Claude Code (`.claude/` settings and hooks) |
+| Agent tooling | Cursor (`.cursor/` hooks, rules, and commands) or Claude Code (`.claude/` settings, hooks, and commands) |
 | Claude pipeline | The hands-off pipeline below. Requires Claude Code tooling. |
 
 ## The hands-off Claude pipeline
