@@ -1,5 +1,6 @@
 import type { ProjectAnswers } from "../types.js";
 import { getAgentDir } from "./agents.js";
+import { usesVercel } from "./config.js";
 
 export const getHandbookGlossary = (a: ProjectAnswers): string => {
   return `# Glossary
@@ -29,9 +30,17 @@ ${a.includeContentful ? "| **Generated types** | `src/contentful/types/` — out
 | Term | Meaning |
 | ---- | ------- |
 | **\`api.*\`** | Client fetch helpers in [\`src/api/urls.ts\`](../../src/api/urls.ts) — browser code must not sprinkle raw \`/api/...\` strings. |
-| **Deploy target** | \`staging\` vs \`production\` (or project-specific) for refresh-content deploy hooks — see [patterns.md](patterns.md). |
-| **Refresh token** | Gate for deploy/refresh routes — parsed in \`src/lib/refreshContentAccess.ts\`. |
-
+${
+  usesVercel(a)
+    ? `| **Deploy target** | \`staging\` vs \`production\` (or project-specific) for refresh-content deploy hooks — see [patterns.md](patterns.md). |
+`
+    : ""
+}${
+  usesVercel(a)
+    ? `| **Refresh token** | Gate for deploy/refresh routes — parsed in \`src/lib/refreshContentAccess.ts\`. |
+`
+    : ""
+}
 ## Testing
 
 | Term | Meaning |
@@ -109,8 +118,12 @@ Details: [components.md](components.md), [conventions.md](conventions.md).
 | ------------ | --- | --- |
 | Browser calls our JSON APIs | **\`api.*\`** in [\`src/api/urls.ts\`](../../src/api/urls.ts) | Hard-coded \`fetch("/api/...")\` in components |
 | New Route Handler | \`src/app/api/<segment>/route.ts\` | Logic-only files outside \`app/api\` pretending to be routes |
-| Deploy / refresh flows | Documented **refresh-content** routes + \`refreshContentAccess\` | Ungated deploy triggers |
-
+${
+  usesVercel(a)
+    ? `| Deploy / refresh flows | Documented **refresh-content** routes + \`refreshContentAccess\` | Ungated deploy triggers |
+`
+    : ""
+}
 Details: [api-routes.md](api-routes.md), [patterns.md](patterns.md).
 
 ## Testing: which layer
@@ -242,7 +255,7 @@ Details: [platform.md](platform.md), [contentful.md](contentful.md).
 
   return `# API routes (agent map)
 
-How **App Router** APIs are organized: the **\`api.*\`** client, starter **refresh-content** deploy routes, and where to extend validation. Deeper App Router patterns: [patterns.md](patterns.md).
+How **App Router** APIs are organized: the **\`api.*\`** client${usesVercel(a) ? ", starter **refresh-content** deploy routes," : ""} and where to extend validation. Deeper App Router patterns: [patterns.md](patterns.md).
 
 ## Client integration: \`api.*\` → handler
 
@@ -250,11 +263,7 @@ Browser code should call **[\`api\`](../../src/api/urls.ts)** only. Types live i
 
 | \`api\` method | HTTP route (summary) |
 | -------------- | -------------------- |
-| \`api.deploy.trigger\` | \`POST /api/refresh-content/deploy\` |
-| \`api.deploy.active\` | \`GET /api/refresh-content/deploy/active\` |
-| \`api.deploy.status\` | \`GET /api/refresh-content/deploy/status\` |
-| \`api.deploy.buildStats\` | \`GET /api/refresh-content/deploy/build-stats\` |
-
+${usesVercel(a) ? "| `api.deploy.trigger` | `POST /api/refresh-content/deploy` |\n| `api.deploy.active` | `GET /api/refresh-content/deploy/active` |\n| `api.deploy.status` | `GET /api/refresh-content/deploy/status` |\n| `api.deploy.buildStats` | `GET /api/refresh-content/deploy/build-stats` |\n" : "| _None yet_ | Add a row for each method you add |\n"}
 When you add **\`api.<name>\`**:
 
 1. Add or extend types under \`src/api/\`.
@@ -263,12 +272,16 @@ When you add **\`api.<name>\`**:
 4. Add a React Query hook/mutation if the UI needs it.
 5. Update this table and [patterns.md](patterns.md) in the same PR.
 
-## Auth and gates (refresh-content)
+${
+  usesVercel(a)
+    ? `## Auth and gates (refresh-content)
 
 Starter deploy routes use token/metadata helpers from [\`src/lib/refreshContentAccess.ts\`](../../src/lib/refreshContentAccess.ts). Do not expose deploy hooks without the same gates your product requires.
 
 - Parse deploy target and hook metadata consistently with existing routes.
-- Return JSON errors via shared patterns in Route Handlers—avoid one-off response shapes.
+`
+    : ""
+}- Return JSON errors via shared patterns in Route Handlers—avoid one-off response shapes.
 
 ## Routes without an \`api.*\` wrapper yet
 
@@ -347,7 +360,7 @@ Use [\`KeysMatch\`](../../src/types/KeysMatch.ts) on closed types so new fields 
 `;
 };
 
-export const getHandbookDataStorage = (_a: ProjectAnswers): string => {
+export const getHandbookDataStorage = (a: ProjectAnswers): string => {
   return `# Data storage (client and server)
 
 Where the **starter scaffold** persists data and what to document when you add user-visible storage.
@@ -357,12 +370,18 @@ Where the **starter scaffold** persists data and what to document when you add u
 | Layer | Location | What it holds |
 | ----- | -------- | ------------- |
 | **Server** | Route Handlers, CMS, env | Request-scoped and durable data per your features |
-| **Client \`localStorage\`** | [\`deployProgressStorage.ts\`](../../src/lib/deployProgressStorage.ts) | Deploy progress UI state for refresh-content flows |
-| **Cookies** | Draft mode (when CMS enabled) | Preview/draft session per Next draft APIs |
+${
+  usesVercel(a)
+    ? `| **Client \`localStorage\`** | [\`deployProgressStorage.ts\`](../../src/lib/deployProgressStorage.ts) | Deploy progress UI state for refresh-content flows |
+`
+    : ""
+}| **Cookies** | Draft mode (when CMS enabled) | Preview/draft session per Next draft APIs |
 
 There is **no** starter IndexedDB or user account DB—add chapters here when you introduce them.
 
-## Deploy progress (\`localStorage\`)
+${
+  usesVercel(a)
+    ? `## Deploy progress (\`localStorage\`)
 
 The deploy monitor reads/writes labeled progress via **\`src/lib/deployProgressStorage.ts\`**. If you change keys, retention, or what “clear” means:
 
@@ -381,6 +400,8 @@ The deploy monitor reads/writes labeled progress via **\`src/lib/deployProgressS
 ## Related chapters
 
 - Deploy APIs: [api-routes.md](api-routes.md), [patterns.md](patterns.md)
-- Env and security: [platform.md](platform.md)
+- Env and security: [platform.md](platform.md)`
+    : ""
+}
 `;
 };

@@ -86,7 +86,7 @@ Every generated project includes:
 | UI | Base UI primitives, SVGs as components, React Query for client data |
 | Quality | Biome (lint and format), Stylelint, Jest with Testing Library, knip for dead code |
 | SEO and security | Sitemap, robots, web manifest, JSON-LD helpers, security headers with a Content Security Policy |
-| Deployment | Vercel, plus a token-protected page for triggering a redeploy |
+| Deployment | Vercel, plus a token-protected page for triggering a redeploy, or any other host that runs Next.js |
 | CI | GitHub Actions with every action pinned to a commit, Dependabot, PR labeling |
 | Dependencies | pnpm 12, installs limited to package versions published at least 7 days ago |
 | Agent tooling | A handbook in `docs/handbook/` with a non-negotiables page, a routing page that maps tasks and files to pages for agents, `CLAUDE.md`, and hooks for Cursor or Claude Code that block edits breaking the conventions, plus a `/handbook-review` command that checks a branch against the handbook |
@@ -102,7 +102,8 @@ Every generated project includes:
 | Resend | The Resend email package and env vars |
 | reCAPTCHA | `react-google-recaptcha` and env vars |
 | Agent tooling | Cursor (`.cursor/` hooks, rules, and commands) or Claude Code (`.claude/` settings, hooks, and commands) |
-| Claude pipeline | The hands-off pipeline below. Requires Claude Code tooling. |
+| Hosting | `vercel` (default) adds the redeploy page, the Vercel release check, and Vercel env vars. `other` leaves every Vercel file and mention out, for any host that runs Next.js. |
+| Claude pipeline | The hands-off pipeline below. Requires Claude Code tooling and Vercel hosting. |
 
 ## The hands-off Claude pipeline
 
@@ -125,7 +126,7 @@ Run `kickoff` and answer the prompts: project name, site name, production and st
 
 ### Non-interactive
 
-Pass a JSON file with every answer. kickoff rejects missing or unknown keys, and values must be real JSON booleans and numbers.
+Pass a JSON file with every answer. kickoff rejects missing or unknown keys, and values must be real JSON booleans and numbers. `hosting` is the one optional key; it defaults to `"vercel"`.
 
 ```sh
 kickoff --answers ./answers.json
@@ -148,11 +149,12 @@ kickoff --answers ./answers.json
   "includeResend": false,
   "includeRecaptcha": false,
   "agentTooling": "claude",
+  "hosting": "vercel",
   "includeClaudePipeline": true
 }
 ```
 
-The full shape is `ProjectAnswers` in [`src/types.ts`](src/types.ts). `includeClaudePipeline` requires `agentTooling: "claude"`.
+The full shape is `ProjectAnswers` in [`src/types.ts`](src/types.ts). `includeClaudePipeline` requires `agentTooling: "claude"` and `hosting: "vercel"`.
 
 | Flag | Meaning |
 | --- | --- |

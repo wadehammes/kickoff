@@ -605,7 +605,7 @@ describe("handbookTestRules", () => {
 
   it("flags jest.mock on src/hooks/mutations in feature tests", () => {
     const violations = validateFeatureTestSource(
-      "src/components/DeployButton/DeployButton.spec.tsx",
+      "src/components/Navigation/Navigation.spec.tsx",
       \`jest.mock("src/hooks/mutations/useDeployHookMutation");\\n\`,
     );
 
@@ -619,7 +619,7 @@ describe("handbookTestRules", () => {
 
   it("flags jest.mock on src/hooks/queries in feature tests", () => {
     const violations = validateFeatureTestSource(
-      "src/components/DeployButton/DeployButton.spec.tsx",
+      "src/components/Navigation/Navigation.spec.tsx",
       \`jest.mock("src/hooks/queries/useExample.query");\\n\`,
     );
 
@@ -641,7 +641,7 @@ describe("handbookTestRules", () => {
     const formatted = formatHandbookTestViolations([
       {
         excerpt: 'jest.mock("src/hooks/queries/useExample.query");',
-        filePath: "src/components/DeployButton/DeployButton.spec.tsx",
+        filePath: "src/components/Navigation/Navigation.spec.tsx",
         line: 12,
         message: "Do not jest.mock query hooks.",
         rule: "jest-mock-query-hook",
@@ -649,7 +649,7 @@ describe("handbookTestRules", () => {
     ]);
 
     expect(formatted).toContain("[jest-mock-query-hook]");
-    expect(formatted).toContain("DeployButton.spec.tsx:12");
+    expect(formatted).toContain("Navigation.spec.tsx:12");
   });
 });
 `;

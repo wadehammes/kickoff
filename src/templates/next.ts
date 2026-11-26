@@ -1,6 +1,8 @@
 import type { ProjectAnswers } from "../types.js";
+import { usesVercel } from "./config.js";
 
 export const getNextConfig = (a: ProjectAnswers): string => {
+  const vercel = usesVercel(a);
   const envLines: string[] = ["    ENVIRONMENT: process.env.ENVIRONMENT,"];
 
   if (a.includeContentful) {
@@ -193,21 +195,18 @@ const scriptSrc = [
   "*.google-analytics.com",
   "*.gstatic.com",
   "*.googletagmanager.com",
-  "*.vercel-insights.com",
-  "*.vercel.app",
-  "vercel.live",
-];
+${vercel ? '  "*.vercel-insights.com",\n  "*.vercel.app",\n  "vercel.live",\n' : ""}];
 const ContentSecurityPolicy = \`
   default-src 'self';
   script-src \${scriptSrc.join(" ")};
-  child-src *.google.com *.twitter.com *.vimeo.com *.youtube.com vercel.live;
-  style-src 'self' 'unsafe-inline' *.googleapis.com vercel.live;
+  child-src *.google.com *.twitter.com *.vimeo.com *.youtube.com${vercel ? " vercel.live" : ""};
+  style-src 'self' 'unsafe-inline' *.googleapis.com${vercel ? " vercel.live" : ""};
   ${cspImgSrc}
   media-src * 'self';
   connect-src * 'self';
-  font-src data: 'self' vercel.live;
-  worker-src 'self' *.vercel.app;
-  manifest-src 'self' *.vercel.app;
+  font-src data: 'self'${vercel ? " vercel.live" : ""};
+  worker-src 'self'${vercel ? " *.vercel.app" : ""};
+  manifest-src 'self'${vercel ? " *.vercel.app" : ""};
 \`;
 const securityHeaders = [
   {

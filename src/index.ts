@@ -264,6 +264,25 @@ export const main = async () => {
         {
           choices: [
             {
+              description:
+                "Deploy page, release checks, and Vercel env vars included",
+              title: "Vercel",
+              value: "vercel",
+            },
+            {
+              description: "Anything else that runs Next.js; no Vercel files",
+              title: "Another host",
+              value: "other",
+            },
+          ],
+          initial: 0,
+          message: "Where will the site be hosted?",
+          name: "hosting",
+          type: "select",
+        },
+        {
+          choices: [
+            {
               description: ".cursor/ hooks and handbook rules",
               title: "Cursor",
               value: "cursor",
@@ -283,7 +302,8 @@ export const main = async () => {
           initial: false,
           message: `Include hands-off ${chalk.cyan("Claude → GitHub → Vercel")} pipeline? ${chalk.dim("(review gate, auto-merge, CODEOWNERS, Playwright preview/production checks, auto-rollback)")}`,
           name: "includeClaudePipeline",
-          type: (prev: string) => (prev === "claude" ? "confirm" : null),
+          type: (prev: string, values: { hosting?: string }) =>
+            prev === "claude" && values.hosting !== "other" ? "confirm" : null,
         },
       ],
       {

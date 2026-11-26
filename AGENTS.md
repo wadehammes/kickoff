@@ -40,7 +40,7 @@ src/
     ├── types.ts          ← KeysMatch, PropsWithChildrenOnly
     └── utils.ts          ← array/string/url/environment/contentful/style/factory helpers, constants, interfaces
 
-fixtures/scaffold-e2e/     ← Answer JSON for scaffold E2E (cursor-static, claude-static, claude-pipeline, claude-pipeline-i18n, cursor-contentful-all)
+fixtures/scaffold-e2e/     ← Answer JSON for scaffold E2E (cursor-static, cursor-selfhost-i18n, claude-static, claude-pipeline, claude-pipeline-i18n, cursor-contentful-all)
 .cursor/                   ← Cursor hooks for this repo (see .cursor/hooks/README.md)
 ```
 
@@ -59,6 +59,7 @@ Examples:
 - Add or change agent hooks → update `src/templates/agents.ts`, handbook `platform.md`, and root `README.md` (What you get, Options)
 - Change a rule in `getHandbookConventions` or another chapter → update the matching row in `getHandbookNonNegotiables`, and check `getHandbookLlms` still routes the files it covers
 - Change the handbook layout (`getHandbookReadme`, `getHandbookLlms`, `getHandbookNonNegotiables`) → make the same change to the structure `src/handbook/prompt.ts` asks agents to write, so existing repos and new projects get the same handbook
+- Add anything Vercel-specific to a generated project → put it behind `usesVercel(a)` (`config.ts`); the generation matrix fails if a `hosting: "other"` project mentions Vercel, refresh-content, or the deploy components
 - Add a package to a generated project → add it to `DEFAULT_VERSIONS` in `config.ts` (the refresh only updates packages listed there), and to `KEEP_PINNED` if it must stay exactly pinned
 - Change the `/handbook-review` command (`getHandbookReviewCommand` in `agents.ts`) → keep its list of hook rules in step with the hooks tables in `getClaudeHooksReadme` / `getCursorHooksReadme`
 - Change the Claude pipeline (`includeClaudePipeline`: workflows in `github.ts`, quality gate in `agents.ts`, Playwright in `testing.ts`) → update `getHandbookPipelineSection` / `getPipeline*` helpers in `docs.ts`, `getClaudePipelineInstructions` (generated `CLAUDE.md`), `getWorkingWithClaudeGuide` (`docs/working-with-claude.md` for non-technical requesters), root `README.md`, and `fixtures/scaffold-e2e/claude-pipeline.json` if answers change

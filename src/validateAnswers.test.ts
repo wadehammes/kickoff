@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import type { ProjectAnswers } from "./types.js";
 import { readAnswersFile, validateProjectAnswers } from "./validateAnswers.js";
 
-const valid: ProjectAnswers = {
+const valid: Omit<ProjectAnswers, "hosting"> = {
   agentTooling: "cursor",
   bgColor: "#ffffff",
   devPort: 3000,
@@ -118,7 +118,7 @@ describe("validateAnswers", () => {
     writeFileSync(invalid, JSON.stringify({ ...valid, devPort: 0 }));
     writeFileSync(broken, "{ not json");
 
-    expect(readAnswersFile(good)).toEqual(valid);
+    expect(readAnswersFile(good)).toEqual({ ...valid, hosting: "vercel" });
     expect(readAnswersFile(invalid)).toBe(
       "Invalid answers: devPort must be between 1 and 65535",
     );
@@ -130,5 +130,26 @@ describe("validateAnswers", () => {
     );
 
     rmSync(dir, { force: true, recursive: true });
+  });
+
+  it("defaults hosting to Vercel and accepts other hosts", () => {
+    expect(validateProjectAnswers(valid)).toMatchObject({ hosting: "vercel" });
+    expect(
+      validateProjectAnswers({ ...valid, hosting: "other" }),
+    ).toMatchObject({ hosting: "other" });
+  });
+
+  it("rejects an unknown host, and the Claude pipeline without Vercel", () => {
+    expect(validateProjectAnswers({ ...valid, hosting: "netlify" })).toBe(
+      'hosting must be "vercel" or "other"',
+    );
+    expect(
+      validateProjectAnswers({
+        ...valid,
+        agentTooling: "claude",
+        hosting: "other",
+        includeClaudePipeline: true,
+      }),
+    ).toBe('includeClaudePipeline requires hosting "vercel"');
   });
 });

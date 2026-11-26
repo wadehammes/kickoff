@@ -171,8 +171,11 @@ export const getPackageJson = (
     "next:upgrade": `pnpm dlx @next/codemod@${versions["@next/codemod"]} upgrade minor --yes`,
   };
 
-  if (a.includeClaudePipeline) {
+  if (a.includeClaudePipeline || !usesVercel(a)) {
     delete scripts["test:scripts"];
+  }
+
+  if (a.includeClaudePipeline) {
     scripts["test:e2e"] = "playwright test";
     scripts.typecheck = "tsc --strict --noEmit";
   }
@@ -437,7 +440,7 @@ export const getNpmrc = (): string => {
   return "shamefully-hoist=true\nstrict-peer-dependencies=false\n";
 };
 
-export const getGitignore = (): string => {
+export const getGitignore = (a: ProjectAnswers): string => {
   return `# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 .swc
 
@@ -493,8 +496,7 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
-.vercel
-.env*.local
+${usesVercel(a) ? ".vercel\n" : ""}.env*.local
 
 public/generated-sitemap-*.xml
 `;
@@ -542,8 +544,7 @@ sitemap:
 release:
 \tif [ -z "$(tag)"  ]; then echo "tag is required."; exit 1; fi
 \tif [[ "$(tag)" =~ ^v ]]; then \\
-\t\tbash scripts/verify-vercel-for-release.sh && \\
-\t\tgit tag $(tag) && \\
+${usesVercel(a) ? "\t\tbash scripts/verify-vercel-for-release.sh && \\\n" : ""}\t\tgit tag $(tag) && \\
 \t\tgit push --tags; \\
 \telse \\
 \t\techo "Tag name must start with v (eg, v0.0.1)"; \\
@@ -755,6 +756,10 @@ export const getEnvLocalExample = (a: ProjectAnswers): string => {
     );
   }
 
+  if (!usesVercel(a)) {
+    return lines.join("\n");
+  }
+
   lines.push(
     "# ── Vercel ──────────────────────────────────────────────────────────────────",
     "# Ensures Vercel installs dependencies with the same package manager version as",
@@ -779,3 +784,6 @@ export const getEnvLocalExample = (a: ProjectAnswers): string => {
 
   return lines.join("\n");
 };
+
+/** Vercel-only files and docs are left out when the site is hosted elsewhere. */
+export const usesVercel = (a: ProjectAnswers): boolean => a.hosting !== "other";

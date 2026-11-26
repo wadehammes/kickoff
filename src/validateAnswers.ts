@@ -20,6 +20,8 @@ const REQUIRED_KEYS: (keyof ProjectAnswers)[] = [
   "useCurrentDir",
 ];
 
+const OPTIONAL_KEYS: (keyof ProjectAnswers)[] = ["hosting"];
+
 /**
  * Validates a JSON value against ProjectAnswers (strict keys and types).
  * @returns The answers object, or an error message string.
@@ -40,7 +42,10 @@ export const validateProjectAnswers = (
   }
 
   for (const key of Object.keys(o)) {
-    if (!REQUIRED_KEYS.includes(key as keyof ProjectAnswers)) {
+    if (
+      !REQUIRED_KEYS.includes(key as keyof ProjectAnswers) &&
+      !OPTIONAL_KEYS.includes(key as keyof ProjectAnswers)
+    ) {
       return `Unknown field: ${key}`;
     }
   }
@@ -113,7 +118,17 @@ export const validateProjectAnswers = (
     return 'includeClaudePipeline requires agentTooling "claude"';
   }
 
-  return o as unknown as ProjectAnswers;
+  const hosting = o.hosting ?? "vercel";
+
+  if (hosting !== "vercel" && hosting !== "other") {
+    return 'hosting must be "vercel" or "other"';
+  }
+
+  if (o.includeClaudePipeline && hosting !== "vercel") {
+    return 'includeClaudePipeline requires hosting "vercel"';
+  }
+
+  return { ...o, hosting } as unknown as ProjectAnswers;
 };
 
 export const readAnswersFile = (

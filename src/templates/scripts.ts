@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ProjectAnswers } from "../types.js";
-import { getBaseBranch } from "./config.js";
+import { getBaseBranch, usesVercel } from "./config.js";
 
 const scriptsScaffoldAssetDir = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -716,14 +716,14 @@ handbook_chapters_for_path() {
     src/utils/* | src/lib/* | src/interfaces/* | src/types/*) echo "source-layout.md" ;;
     src/hooks/* | src/api/*) echo "patterns.md" ;;
     *.css) echo "conventions.md" ;;
-    .jest/* | jest.config.* | next.config.* | vercel.json) echo "platform.md" ;;
+    .jest/* | jest.config.* | next.config.*${usesVercel(a) ? " | vercel.json" : ""}) echo "platform.md" ;;
     *) echo "architecture.md" ;;
   esac
 }
 
 changed="$(git diff --name-only "\${BASE_REF}"...HEAD 2>/dev/null || true)"
 
-code_changed="$(printf '%s\\n' "$changed" | grep -E '^src/.*\\.(ts|tsx|css)$|^\\.jest/|^jest\\.config\\.(ts|js|mjs)$|^next\\.config\\.(ts|js|mjs)$|^vercel\\.json$' | grep -v '^src/copy/' || true)"
+code_changed="$(printf '%s\\n' "$changed" | grep -E '^src/.*\\.(ts|tsx|css)$|^\\.jest/|^jest\\.config\\.(ts|js|mjs)$|^next\\.config\\.(ts|js|mjs)$${usesVercel(a) ? "|^vercel\\\\.json$" : ""}' | grep -v '^src/copy/' || true)"
 docs_changed="$(printf '%s\\n' "$changed" | grep -E '^docs/handbook/.*\\.md$' || true)"
 
 if [ -z "$code_changed" ]; then
