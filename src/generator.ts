@@ -204,6 +204,8 @@ import type { ProjectAnswers } from "./types.js";
 
 export type GenerateProjectOptions = {
   dryRun?: boolean;
+  include?: (relativePath: string) => boolean;
+  root?: string;
   verbose?: boolean;
 };
 
@@ -214,8 +216,9 @@ export const generateProject = async (
   a: ProjectAnswers,
   options?: GenerateProjectOptions,
 ): Promise<void> => {
-  const root = getScaffoldRoot(a);
+  const root = options?.root ?? getScaffoldRoot(a);
   const dryRun = options?.dryRun ?? false;
+  const include = options?.include ?? (() => true);
   const verbose = options?.verbose ?? false;
 
   const write = async (
@@ -223,6 +226,9 @@ export const generateProject = async (
     content: string,
     options?: { executable?: boolean },
   ): Promise<void> => {
+    if (!include(relativePath)) {
+      return;
+    }
     if (dryRun) {
       console.log(relativePath);
       return;

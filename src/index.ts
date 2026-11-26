@@ -6,6 +6,7 @@ import { parseArgs } from "node:util";
 import chalk from "chalk";
 import prompts from "prompts";
 import { generateProject, getScaffoldRoot } from "./generator.js";
+import { runHandbookCommand } from "./handbook/command.js";
 import type { ProjectAnswers } from "./types.js";
 import { validateProjectAnswers } from "./validateAnswers.js";
 
@@ -22,6 +23,11 @@ Interactive mode (default):
 Non-interactive:
   kickoff --answers ./answers.json [--force] [--dry-run] [--verbose]
 
+Handbook only:
+  kickoff handbook [--agent <name>] [--dir <path>] [--out <path>]   study an existing codebase
+  kickoff handbook --answers ./answers.json                         kickoff's handbook for a new project
+  kickoff handbook --help
+
 Options:
   --answers <path>   Load ${chalk.bold("ProjectAnswers")} JSON (strict keys; booleans and numbers as JSON types)
   --force            Allow scaffolding into a non-empty directory
@@ -35,6 +41,11 @@ const scaffoldTargetIsNonEmpty = (root: string): boolean =>
   existsSync(root) && readdirSync(root).length > 0;
 
 const main = async () => {
+  if (process.argv[2] === "handbook") {
+    await runHandbookCommand(process.argv.slice(3));
+    return;
+  }
+
   const { values } = parseArgs({
     allowPositionals: false,
     args: process.argv.slice(2),

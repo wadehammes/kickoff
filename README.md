@@ -123,6 +123,37 @@ pnpm dev
 
 With Contentful, run `pnpm types:contentful` after filling in the Contentful env vars.
 
+## Generating just a handbook
+
+`kickoff handbook` writes a handbook and nothing else.
+
+In an existing repo, kickoff can't know the conventions from templates, so an AI agent studies the code and writes them down. kickoff scans the repo (languages, libraries, package manager, workspace, scripts, existing docs and agent rules), builds a prompt from that, and starts the agent you pick in the repo:
+
+```sh
+cd path/to/repo
+kickoff handbook                      # pick an installed agent from a list
+kickoff handbook --agent claude       # or cursor, codex, gemini
+kickoff handbook --agent none | pbcopy  # print the prompt for any other agent
+```
+
+The agent reads the configs, the existing docs, and real files in each area, then writes one page per part of the work with examples taken from the code. Every handbook gets the same four pages as a kickoff project: `README.md` (an index of when to read each page), `llms.md` (task and file routing for agents), `non-negotiables.md` (always and never rules), and `glossary.md`. Where the code is inconsistent, the agent lists the question for an engineer instead of picking a rule. It only writes inside the handbook folder.
+
+If the handbook folder already exists, the agent updates it instead of starting over, so you can rerun it after big changes. If kickoff finds another folder with an `llms.md`, it says so; pass `--out` to update that one.
+
+For a new project, `--answers` writes kickoff's own handbook from a JSON answers file, without an agent:
+
+```sh
+kickoff handbook --answers ./answers.json
+```
+
+| Flag | What it does |
+| --- | --- |
+| `--agent <name>` | `claude`, `cursor`, `codex`, `gemini`, any CLI that takes a prompt as its first argument, or `none` to print the prompt |
+| `--dir <path>` | Repo to document (default: the current directory) |
+| `--out <path>` | Handbook folder, relative to `--dir` (default: `docs/handbook`) |
+| `--answers <path>` | Write kickoff's handbook for a new project instead |
+| `--dry-run` | Show the prompt, or with `--answers` the files, without running anything |
+
 ## Setting up a new site
 
 The generated project's README has the full checklist for its setup. In short:
