@@ -22,17 +22,17 @@ if [ -z "$feature_tests_changed" ]; then
 fi
 
 if ! run_pnpm --version >/dev/null 2>&1; then
-  reason="$(printf 'Handbook test drift check: feature test files changed but pnpm is unavailable. Manual check: pnpm exec jest src/tests/utils/handbookTestRules.spec.ts --runInBand\n\nChanged test files:\n%s' "$feature_tests_changed")"
+  reason="$(printf 'Handbook test drift check: feature test files changed but pnpm is unavailable. Manual check: pnpm test:file src/tests/utils/handbookTestRules.spec.ts\n\nChanged test files:\n%s' "$feature_tests_changed")"
   jq -n --arg r "$reason" '{ followup_message: $r }'
   exit 0
 fi
 
-jest_output=""
-jest_status=0
-jest_output="$(run_pnpm exec jest src/tests/utils/handbookTestRules.spec.ts --runInBand --no-cache 2>&1)" || jest_status=$?
+test_output=""
+test_status=0
+test_output="$(run_pnpm --silent test:file src/tests/utils/handbookTestRules.spec.ts 2>&1)" || test_status=$?
 
-if [ "$jest_status" -ne 0 ]; then
-  reason="$(printf 'Handbook testing drift check failed. Feature tests must mock src/api/urls — not query/mutation hooks under src/hooks/queries/ or src/hooks/mutations/, and no specs in those folders. Rules: src/tests/utils/handbookTestRules.ts. Handbook: docs/handbook/react.md (Do not test React Query).\n\nChanged test files:\n%s\n\nTest output:\n%s' "$feature_tests_changed" "$jest_output")"
+if [ "$test_status" -ne 0 ]; then
+  reason="$(printf 'Handbook testing drift check failed. Feature tests must mock src/api/urls — not query/mutation hooks under src/hooks/queries/ or src/hooks/mutations/, and no specs in those folders. Rules: src/tests/utils/handbookTestRules.ts. Handbook: docs/handbook/react.md (Do not test React Query).\n\nChanged test files:\n%s\n\nTest output:\n%s' "$feature_tests_changed" "$test_output")"
   jq -n --arg r "$reason" '{ followup_message: $r }'
   exit 0
 fi

@@ -33,7 +33,7 @@ describe("handbookEditGuard", () => {
     expect(violations.some((v) => v.rule === "nested-describe")).toBe(true);
   });
 
-  it("allows multiline @jest/globals import bindings (describe, jest, afterAll)", () => {
+  it("allows multiline imports of test globals", () => {
     const source = `import {
   afterAll,
   beforeEach,
@@ -157,7 +157,7 @@ const worse: any = 3;
       source,
     );
 
-    expect(violations.some((v) => v.rule === "jest-mock-query-hook")).toBe(
+    expect(violations.some((v) => v.rule === "module-mock-query-hook")).toBe(
       true,
     );
   });

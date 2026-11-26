@@ -23,26 +23,26 @@ case "$file" in
 esac
 
 root="$(project_dir)"
-jest_output=""
+test_output=""
 guard_status=0
 
 if ! run_pnpm --version >/dev/null 2>&1; then
   exit 0
 fi
 
-jest_output="$(
+test_output="$(
   cd "$root" &&
-    CURSOR_HANDBOOK_GUARD_STDIN="$INPUT" run_pnpm exec jest scripts/cursor-handbook-guard.runner.spec.ts --runInBand 2>&1
+    CURSOR_HANDBOOK_GUARD_STDIN="$INPUT" run_pnpm --silent test:file scripts/cursor-handbook-guard.runner.spec.ts 2>&1
 )" || guard_status=$?
 
 if [ "$guard_status" -eq 0 ]; then
   exit 0
 fi
 
-violations="$(printf '%s' "$jest_output" | awk '/^Error:/{flag=1; sub(/^Error: ?/,""); print; next} flag && /^$/{exit} flag{print}')"
+violations="$(printf '%s' "$test_output" | awk '/^Error:/{flag=1; sub(/^Error: ?/,""); print; next} flag && /^$/{exit} flag{print}')"
 
 if [ -z "$violations" ]; then
-  violations="$(printf '%s' "$jest_output" | tail -20)"
+  violations="$(printf '%s' "$test_output" | tail -20)"
 fi
 
 reason="$(printf 'Blocked handbook convention violation(s) in %s. Fix the issues below and retry.\n\n%s' "$file" "$violations")"

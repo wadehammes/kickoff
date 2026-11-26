@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ProjectAnswers } from "../types.js";
 import { getBaseBranch, usesVercel } from "./config.js";
+import { getTestRunner, usesVitest } from "./testRunner.js";
 
 const scriptsScaffoldAssetDir = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -13,7 +14,9 @@ const scriptsScaffoldAssetDir = join(
 // scripts/scaffold.sh
 // ---------------------------------------------------------------------------
 
-export const getScaffoldSh = (): string => {
+export const getScaffoldSh = (a: ProjectAnswers): string => {
+  const { globals, mock } = getTestRunner(a);
+
   return `#!/usr/bin/env bash
 set -euo pipefail
 
@@ -67,7 +70,7 @@ create_interfaces_file() {
 create_spec_file() {
   touch "\${component_name}.spec.tsx"
   {
-    echo "import { beforeEach, describe, expect, it } from \\"@jest/globals\\";"
+    echo "import { beforeEach, describe, expect, it } from \\"${globals}\\";"
     echo "import { \${component_name}PageObject } from \\"src/components/\${component_name}/\${component_name}.po\\";"
     echo "import { screen } from \\"src/tests/test-utils\\";"
     echo
@@ -137,7 +140,7 @@ create_page_object_file() {
     echo "  BasePageObject,"
     echo "  type BasePageObjectProps,"
     echo "} from \\"src/tests/basePageObject.po\\";"
-    echo "import { render } from \\"src/tests/test-utils\\";"
+    echo "import { render } from \\"src/tests/test-utils\\";"${usesVitest(a) ? '\n    echo "import { vi } from \\"vitest\\";"' : ""}
     echo
     echo "export class \${component_name}PageObject extends BasePageObject {"
     echo "  public testId = \\"rh\${component_name}\\";"
@@ -150,7 +153,7 @@ create_page_object_file() {
     echo "  ) {"
     echo "    super({ debug, raiseOnFind });"
     echo
-    echo "    jest.resetAllMocks();"
+    echo "    ${mock}.resetAllMocks();"
     echo "  }"
     echo
     echo "  render\${component_name}() {"
@@ -650,6 +653,8 @@ main().catch((err: unknown) => {
 // ---------------------------------------------------------------------------
 
 export const getHandbookSyncCheckSh = (a: ProjectAnswers): string => {
+  const runner = getTestRunner(a).setupDir.slice(1);
+
   return `#!/usr/bin/env bash
 set -euo pipefail
 
@@ -673,14 +678,14 @@ handbook_chapters_for_path() {
     src/utils/* | src/lib/* | src/interfaces/* | src/types/*) echo "source-layout.md" ;;
     src/hooks/* | src/api/*) echo "patterns.md" ;;
     *.css) echo "css.md" ;;
-    .jest/* | jest.config.* | next.config.*${usesVercel(a) ? " | vercel.json" : ""}) echo "platform.md" ;;
+    .${runner}/* | ${runner}.config.* | next.config.*${usesVercel(a) ? " | vercel.json" : ""}) echo "platform.md" ;;
     *) echo "architecture.md" ;;
   esac
 }
 
 changed="$(git diff --name-only "\${BASE_REF}"...HEAD 2>/dev/null || true)"
 
-code_changed="$(printf '%s\\n' "$changed" | grep -E '^src/.*\\.(ts|tsx|css)$|^\\.jest/|^jest\\.config\\.(ts|js|mjs)$|^next\\.config\\.(ts|js|mjs)$${usesVercel(a) ? "|^vercel\\\\.json$" : ""}' | grep -v '^src/copy/' || true)"
+code_changed="$(printf '%s\\n' "$changed" | grep -E '^src/.*\\.(ts|tsx|css)$|^\\.${runner}/|^${runner}\\.config\\.(ts|js|mjs)$|^next\\.config\\.(ts|js|mjs)$${usesVercel(a) ? "|^vercel\\\\.json$" : ""}' | grep -v '^src/copy/' || true)"
 docs_changed="$(printf '%s\\n' "$changed" | grep -E '^docs/handbook/.*\\.md$' || true)"
 
 if [ -z "$code_changed" ]; then

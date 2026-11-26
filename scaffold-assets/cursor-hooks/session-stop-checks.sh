@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # stop: one orchestrated follow-up per agent turn (loop_limit: 1 in hooks.json).
-# Expensive lint/Jest and repeated drift nags are deduped per conversation fingerprint — see _lib.sh stop_notified_*.
+# Expensive lint and test runs and repeated drift nags are deduped per conversation fingerprint — see _lib.sh stop_notified_*.
 
 source "$(dirname "$0")/_lib.sh"
 source "$(dirname "$0")/_stop_checks.sh"
@@ -34,7 +34,7 @@ fi
 lint_out="$(stop_section_lint_all "$changed" "$fp" || true)"
 [ -n "$lint_out" ] && sections+=("$lint_out")
 
-handbook_test_out="$(stop_section_handbook_test_jest "$changed" "$fp" || true)"
+handbook_test_out="$(stop_section_handbook_test_rules "$changed" "$fp" || true)"
 [ -n "$handbook_test_out" ] && sections+=("$handbook_test_out")
 
 if [ "${#sections[@]}" -eq 0 ]; then

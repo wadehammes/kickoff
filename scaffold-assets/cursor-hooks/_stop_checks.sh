@@ -23,7 +23,7 @@ stop_section_lint_all() {
     return 0
   fi
 
-  meaningful_changed="$(printf '%s\n' "$changed" | grep -E '^src/.*\.(ts|tsx|css)$|^\.jest/|^jest\.config\.(ts|js|mjs)$|^package\.json$|^pnpm-lock\.yaml$|^next\.config\.(ts|js|mjs)$' || true)"
+  meaningful_changed="$(printf '%s\n' "$changed" | grep -E '^src/.*\.(ts|tsx|css)$|^\.(jest|vitest)/|^(jest|vitest)\.config\.(ts|js|mjs)$|^package\.json$|^pnpm-lock\.yaml$|^next\.config\.(ts|js|mjs)$' || true)"
   [ -z "$meaningful_changed" ] && return 0
 
   if ! run_pnpm --version >/dev/null 2>&1; then
@@ -45,11 +45,11 @@ stop_section_lint_all() {
   stop_clear_notified "lint_all"
 }
 
-stop_section_handbook_test_jest() {
+stop_section_handbook_test_rules() {
   local changed="$1" fp="$2"
-  local feature_tests_changed jest_output jest_status
+  local feature_tests_changed test_output test_status
 
-  if stop_notified_for_fingerprint "handbook_test_jest" "$fp"; then
+  if stop_notified_for_fingerprint "handbook_test_rules" "$fp"; then
     return 0
   fi
 
@@ -57,20 +57,20 @@ stop_section_handbook_test_jest() {
   [ -z "$feature_tests_changed" ] && return 0
 
   if ! run_pnpm --version >/dev/null 2>&1; then
-    stop_mark_notified "handbook_test_jest" "$fp"
-    printf '%s\n\n' "$(printf 'Handbook test drift check: feature test files changed but pnpm is unavailable. Manual check: pnpm exec jest src/tests/utils/handbookTestRules.spec.ts --runInBand\n\nChanged test files:\n%s' "$feature_tests_changed")"
+    stop_mark_notified "handbook_test_rules" "$fp"
+    printf '%s\n\n' "$(printf 'Handbook test drift check: feature test files changed but pnpm is unavailable. Manual check: pnpm test:file src/tests/utils/handbookTestRules.spec.ts\n\nChanged test files:\n%s' "$feature_tests_changed")"
     return 0
   fi
 
-  jest_output=""
-  jest_status=0
-  jest_output="$(run_pnpm exec jest src/tests/utils/handbookTestRules.spec.ts --runInBand --no-cache 2>&1)" || jest_status=$?
+  test_output=""
+  test_status=0
+  test_output="$(run_pnpm --silent test:file src/tests/utils/handbookTestRules.spec.ts 2>&1)" || test_status=$?
 
-  if [ "$jest_status" -ne 0 ]; then
-    stop_mark_notified "handbook_test_jest" "$fp"
-    printf '%s\n\n' "$(printf 'Handbook testing drift check failed. Feature tests must mock src/api/urls — not query/mutation hooks under src/hooks/queries/ or src/hooks/mutations/, and no specs in those folders. Rules: src/tests/utils/handbookTestRules.ts. Handbook: docs/handbook/react.md (Do not test React Query).\n\nChanged test files:\n%s\n\nTest output:\n%s' "$feature_tests_changed" "$jest_output")"
+  if [ "$test_status" -ne 0 ]; then
+    stop_mark_notified "handbook_test_rules" "$fp"
+    printf '%s\n\n' "$(printf 'Handbook testing drift check failed. Feature tests must mock src/api/urls — not query/mutation hooks under src/hooks/queries/ or src/hooks/mutations/, and no specs in those folders. Rules: src/tests/utils/handbookTestRules.ts. Handbook: docs/handbook/react.md (Do not test React Query).\n\nChanged test files:\n%s\n\nTest output:\n%s' "$feature_tests_changed" "$test_output")"
     return 0
   fi
 
-  stop_clear_notified "handbook_test_jest"
+  stop_clear_notified "handbook_test_rules"
 }

@@ -14,6 +14,7 @@ export * from "./next.js";
 export * from "./scripts.js";
 export * from "./styles.js";
 export * from "./testing.js";
+export * from "./testRunner.js";
 export * from "./types.js";
 export * from "./ui.js";
 export * from "./utils.js";

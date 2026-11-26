@@ -37,24 +37,24 @@ fi
 
 violations=""
 
-if printf '%s' "$added" | grep -qE 'jest\.mock\("src/hooks/queries/' \
-  || printf '%s' "$added" | grep -qE "jest\.mock\('src/hooks/queries/"; then
-  violations="${violations}Added jest.mock on src/hooks/queries/* — mock src/api/urls instead and let the real query hook run in TestProviders.\n"
+if printf '%s' "$added" | grep -qE '(jest|vi)\.mock\("src/hooks/queries/' \
+  || printf '%s' "$added" | grep -qE "(jest|vi)\.mock\('src/hooks/queries/"; then
+  violations="${violations}Added a module mock of src/hooks/queries/* — mock src/api/urls instead and let the real query hook run in TestProviders.\n"
 fi
 
-if printf '%s' "$added" | grep -qE 'jest\.mock\("src/hooks/mutations/' \
-  || printf '%s' "$added" | grep -qE "jest\.mock\('src/hooks/mutations/"; then
-  violations="${violations}Added jest.mock on src/hooks/mutations/* — mock src/api/urls and test outcomes at the call site instead.\n"
+if printf '%s' "$added" | grep -qE '(jest|vi)\.mock\("src/hooks/mutations/' \
+  || printf '%s' "$added" | grep -qE "(jest|vi)\.mock\('src/hooks/mutations/"; then
+  violations="${violations}Added a module mock of src/hooks/mutations/* — mock src/api/urls and test outcomes at the call site instead.\n"
 fi
 
 if printf '%s' "$added" | grep -qE 'from "src/hooks/queries/use' \
-  && printf '%s' "$added" | grep -qE 'jest\.mocked\([[:space:]]*use[A-Z][a-zA-Z0-9]*Query[[:space:]]*\)'; then
-  violations="${violations}Added jest.mocked() on a query hook from src/hooks/queries/ — mock src/api/urls instead.\n"
+  && printf '%s' "$added" | grep -qE '(jest|vi)\.mocked\([[:space:]]*use[A-Z][a-zA-Z0-9]*Query[[:space:]]*\)'; then
+  violations="${violations}Added a mocked() wrapper on a query hook from src/hooks/queries/ — mock src/api/urls instead.\n"
 fi
 
 if printf '%s' "$added" | grep -qE "from 'src/hooks/queries/use" \
-  && printf '%s' "$added" | grep -qE 'jest\.mocked\([[:space:]]*use[A-Z][a-zA-Z0-9]*Query[[:space:]]*\)'; then
-  violations="${violations}Added jest.mocked() on a query hook from src/hooks/queries/ — mock src/api/urls instead.\n"
+  && printf '%s' "$added" | grep -qE '(jest|vi)\.mocked\([[:space:]]*use[A-Z][a-zA-Z0-9]*Query[[:space:]]*\)'; then
+  violations="${violations}Added a mocked() wrapper on a query hook from src/hooks/queries/ — mock src/api/urls instead.\n"
 fi
 
 if [ -n "$violations" ]; then

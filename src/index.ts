@@ -349,6 +349,24 @@ export const main = async () => {
         {
           choices: [
             {
+              description: "next/jest with jsdom",
+              title: "Jest",
+              value: "jest",
+            },
+            {
+              description: "Vite-powered, with jsdom",
+              title: "Vitest",
+              value: "vitest",
+            },
+          ],
+          initial: 0,
+          message: "Unit test runner?",
+          name: "testRunner",
+          type: "select",
+        },
+        {
+          choices: [
+            {
               description: ".cursor/ hooks and handbook rules",
               title: "Cursor",
               value: "cursor",

@@ -17,7 +17,7 @@ import type { ProjectAnswers } from "./types.js";
 
 type Tooling = Pick<
   ProjectAnswers,
-  "agentTooling" | "hosting" | "includeClaudePipeline"
+  "agentTooling" | "hosting" | "includeClaudePipeline" | "testRunner"
 >;
 type Options = Pick<
   ProjectAnswers,
@@ -30,12 +30,52 @@ type Options = Pick<
   | "includeResend"
 >;
 
+const jest = { testRunner: "jest" } as const;
+const vitest = { testRunner: "vitest" } as const;
+
 const TOOLINGS: Tooling[] = [
-  { agentTooling: "cursor", hosting: "vercel", includeClaudePipeline: false },
-  { agentTooling: "claude", hosting: "vercel", includeClaudePipeline: false },
-  { agentTooling: "claude", hosting: "vercel", includeClaudePipeline: true },
-  { agentTooling: "cursor", hosting: "other", includeClaudePipeline: false },
-  { agentTooling: "claude", hosting: "other", includeClaudePipeline: false },
+  {
+    agentTooling: "cursor",
+    hosting: "vercel",
+    includeClaudePipeline: false,
+    ...jest,
+  },
+  {
+    agentTooling: "claude",
+    hosting: "vercel",
+    includeClaudePipeline: false,
+    ...jest,
+  },
+  {
+    agentTooling: "claude",
+    hosting: "vercel",
+    includeClaudePipeline: true,
+    ...jest,
+  },
+  {
+    agentTooling: "cursor",
+    hosting: "other",
+    includeClaudePipeline: false,
+    ...jest,
+  },
+  {
+    agentTooling: "claude",
+    hosting: "other",
+    includeClaudePipeline: false,
+    ...jest,
+  },
+  {
+    agentTooling: "cursor",
+    hosting: "vercel",
+    includeClaudePipeline: false,
+    ...vitest,
+  },
+  {
+    agentTooling: "claude",
+    hosting: "vercel",
+    includeClaudePipeline: true,
+    ...vitest,
+  },
 ];
 
 const OPTION_KEYS: (keyof Options)[] = [
@@ -88,7 +128,10 @@ const scenarioName = (tooling: Tooling, options: Options): string => {
     ? "claude-pipeline"
     : tooling.agentTooling;
   const hostName = tooling.hosting === "other" ? "selfhost" : null;
-  return [toolingName, hostName, ...enabled].filter(Boolean).join("-");
+  const runnerName = tooling.testRunner === "vitest" ? "vitest" : null;
+  return [toolingName, hostName, runnerName, ...enabled]
+    .filter(Boolean)
+    .join("-");
 };
 
 const SCENARIOS = TOOLINGS.flatMap((tooling) =>
@@ -124,6 +167,24 @@ const listDirs = (dir: string): string[] =>
     .map((entry) => path.join(dir, entry))
     .filter((full) => statSync(full).isDirectory())
     .flatMap((full) => [full, ...listDirs(full)]);
+
+// Hook scripts match both runners, so "(jest|vi)" and "(?:jest|vitest)" are fine.
+const JEST_MENTION = /\bjest\b|@jest\/|\bJest\b/;
+// The Vitest setup also defines a jest global so Testing Library's waitFor drives fake timers.
+const BOTH_RUNNERS = /\((?:\?:)?jest\|vi(?:test)?\)|jest-dom|\{ jest: vi \}/g;
+
+const findJestMentions = (root: string): string[] =>
+  listFiles(root)
+    .filter((file) => !file.includes(`${path.sep}node_modules${path.sep}`))
+    .flatMap((file) =>
+      readFileSync(file, "utf-8")
+        .split("\n")
+        .flatMap((line, index) =>
+          JEST_MENTION.test(line.replace(BOTH_RUNNERS, ""))
+            ? [`${path.relative(root, file)}:${index + 1}: ${line.trim()}`]
+            : [],
+        ),
+    );
 
 const isDynamicSegment = (name: string): boolean => name.startsWith("[");
 
@@ -513,6 +574,12 @@ describe("generation matrix", () => {
       findOverBudget(root).join("\n"),
       "token budgets for what agents read",
     ).toBe("");
+    if (answers.testRunner === "vitest") {
+      expect(
+        findJestMentions(root).slice(0, 40).join("\n"),
+        "Vitest projects should not mention Jest",
+      ).toBe("");
+    }
     if (answers.hosting === "other") {
       expect(
         findVercelMentions(root).slice(0, 40).join("\n"),
