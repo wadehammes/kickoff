@@ -114,7 +114,7 @@ kickoff starts by asking what kind of project it is (marketing site, careers or 
 
 With `includeClaudePipeline`, the project is set up so that people who aren't engineers can ask Claude for changes and have them ship without anyone reviewing routine PRs:
 
-1. Someone asks Claude for a change at claude.ai/code, in the Claude mobile app, or with `@claude` on a GitHub issue.
+1. Someone asks Claude for a change in the Claude desktop app, at claude.ai/code, in the Claude mobile app, or with `@claude` on a GitHub issue.
 2. Claude works on a `claude/*` branch and opens a PR.
 3. Required checks run: lint, typecheck and tests; a Claude review gate that fails on blocking issues; and Playwright with accessibility tests against the Vercel preview. If a check fails, Claude tries to fix it twice before asking an engineer.
 4. The PR merges itself, unless it touches protected files listed in CODEOWNERS (CI, config, dependencies, API routes). Those wait for an engineer's approval.
