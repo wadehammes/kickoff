@@ -7,7 +7,7 @@
 <p><strong>Start a Next.js project that people and AI agents can both build on.</strong></p>
 
 <p>
-  <img alt="Node 24" src="https://img.shields.io/badge/node-24-5fa04e?logo=nodedotjs&logoColor=white" />
+  <img alt="Node.js 24" src="https://img.shields.io/badge/Node.js-24-5FA04E?logo=nodedotjs&logoColor=white" />
   <img alt="pnpm 12" src="https://img.shields.io/badge/pnpm-12-f69220?logo=pnpm&logoColor=white" />
   <img alt="Next.js 16" src="https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white" />
   <img alt="React 19" src="https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white" />
