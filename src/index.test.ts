@@ -136,6 +136,19 @@ afterEach(() => {
 });
 
 describe("kickoff CLI", () => {
+  it("prints the version of the installed package", async () => {
+    const { version } = JSON.parse(
+      readFileSync(
+        path.resolve(import.meta.dirname, "../package.json"),
+        "utf-8",
+      ),
+    ) as { version: string };
+
+    expect(await run("--version")).toBe(0);
+    expect(output()).toBe(version);
+    expect(await run("-v")).toBe(0);
+  });
+
   it("prints help, including the handbook command", async () => {
     expect(await run("--help")).toBe(0);
     expect(output()).toContain("Usage: kickoff [options]");

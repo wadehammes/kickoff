@@ -57,7 +57,22 @@ Cursor or Claude Code hooks run on every edit, so a rule that's written down is 
 
 ## Quick start
 
-kickoff isn't published to npm yet. Clone it, build it, and link it:
+From wherever you want the new project:
+
+```sh
+pnpm dlx @wadehammes/kickoff
+```
+
+Or install it once and run `kickoff`:
+
+```sh
+pnpm add -g @wadehammes/kickoff
+kickoff
+```
+
+You need Node 24 and pnpm 12. `npx @wadehammes/kickoff` works too.
+
+To work on kickoff itself, clone it and link your build instead:
 
 ```sh
 git clone https://github.com/wadehammes/kickoff.git
@@ -66,14 +81,6 @@ pnpm install
 pnpm build
 npm link
 ```
-
-Then, from wherever you want the new project:
-
-```sh
-kickoff
-```
-
-You need Node 24 and pnpm 12 (see [`.tool-versions`](.tool-versions)). `corepack enable` or mise/asdf will pick up the right versions.
 
 ## What you get
 
@@ -174,6 +181,7 @@ The full shape is `ProjectAnswers` in [`src/types.ts`](src/types.ts). `includeCl
 | `--verbose` | Log each file as it's written |
 | `--no-refresh` | Use kickoff's tested package versions instead of checking npm |
 | `--latest-majors` | Also move packages to newer major versions |
+| `-v`, `--version` | Print the installed kickoff version |
 | `-h`, `--help` | Show usage |
 
 ### Package versions
@@ -234,7 +242,7 @@ The generated project's README has the full checklist for its setup. In short:
 
 Standard projects use a `staging` default branch and tagged releases:
 
-1. Create the GitHub repo and a `staging` branch as the default. Protect `staging` and `main`, and let GitHub Actions bypass the `main` rules so the release workflow can push to it.
+1. Create the GitHub repo and a `staging` branch as the default. Protect `staging` and `main`, and add a `RELEASE_PUSH_TOKEN` repository secret (a personal access token with Contents read/write, owned by someone who can bypass the `main` ruleset) so the release workflow can fast-forward `main`.
 2. Publish a `v0.0.0` release.
 3. Generate the project, then push it to `staging`.
 4. Create the Vercel project, add every variable from `.env.local.example`, and run `npx vercel env pull .env.local` locally.
@@ -302,7 +310,7 @@ The matrix test (`src/generationMatrix.test.ts`) runs in seconds. For every comb
 
 The end-to-end run is slower and covers each option at least once with a real install. Set `SCAFFOLD_E2E_PLAYWRIGHT=1` to also run the generated Playwright suites for pipeline fixtures, or `SCAFFOLD_E2E_ONLY=claude-static,cursor-static` to run just those fixtures. The run refreshes package versions from npm first, the same way `kickoff` does; set `SCAFFOLD_E2E_REFRESH=0` to use the tested versions. CI does this on every PR to `main`, alongside the build, lint and unit tests.
 
-To release kickoff, run `make release tag=vX.Y.Z` from an up-to-date `staging`. It tags `staging`, pushes the tag, and follows the release workflow, which fast-forwards `main` to the tag and publishes the GitHub release. The workflow needs a `RELEASE_PUSH_TOKEN` repository secret: a personal access token (Contents read/write) whose owner can bypass the `main` ruleset.
+To release kickoff, run `make release tag=vX.Y.Z` from any branch. It tags the latest `origin/main`, pushes the tag, and follows the release workflow. The workflow checks the tag is `vX.Y.Z` and on `main`, builds and tests, checks that the packed package installs and generates a project (`pnpm verify:package`), publishes `@wadehammes/kickoff` to npm, and creates the GitHub release. The tag is the only source of the version, so npm, the GitHub release, and `kickoff --version` always match; `package.json` keeps `0.0.0-development`. npm publishing uses trusted publishing, so no npm token is stored, and each version shows provenance linking it to its commit.
 
 ## License
 

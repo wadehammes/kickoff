@@ -46,6 +46,9 @@ jobs:
       - name: Test (Vitest, with coverage thresholds)
         run: pnpm test:coverage
 
+      - name: Check the npm package installs and runs
+        run: pnpm verify:package
+
   scaffold-e2e:
     name: Scaffold E2E
     runs-on: ubuntu-latest

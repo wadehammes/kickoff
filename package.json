@@ -1,12 +1,44 @@
 {
-  "name": "kickoff",
-  "version": "1.0.0",
-  "packageManager": "pnpm@12.18.0",
-  "description": "CLI scaffolding tool for Next.js + Contentful + TypeScript projects",
+  "name": "@wadehammes/kickoff",
+  "version": "0.0.0-development",
+  "description": "Generate a Next.js and TypeScript project with a handbook, agent hooks, and a review command that keep people and AI agents on the same conventions.",
+  "keywords": [
+    "nextjs",
+    "scaffold",
+    "cli",
+    "handbook",
+    "claude-code",
+    "cursor",
+    "ai-agents"
+  ],
+  "license": "MIT",
+  "author": "Wade Hammes",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wadehammes/kickoff.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wadehammes/kickoff/issues"
+  },
+  "homepage": "https://github.com/wadehammes/kickoff#readme",
   "type": "module",
   "bin": {
     "kickoff": "./dist/index.js"
   },
+  "files": [
+    "dist/**/*.js",
+    "!dist/verifyScaffoldE2e.js",
+    "scaffold-assets/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "packageManager": "pnpm@12.18.0",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -20,7 +52,8 @@
     "test:coverage": "vitest run --coverage",
     "test:scaffold-e2e": "node dist/verifyScaffoldE2e.js",
     "test:watch": "vitest",
-    "tsc:ci": "tsc --strict"
+    "tsc:ci": "tsc --strict",
+    "verify:package": "bash scripts/verify-package.sh"
   },
   "dependencies": {
     "chalk": "^6.0.1",
