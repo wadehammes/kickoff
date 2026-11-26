@@ -1,34 +1,26 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { accessSync, constants } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { parseArgs } from "node:util";
 import chalk from "chalk";
 import prompts from "prompts";
-import { generateProject } from "../generator.js";
-import { validateProjectAnswers } from "../validateAnswers.js";
+import { generateHandbook } from "../generator.js";
+import { readAnswersFile } from "../validateAnswers.js";
 import { detectCodebase, looksLikeCodebase } from "./detect.js";
 import { getHandbookBuildPrompt } from "./prompt.js";
 
 type Harness = {
-  args: (prompt: string) => string[];
   bin: string;
+  flags?: string[];
   label: string;
 };
 
-export const HARNESSES: Record<string, Harness> = {
-  claude: { args: (prompt) => [prompt], bin: "claude", label: "Claude Code" },
-  codex: { args: (prompt) => [prompt], bin: "codex", label: "Codex CLI" },
-  cursor: {
-    args: (prompt) => [prompt],
-    bin: "cursor-agent",
-    label: "Cursor CLI",
-  },
-  gemini: {
-    args: (prompt) => ["-i", prompt],
-    bin: "gemini",
-    label: "Gemini CLI",
-  },
+const HARNESSES: Record<string, Harness> = {
+  claude: { bin: "claude", label: "Claude Code" },
+  codex: { bin: "codex", label: "Codex CLI" },
+  cursor: { bin: "cursor-agent", label: "Cursor CLI" },
+  gemini: { bin: "gemini", flags: ["-i"], label: "Gemini CLI" },
 };
 
 const NO_AGENT = "none";
@@ -57,10 +49,17 @@ Options:
 };
 
 const isInstalled = (bin: string): boolean =>
-  !spawnSync(bin, ["--version"], { stdio: "ignore" }).error;
+  (process.env.PATH ?? "").split(path.delimiter).some((dir) => {
+    try {
+      accessSync(path.join(dir, bin), constants.X_OK);
+      return true;
+    } catch {
+      return false;
+    }
+  });
 
 const harnessFor = (name: string): Harness =>
-  HARNESSES[name] ?? { args: (prompt) => [prompt], bin: name, label: name };
+  HARNESSES[name] ?? { bin: name, label: name };
 
 const chooseAgent = async (requested: string | undefined): Promise<string> => {
   if (requested) {
@@ -101,28 +100,14 @@ const writeKickoffHandbook = async (
   dryRun: boolean,
   verbose: boolean,
 ) => {
-  let raw: unknown;
-
-  try {
-    raw = JSON.parse(readFileSync(answersPath, "utf-8")) as unknown;
-  } catch {
-    log(chalk.red("✖ Could not read or parse JSON from:"), answersPath);
-    process.exit(1);
-  }
-
-  const answers = validateProjectAnswers(raw);
+  const answers = readAnswersFile(answersPath);
 
   if (typeof answers === "string") {
-    log(chalk.red("✖ Invalid answers:"), answers);
+    log(chalk.red(`✖ ${answers}`));
     process.exit(1);
   }
 
-  await generateProject(answers, {
-    dryRun,
-    include: (file) => file.startsWith(`${KICKOFF_HANDBOOK_DIR}/`),
-    root,
-    verbose,
-  });
+  await generateHandbook(answers, root, { dryRun, verbose });
 
   log(
     dryRun
@@ -200,7 +185,7 @@ export const runHandbookCommand = async (args: string[]): Promise<void> => {
   const prompt = getHandbookBuildPrompt(facts, handbookDir);
 
   log(
-    `${chalk.cyan("→")} Scanned ${chalk.bold(facts.name)}: ${facts.fileCount} files; ${facts.stack.slice(0, 8).join(", ") || facts.languages.join(", ") || "no known libraries"}${facts.existingHandbook.length > 0 ? chalk.dim(` (updating ${facts.existingHandbook.length} existing pages)`) : ""}`,
+    `${chalk.cyan("→")} Scanned ${chalk.bold(facts.name)}: ${facts.fileCount} files; ${facts.stack.slice(0, 8).join(", ") || facts.languages.join(", ") || "no known libraries"}${facts.existingHandbookPages > 0 ? chalk.dim(` (updating ${facts.existingHandbookPages} existing pages)`) : ""}`,
   );
 
   if (values.out === undefined && facts.otherHandbooks.length > 0) {
@@ -233,7 +218,7 @@ export const runHandbookCommand = async (args: string[]): Promise<void> => {
     `${chalk.cyan("→")} Starting ${chalk.bold(harness.label)} in ${root}. It will study the code and write ${chalk.bold(`${handbookDir}/`)}.\n`,
   );
 
-  const result = spawnSync(harness.bin, harness.args(prompt), {
+  const result = spawnSync(harness.bin, [...(harness.flags ?? []), prompt], {
     cwd: root,
     stdio: "inherit",
   });

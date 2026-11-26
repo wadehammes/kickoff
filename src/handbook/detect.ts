@@ -1,11 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 export type CodebaseFacts = {
   agentDocs: string[];
   defaultBranch: string | null;
-  existingHandbook: string[];
+  existingHandbookPages: number;
   fileCount: number;
   languages: string[];
   name: string;
@@ -29,8 +29,6 @@ const IGNORED_DIRS = new Set([
   "out",
   "vendor",
 ]);
-
-const WALK_LIMIT = 20000;
 
 const LIBRARIES: [string, string][] = [
   ["next", "Next.js"],
@@ -124,18 +122,16 @@ const git = (root: string, args: string[]): string | null => {
 };
 
 const walk = (root: string, dir = "", found: string[] = []): string[] => {
-  if (found.length >= WALK_LIMIT) {
-    return found;
-  }
-
-  for (const entry of readdirSync(path.join(root, dir))) {
-    if (IGNORED_DIRS.has(entry)) {
+  for (const entry of readdirSync(path.join(root, dir), {
+    withFileTypes: true,
+  })) {
+    if (IGNORED_DIRS.has(entry.name)) {
       continue;
     }
 
-    const relative = dir ? `${dir}/${entry}` : entry;
+    const relative = dir ? `${dir}/${entry.name}` : entry.name;
 
-    if (statSync(path.join(root, relative)).isDirectory()) {
+    if (entry.isDirectory()) {
       walk(root, relative, found);
     } else {
       found.push(relative);
@@ -250,6 +246,7 @@ export const detectCodebase = (
       .filter((file) => path.basename(file) === "package.json")
       .flatMap((file) => {
         const pkg = readJson(path.join(root, file));
+
         return pkg ? dependencyNames(pkg) : [];
       }),
   );
@@ -278,9 +275,9 @@ export const detectCodebase = (
       .filter((file) => !file.startsWith(handbookPrefix))
       .slice(0, 60),
     defaultBranch: detectDefaultBranch(root),
-    existingHandbook: files.filter(
+    existingHandbookPages: files.filter(
       (file) => file.startsWith(handbookPrefix) && file.endsWith(".md"),
-    ),
+    ).length,
     fileCount: files.length,
     languages: [
       ...new Set(

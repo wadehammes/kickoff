@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { parseArgs } from "node:util";
@@ -8,7 +8,7 @@ import prompts from "prompts";
 import { generateProject, getScaffoldRoot } from "./generator.js";
 import { runHandbookCommand } from "./handbook/command.js";
 import type { ProjectAnswers } from "./types.js";
-import { validateProjectAnswers } from "./validateAnswers.js";
+import { readAnswersFile, validateProjectAnswers } from "./validateAnswers.js";
 
 const banner = `
 ${chalk.cyan("🚀 kickoff")} ${chalk.white("—")} ${chalk.gray("Next.js + TypeScript project scaffolder")}
@@ -74,23 +74,14 @@ const main = async () => {
   let projectAnswers: ProjectAnswers;
 
   if (fromAnswersFile) {
-    const answersPath = path.resolve(process.cwd(), values.answers as string);
-    let raw: unknown;
-    try {
-      raw = JSON.parse(readFileSync(answersPath, "utf-8")) as unknown;
-    } catch {
-      console.error(
-        chalk.red("✖ Could not read or parse JSON from:"),
-        answersPath,
-      );
+    const loaded = readAnswersFile(
+      path.resolve(process.cwd(), values.answers as string),
+    );
+    if (typeof loaded === "string") {
+      console.error(chalk.red(`✖ ${loaded}`));
       process.exit(1);
     }
-    const validated = validateProjectAnswers(raw);
-    if (typeof validated === "string") {
-      console.error(chalk.red("✖ Invalid answers:"), validated);
-      process.exit(1);
-    }
-    projectAnswers = validated;
+    projectAnswers = loaded;
   } else {
     const answers = await prompts(
       [

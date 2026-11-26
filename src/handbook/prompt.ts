@@ -36,10 +36,10 @@ ${docs}`;
 };
 
 const getModeSection = (facts: CodebaseFacts, handbookDir: string): string =>
-  facts.existingHandbook.length > 0
+  facts.existingHandbookPages > 0
     ? `## This repo already has a handbook
 
-\`${handbookDir}/\` already has ${facts.existingHandbook.length} pages. Update it instead of starting over: keep pages that are still accurate, fix the ones the code has moved away from, add pages for areas that have none, and bring the layout in line with the structure below. List every change you made in your reply.`
+\`${handbookDir}/\` already has ${facts.existingHandbookPages} pages. Update it instead of starting over: keep pages that are still accurate, fix the ones the code has moved away from, add pages for areas that have none, and bring the layout in line with the structure below. List every change you made in your reply.`
     : `## Start a new handbook
 
 \`${handbookDir}/\` doesn't exist yet. Create it with the structure below.${

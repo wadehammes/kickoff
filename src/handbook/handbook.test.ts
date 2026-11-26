@@ -8,7 +8,7 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { generateProject } from "../generator.js";
+import { generateHandbook } from "../generator.js";
 import type { ProjectAnswers } from "../types.js";
 import { detectCodebase, looksLikeCodebase } from "./detect.js";
 import { getHandbookBuildPrompt } from "./prompt.js";
@@ -58,7 +58,7 @@ describe("kickoff handbook", () => {
       expect.arrayContaining(["AGENTS.md", "conventions/frontend/llms.md"]),
     );
     expect(facts.otherHandbooks).toEqual(["conventions/frontend"]);
-    expect(facts.existingHandbook).toEqual([]);
+    expect(facts.existingHandbookPages).toBe(0);
   });
 
   it("asks the agent to update a handbook that already exists", () => {
@@ -104,10 +104,7 @@ describe("kickoff handbook", () => {
       useCurrentDir: false,
     };
 
-    await generateProject(answers, {
-      include: (file) => file.startsWith("docs/handbook/"),
-      root,
-    });
+    await generateHandbook(answers, root);
 
     expect(readdirSync(root)).toEqual(["docs"]);
     expect(readdirSync(path.join(root, "docs"))).toEqual(["handbook"]);
