@@ -1,5 +1,6 @@
 node_modules/
 dist/
+coverage/
 
 # Cursor — track shared hooks/rules; ignore local runtime state
 .cursor/*

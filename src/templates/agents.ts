@@ -63,16 +63,6 @@ export const getCursorHookScriptNames = (a: ProjectAnswers): string[] => [
   ...(a.includeContentful ? ["block-generated-types.sh"] : []),
 ];
 
-export const getAgentHookScriptPaths = (
-  tooling: ProjectAnswers["agentTooling"],
-): string[] => {
-  const prefix = tooling === "cursor" ? ".cursor/hooks" : ".claude/hooks";
-  return [
-    `${prefix}/_lib.sh`,
-    ...AGENT_HOOK_SCRIPT_NAMES.map((name) => `${prefix}/${name}`),
-  ];
-};
-
 export const getCursorHooksLib = (): string => {
   return `#!/usr/bin/env bash
 # Shared helpers for Cursor hooks (adapted from rhythm-marketing .claude hooks).

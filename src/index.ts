@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, realpathSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import chalk from "chalk";
 import prompts from "prompts";
@@ -40,7 +41,7 @@ Options:
 const scaffoldTargetIsNonEmpty = (root: string): boolean =>
   existsSync(root) && readdirSync(root).length > 0;
 
-const main = async () => {
+export const main = async () => {
   if (process.argv[2] === "handbook") {
     await runHandbookCommand(process.argv.slice(3));
     return;
@@ -299,53 +300,6 @@ const main = async () => {
 
   try {
     await generateProject(projectAnswers, { dryRun, verbose });
-
-    if (dryRun) {
-      console.log(chalk.gray("\nDry-run complete — no files were written.\n"));
-      process.exit(0);
-    }
-
-    console.log(
-      `\n${chalk.green("✔")} ${chalk.bold("Project scaffolded successfully!")}\n`,
-    );
-    console.log(chalk.white("Next steps:\n"));
-
-    let step = 1;
-
-    if (!projectAnswers.useCurrentDir) {
-      console.log(
-        `  ${chalk.cyan(`${step++}.`)} ${chalk.white(`cd ${projectAnswers.projectName}`)}`,
-      );
-    }
-
-    console.log(
-      `  ${chalk.cyan(`${step++}.`)} ${chalk.white("cp .env.local.example .env.local")}`,
-    );
-    if (projectAnswers.includeContentful) {
-      console.log(
-        `  ${chalk.cyan(`${step++}.`)} ${chalk.white("Fill in your Contentful API keys and other env vars in .env.local")}`,
-      );
-    } else {
-      console.log(
-        `  ${chalk.cyan(`${step++}.`)} ${chalk.white("Fill in .env.local (see .env.local.example)")}`,
-      );
-    }
-    console.log(`  ${chalk.cyan(`${step++}.`)} ${chalk.white("pnpm install")}`);
-    if (projectAnswers.includeContentful) {
-      console.log(
-        `  ${chalk.cyan(`${step++}.`)} ${chalk.white("pnpm types:contentful")}  ${chalk.gray("# generate Contentful TypeScript types")}`,
-      );
-    }
-    console.log(
-      `  ${chalk.cyan(`${step++}.`)} ${chalk.white("pnpm dev  ")}${chalk.gray(`# starts on port ${projectAnswers.devPort}`)}`,
-    );
-    console.log();
-    console.log(
-      chalk.gray(
-        `Tip: run ${chalk.white("pnpm scaffold MyComponent")} to scaffold a new component.`,
-      ),
-    );
-    console.log();
   } catch (err) {
     console.error(
       `\n${chalk.red("✖ Error generating project:")}`,
@@ -353,6 +307,66 @@ const main = async () => {
     );
     process.exit(1);
   }
+
+  if (dryRun) {
+    console.log(chalk.gray("\nDry-run complete — no files were written.\n"));
+    return;
+  }
+
+  console.log(
+    `\n${chalk.green("✔")} ${chalk.bold("Project scaffolded successfully!")}\n`,
+  );
+  console.log(chalk.white("Next steps:\n"));
+
+  let step = 1;
+
+  if (!projectAnswers.useCurrentDir) {
+    console.log(
+      `  ${chalk.cyan(`${step++}.`)} ${chalk.white(`cd ${projectAnswers.projectName}`)}`,
+    );
+  }
+
+  console.log(
+    `  ${chalk.cyan(`${step++}.`)} ${chalk.white("cp .env.local.example .env.local")}`,
+  );
+  if (projectAnswers.includeContentful) {
+    console.log(
+      `  ${chalk.cyan(`${step++}.`)} ${chalk.white("Fill in your Contentful API keys and other env vars in .env.local")}`,
+    );
+  } else {
+    console.log(
+      `  ${chalk.cyan(`${step++}.`)} ${chalk.white("Fill in .env.local (see .env.local.example)")}`,
+    );
+  }
+  console.log(`  ${chalk.cyan(`${step++}.`)} ${chalk.white("pnpm install")}`);
+  if (projectAnswers.includeContentful) {
+    console.log(
+      `  ${chalk.cyan(`${step++}.`)} ${chalk.white("pnpm types:contentful")}  ${chalk.gray("# generate Contentful TypeScript types")}`,
+    );
+  }
+  console.log(
+    `  ${chalk.cyan(`${step++}.`)} ${chalk.white("pnpm dev  ")}${chalk.gray(`# starts on port ${projectAnswers.devPort}`)}`,
+  );
+  console.log();
+  console.log(
+    chalk.gray(
+      `Tip: run ${chalk.white("pnpm scaffold MyComponent")} to scaffold a new component.`,
+    ),
+  );
+  console.log();
 };
 
-main();
+const isEntryPoint = (): boolean => {
+  try {
+    return (
+      realpathSync(process.argv[1] ?? "") ===
+      realpathSync(fileURLToPath(import.meta.url))
+    );
+  } catch {
+    return false;
+  }
+};
+
+if (isEntryPoint()) {
+  await main();
+}

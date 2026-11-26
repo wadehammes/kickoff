@@ -273,11 +273,12 @@ Templates and the generated handbook (`src/templates/docs.ts`) have to stay in s
 | `pnpm dev` | Compile in watch mode |
 | `pnpm lint` / `pnpm lint:fix` | Biome |
 | `pnpm test` | Unit and integration tests, plus a matrix that generates all 96 combinations of tooling and options and checks each one |
-| `pnpm test:scaffold-e2e` | Generate each fixture project, install it, run its CI checks, then build, serve and smoke-test the ones without Contentful |
+| `pnpm test:coverage` | The same tests with a coverage report. CI fails below 95% of lines, statements, and functions or 90% of branches |
+| `pnpm test:scaffold-e2e` | Run `kickoff handbook` end to end, then generate each fixture project, install it, run its CI checks and its handbook drift check, and build, serve and smoke-test the ones without Contentful |
 
 The matrix test (`src/generationMatrix.test.ts`) runs in seconds. For every combination it checks for colliding routes, pages without exactly one `<html>` layout, imports that don't resolve, references to `pnpm` scripts that don't exist, invalid JSON, and TypeScript syntax errors. When you fix a class of generator bug, add a check there.
 
-The end-to-end run is slower and covers each option at least once with a real install. Set `SCAFFOLD_E2E_PLAYWRIGHT=1` to also run the generated Playwright suites for pipeline fixtures. CI does this on every PR to `main`, alongside the build, lint and unit tests.
+The end-to-end run is slower and covers each option at least once with a real install. Set `SCAFFOLD_E2E_PLAYWRIGHT=1` to also run the generated Playwright suites for pipeline fixtures, or `SCAFFOLD_E2E_ONLY=claude-static,cursor-static` to run just those fixtures. CI does this on every PR to `main`, alongside the build, lint and unit tests.
 
 To release kickoff, run `make release tag=vX.Y.Z` from an up-to-date `staging`. It tags `staging`, pushes the tag, and follows the release workflow, which fast-forwards `main` to the tag and publishes the GitHub release. The workflow needs a `RELEASE_PUSH_TOKEN` repository secret: a personal access token (Contents read/write) whose owner can bypass the `main` ruleset.
 

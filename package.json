@@ -17,6 +17,7 @@
     "lint:check": "biome check --changed --since origin/main --no-errors-on-unmatched --verbose --write --diagnostic-level=error",
     "lint:all": "pnpm lint:check && pnpm tsc:ci",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:scaffold-e2e": "node dist/verifyScaffoldE2e.js",
     "test:watch": "vitest",
     "tsc:ci": "tsc --strict"
@@ -31,6 +32,7 @@
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^26.6.6",
     "@types/prompts": "^2.4.9",
+    "@vitest/coverage-v8": "5.1.0",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
   }
