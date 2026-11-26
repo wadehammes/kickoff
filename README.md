@@ -85,7 +85,7 @@ Every generated project includes:
 | Styling | CSS Modules, PostCSS Preset Env, design tokens from your brand colors |
 | UI | Base UI primitives, SVGs as components, React Query for client data |
 | Quality | Biome (lint and format), Stylelint, Jest with Testing Library, knip for dead code |
-| SEO and security | Sitemap, robots, web manifest, JSON-LD helpers, security headers with a Content Security Policy |
+| SEO and security | Next.js sitemap (`src/app/sitemap.ts`), robots, web manifest, JSON-LD helpers, security headers with a Content Security Policy |
 | Deployment | Vercel, plus a token-protected page for triggering a redeploy, or any other host that runs Next.js |
 | CI | GitHub Actions with every action pinned to a commit, Dependabot, PR labeling |
 | Dependencies | pnpm 12, installs limited to package versions published at least 7 days ago |
@@ -252,7 +252,7 @@ Claude pipeline projects are trunk-based on `main`:
 | Command | What it does |
 | --- | --- |
 | `pnpm dev` | Start the dev server |
-| `pnpm build` | Production build and sitemap |
+| `pnpm build` | Production build |
 | `pnpm lint:all` | Biome on changed files, Stylelint, typecheck, and knip |
 | `pnpm test:ci` | Jest |
 | `pnpm scaffold MyComponent` | Create a component with its CSS module, interfaces, spec, page object, and test factory |

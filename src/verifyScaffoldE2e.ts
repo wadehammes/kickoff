@@ -163,6 +163,22 @@ const expectPage = async (
   console.log(`    GET ${pathname} -> ${status}`);
 };
 
+const expectBodyContains = async (
+  pathname: string,
+  snippets: string[],
+): Promise<void> => {
+  const response = await fetch(`${SERVER_BASE_URL}${pathname}`);
+  const body = await response.text();
+  if (response.status !== 200) {
+    throw new Error(`GET ${pathname}: expected 200, got ${response.status}`);
+  }
+  const missing = snippets.filter((snippet) => !body.includes(snippet));
+  if (missing.length > 0) {
+    throw new Error(`GET ${pathname}: missing ${missing.join(", ")}`);
+  }
+  console.log(`    GET ${pathname} -> 200 (${snippets.length} checks)`);
+};
+
 const smokeTestBuild = async (
   root: string,
   answers: ProjectAnswers,
@@ -176,6 +192,12 @@ const smokeTestBuild = async (
     await waitForServer();
     await expectPage("/", 200, "en");
     await expectPage("/kickoff-e2e-missing-page", 404);
+    await expectBodyContains("/robots.txt", [`${answers.prodUrl}/sitemap.xml`]);
+    await expectBodyContains("/sitemap.xml", [
+      "<urlset",
+      `<loc>${answers.stagingUrl}</loc>`,
+      ...(answers.includeI18n ? [`<loc>${answers.stagingUrl}/es</loc>`] : []),
+    ]);
     if (answers.includeI18n) {
       await expectPage("/es", 200, "es");
       await expectPage("/es/kickoff-e2e-missing-page", 404, "es");

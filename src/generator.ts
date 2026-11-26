@@ -25,6 +25,7 @@ import {
   getAppPage,
   getAppProviders,
   getAppRobots,
+  getAppSitemap,
   getAppToast,
   getAppToastMock,
   getArrayHelpers,
@@ -92,7 +93,6 @@ import {
   getFieldErrorMessageComponent,
   getFooterComponent,
   getFooterCSS,
-  getGenerateSitemap,
   getGitCommitSh,
   getGithooksCommitMsg,
   getGitignore,
@@ -140,7 +140,6 @@ import {
   getLocalePage,
   getLocaleSlugPage,
   getMakefile,
-  getMakeSitemapJs,
   getMockIntersectionObserver,
   getMockMatchMedia,
   getMockNextNavigation,
@@ -176,7 +175,6 @@ import {
   getScriptsTsConfig,
   getSetEnvVars,
   getSetupTests,
-  getSitemapIndex,
   getStagingSmokeWorkflow,
   getStopChecksSh,
   getStringHelpers,
@@ -375,7 +373,9 @@ export const generateProject = async (
   await write(".browserslistrc", getBrowserslistrc());
   await write(".gitignore", getGitignore(a));
   await write("pnpm-workspace.yaml", getPnpmWorkspace(a));
-  await write("Makefile", getMakefile(a));
+  if (!a.includeClaudePipeline) {
+    await write("Makefile", getMakefile(a));
+  }
   await write("jest.config.ts", getJestConfig());
   await write("knip.json", getKnipConfig(a));
   await write("next-env.d.ts", getNextEnvDeclaration());
@@ -454,7 +454,6 @@ export const generateProject = async (
   }
 
   // ── public/ ────────────────────────────────────────────────────────────────
-  await write("public/sitemap-index.xml", getSitemapIndex(a));
 
   // ── .github/ ───────────────────────────────────────────────────────────────
   await write(".github/workflows/ci.yml", getCIWorkflow(a));
@@ -497,7 +496,6 @@ export const generateProject = async (
       executable: true,
     });
   }
-  await write("scripts/make_sitemap.js", getMakeSitemapJs(a));
   await write("scripts/tsconfig.json", getScriptsTsConfig());
   if (!a.includeClaudePipeline && usesVercel(a)) {
     await write("scripts/verify-vercel-release.ts", getVerifyVercelRelease());
@@ -545,6 +543,7 @@ export const generateProject = async (
   await write(`${pagesDir}/error.module.css`, getAppErrorCSS());
   await write(`${pagesDir}/loading.tsx`, getAppLoading());
   await write("src/app/robots.ts", getAppRobots(a));
+  await write("src/app/sitemap.ts", getAppSitemap(a));
   await write("src/app/manifest.ts", getAppManifest(a));
   await write("src/app/fonts/.gitkeep", "");
   await write("src/app/global-error.tsx", getGlobalError());
@@ -640,7 +639,6 @@ export const generateProject = async (
   await write("src/interfaces/common.interfaces.ts", getCommonInterfaces());
 
   // ── src/lib/ ───────────────────────────────────────────────────────────────
-  await write("src/lib/generateSitemap.ts", getGenerateSitemap(a));
   await write("src/lib/schema.ts", getSchema(a));
 
   if (usesVercel(a)) {
@@ -817,8 +815,6 @@ const getSlugPage = (): string => {
 import { draftMode } from "next/headers";
 import { notFound } from "next/navigation";
 import { fetchPage, fetchPages } from "src/contentful/getPages";
-import type { SitemapItem } from "src/lib/generateSitemap";
-import { outputSitemap } from "src/lib/generateSitemap";
 import {
   createBreadcrumbSchema,
   createOrganizationSchema,
@@ -844,24 +840,6 @@ interface PageProps {
 
 export const generateStaticParams = async (): Promise<PageParams[]> => {
   const pages = await fetchPages({ preview: false });
-
-  if (pages) {
-    const routes: SitemapItem[] = pages
-      .map((page) => {
-        if (!page.enableIndexing) {
-          return { route: "", modTime: "" };
-        }
-
-        if (page.pageSlug === HOME_PAGE_SLUG) {
-          return { route: "/", modTime: page.updatedAt };
-        }
-
-        return { route: \`/\${page.pageSlug}\`, modTime: page.updatedAt };
-      })
-      .filter((item: SitemapItem) => item.route.length > 0);
-
-    outputSitemap(routes, "pages");
-  }
 
   return pages
     .filter((page) => !EXCLUDED_PAGE_SLUGS_FROM_BUILD.includes(page.pageSlug))
