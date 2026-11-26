@@ -1074,7 +1074,7 @@ export const getHandbookReviewCommand = (a: ProjectAnswers): string => {
     ? ", generated Contentful types (`src/contentful/types/`)"
     : "";
   const i18nCheck = a.includeI18n
-    ? "- Copy: user-facing text in `src/copy/` with no Spanish (`es`) entry, or a page with hard-coded strings instead of copy ([platform.md → Languages](docs/handbook/platform.md#languages)).\n"
+    ? "- Copy: user-facing text in `src/copy/` with no Spanish (`es`) entry, or a page with hard-coded strings instead of copy ([platform.md → Languages](docs/handbook/platform.md#languages-english-and-spanish)).\n"
     : "";
 
   return `---
