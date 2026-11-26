@@ -1,5 +1,6 @@
 import type { ProjectAnswers } from "../types.js";
 import { getCms, getLayoutPreview, usesCms } from "./cms/index.js";
+import { sortImports } from "./imports.js";
 
 // ---------------------------------------------------------------------------
 // src/app/layout.tsx
@@ -16,9 +17,12 @@ export const getAppLayout = (a: ProjectAnswers): string => {
       ) : null}`
     : "";
 
-  const draftImport = usesCms(a)
-    ? `import { draftMode } from "next/headers";\nimport { ExitDraftModeLink } from "src/components/ExitDraftModeLink/ExitDraftModeLink.component";\n`
-    : "";
+  const draftImports = usesCms(a)
+    ? [
+        'import { draftMode } from "next/headers";',
+        'import { ExitDraftModeLink } from "src/components/ExitDraftModeLink/ExitDraftModeLink.component";',
+      ]
+    : [];
 
   const preconnectCms = (getCms(a)?.preconnectOrigins ?? [])
     .map((origin) => `        <link rel="preconnect" href="${origin}" />\n`)
@@ -41,11 +45,18 @@ export const getAppLayout = (a: ProjectAnswers): string => {
     : "";
 
   const preview = getLayoutPreview(a);
+  // The global CSS import ends Biome's first sorted run of imports.
+  const componentImports = sortImports([
+    ...(gaImport ? [gaImport.trim()] : []),
+    ...preview.imports,
+    ...draftImports,
+    'import Providers from "src/app/providers";',
+    'import { Footer } from "src/components/Footer/Footer.component";',
+    'import { Navigation } from "src/components/Navigation/Navigation.component";',
+  ]).join("\n");
 
-  return `${gaImport}${preview.packageImports}${draftImport}import Providers from "src/app/providers";
-import { Footer } from "src/components/Footer/Footer.component";
-import { Navigation } from "src/components/Navigation/Navigation.component";
-${preview.localImports}import "src/styles/globals.css";
+  return `${componentImports}
+import "src/styles/globals.css";
 import type { Metadata } from "next";
 import { envUrl } from "src/utils/environment.helpers";
 
@@ -331,8 +342,6 @@ export default robots;
 // src/app/sitemap.ts  (served by Next.js at /sitemap.xml)
 // ---------------------------------------------------------------------------
 
-const importSource = (line: string): string => line.split(' from "')[1] ?? "";
-
 export const getAppSitemap = (a: ProjectAnswers): string => {
   const cms = getCms(a);
   const imports = [
@@ -343,12 +352,8 @@ export const getAppSitemap = (a: ProjectAnswers): string => {
       : []),
     ...(cms ? ['import { HOME_PAGE_SLUG } from "src/utils/constants";'] : []),
     'import { envUrl } from "src/utils/environment.helpers";',
-  ]
-    // Biome sorts imports by module; the CMS folder can land anywhere in src/.
-    .sort((left, right) =>
-      importSource(left).localeCompare(importSource(right)),
-    )
-    .join("\n");
+  ];
+  const importBlock = sortImports(imports).join("\n");
 
   const cmsRoutes = cms
     ? `
@@ -416,7 +421,7 @@ const toEntries = ({
   },
 ];`;
 
-  return `${imports}
+  return `${importBlock}
 
 /** Routes that are not generated from content. Add new pages here so search engines find them. */
 const STATIC_ROUTES = ["/"];

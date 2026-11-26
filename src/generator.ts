@@ -5,12 +5,14 @@ import fsExtra from "fs-extra";
 const { ensureDir, writeFile } = fsExtra;
 
 import { getCms } from "./templates/cms/index.js";
+import type { CmsAdapter } from "./templates/cms/types.js";
 import {
   DEFAULT_VERSIONS,
   usesPlaywright,
   usesVercel,
   type Versions,
 } from "./templates/config.js";
+import { sortImports } from "./templates/imports.js";
 import {
   type AgentHookScriptName,
   getAgentHookScriptContent,
@@ -603,13 +605,22 @@ export const generateProject = async (
     await write("src/app/page.tsx", getAppPage());
     await write(
       "src/app/[slug]/page.tsx",
-      cms ? getSlugPage(cms.dir) : getSlugPageWithoutCms(),
+      cms ? getSlugPage(cms) : getSlugPageWithoutCms(),
     );
   }
 
   // ── src/app/api/ ───────────────────────────────────────────────────────────
   for (const [file, content] of cms?.preview.routes() ?? []) {
     await write(file, content);
+  }
+
+  const simulator = cms?.preview.simulator;
+
+  if (simulator) {
+    await write(
+      `src/app/${a.includeI18n ? "[locale]/" : ""}${simulator.route}/page.tsx`,
+      simulator.page(),
+    );
   }
 
   // ── src/components/ ────────────────────────────────────────────────────────
@@ -843,22 +854,28 @@ export default Page;
 `;
 };
 
-const getSlugPage = (pagesDir: string): string => {
-  return `import type { Metadata } from "next";
-import { draftMode } from "next/headers";
-import { notFound } from "next/navigation";
-import { fetchPage, fetchPages } from "${pagesDir}/getPages";
-import {
+const getSlugPage = (cms: CmsAdapter): string => {
+  const imports = sortImports([
+    'import type { Metadata } from "next";',
+    'import { draftMode } from "next/headers";',
+    'import { notFound } from "next/navigation";',
+    `import { fetchPage, fetchPages } from "${cms.dir}/getPages";`,
+    `import {
   createBreadcrumbSchema,
   createOrganizationSchema,
   createSchemaGraph,
   createWebPageSchema,
-} from "src/lib/schema";
-import {
+} from "src/lib/schema";`,
+    `import {
   EXCLUDED_PAGE_SLUGS_FROM_BUILD,
   HOME_PAGE_SLUG,
-} from "src/utils/constants";
-import { envUrl } from "src/utils/environment.helpers";
+} from "src/utils/constants";`,
+    'import { envUrl } from "src/utils/environment.helpers";',
+    ...(cms.pageBody?.imports ?? []),
+  ]).join("\n");
+  const body = cms.pageBody ? `\n        ${cms.pageBody.jsx}` : "";
+
+  return `${imports}
 
 export const revalidate = 2592000;
 export const dynamicParams = false;
@@ -966,7 +983,7 @@ const Page = async ({ params }: PageProps) => {
       {/* TODO: Add JsonLd component and page-specific component here */}
       <pre style={{ display: "none" }}>{JSON.stringify(schemaGraph)}</pre>
       <div className="page-container">
-        <h1>{page.pageTitle}</h1>
+        <h1>{page.pageTitle}</h1>${body}
       </div>
     </>
   );

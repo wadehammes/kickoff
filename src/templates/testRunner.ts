@@ -1,4 +1,5 @@
 import type { ProjectAnswers } from "../types.js";
+import { importSortKey } from "./imports.js";
 
 export const usesVitest = (a: ProjectAnswers): boolean =>
   a.testRunner === "vitest";
@@ -110,13 +111,6 @@ const blankStringsAndComments = (text: string): string => {
   }
 
   return out;
-};
-
-// Biome's import order: node: builtins, then bare and src/ paths, then relative paths.
-const importSortKey = (source: string): string => {
-  const rank = source.startsWith("node:") ? 0 : source.startsWith(".") ? 2 : 1;
-
-  return `${rank}${source.toLowerCase()}`;
 };
 
 const insertImport = (text: string, line: string, source: string): string => {

@@ -34,6 +34,29 @@ ${cms.imageHosts
     hosts.map((host) => ` ${host}`).join("");
   const cspImgSrc = `img-src * blob: data:${cspHosts(cms?.csp.imgSrc)};`;
 
+  // The CMS editor frames its simulator; browsers honor frame-ancestors over
+  // the X-Frame-Options: DENY every other route sends.
+  const simulator = cms?.preview.simulator;
+  const framedRoutes = simulator
+    ? [
+        `/${simulator.route}`,
+        ...(a.includeI18n ? [`/:locale/${simulator.route}`] : []),
+      ]
+        .map(
+          (source) => `
+      {
+        source: "${source}",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: \`\${ContentSecurityPolicy.replace(/\\n/g, "")} frame-ancestors 'self' ${simulator.frameAncestors.join(" ")};\`,
+          },
+        ],
+      },`,
+        )
+        .join("")
+    : "";
+
   const optimizePackages = [
     "@base-ui/react",
     "@tanstack/react-query",
@@ -155,7 +178,7 @@ ${envLines.join("\n")}
           },
           ...securityHeaders,
         ],
-      },
+      },${framedRoutes}
     ];
   },
 };

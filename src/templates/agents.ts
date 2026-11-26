@@ -441,7 +441,14 @@ exit 0
 `;
 };
 
-export const getBlockBarrelFilesSh = (): string => {
+export const getBlockBarrelFilesSh = (cms?: CmsAdapter): string => {
+  const componentIndexes = (cms?.indexComponentDirs ?? [])
+    .map(
+      (dir) =>
+        `\n# ${cms?.name} imports these components by folder.\nif [[ "$file" =~ (^|/)${dir.replaceAll(".", "\\.")}/[^/]+/index\\.tsx$ ]]; then\n  exit 0\nfi\n`,
+    )
+    .join("");
+
   return `#!/usr/bin/env bash
 set -euo pipefail
 
@@ -457,7 +464,7 @@ file="$(tool_file_path)"
 if [[ ! "$file" =~ (^|/)src/(.*/)?index\\.tsx?$ ]]; then
   exit 0
 fi
-
+${componentIndexes}
 reason="Blocked: no barrel files. Do not add index.ts/index.tsx that re-exports from other modules — import directly from the defining module (e.g. \\\`from \\"src/components/PlanCard/PlanCard.component\\"\\\`). App Router route files use page.tsx/layout.tsx, not index barrels. See docs/handbook/conventions.md."
 
 deny_tool "$reason"
@@ -1255,7 +1262,7 @@ export const getAgentHookScriptContent = (
     case "enforce-scaffold.sh":
       return getEnforceScaffoldSh();
     case "block-barrel-files.sh":
-      return getBlockBarrelFilesSh();
+      return getBlockBarrelFilesSh(options?.cms);
     case "enforce-factory-location.sh":
       return getEnforceFactoryLocationSh();
     case "handbook-sync-nudge.sh":

@@ -45,7 +45,7 @@ src/
     ├── types.ts          ← KeysMatch, PropsWithChildrenOnly
     └── utils.ts          ← array/string/url/environment/contentful/style/factory helpers, constants, interfaces
 
-fixtures/scaffold-e2e/     ← Answer JSON for scaffold E2E (cursor-static, cursor-selfhost-i18n, cursor-vitest, claude-static, claude-pipeline, claude-pipeline-i18n, cursor-contentful-all, cursor-prismic)
+fixtures/scaffold-e2e/     ← Answer JSON for scaffold E2E (cursor-static, cursor-selfhost-i18n, cursor-vitest, claude-static, claude-pipeline, claude-pipeline-i18n, cursor-contentful-all, cursor-prismic, claude-prismic)
 .cursor/                   ← Cursor hooks for this repo (see .cursor/hooks/README.md)
 ```
 
