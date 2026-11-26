@@ -91,22 +91,34 @@ on:
   push:
     tags:
       - "v*"
+# Only this workflow should update main (see docs/handbook/platform.md → Releases).
 permissions:
-  contents: write
+  contents: read
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-          token: \${{ secrets.GITHUB_TOKEN }}
+          # The default checkout persists GITHUB_TOKEN as git HTTP auth, which would override the PAT below and push as github-actions[bot] (no ruleset bypass).
+          persist-credentials: false
       - name: Reset Main
         id: reset_main
+        env:
+          RELEASE_PUSH_TOKEN: \${{ secrets.RELEASE_PUSH_TOKEN }}
         run: |
-          echo \${{ github.ref }}
-          /usr/bin/git push origin \${{ github.ref }}:main
+          if [ -z "$RELEASE_PUSH_TOKEN" ]; then
+            echo "::error::Add repository secret RELEASE_PUSH_TOKEN (PAT with Contents read/write; owner allowed to bypass the main ruleset). See docs/handbook/platform.md → Releases."
+            exit 1
+          fi
+          git config --global --unset-all "http.https://github.com/.extraheader" || true
+          git config --local --unset-all "http.https://github.com/.extraheader" || true
+          git remote set-url origin "https://x-access-token:\${RELEASE_PUSH_TOKEN}@github.com/\${{ github.repository }}.git"
+          git push origin "\${{ github.ref }}:main"
       - name: Generate changelog
         id: changelog
         uses: metcalfc/changelog-generator@0440d0932f9a0dd1cc9ecd8412830761351323bd # v4.7.0

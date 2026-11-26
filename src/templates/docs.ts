@@ -258,7 +258,7 @@ PRs to \`${base}\`${a.includeClaudePipeline ? " and pushes to `main`" : ""} run:
 
 const getStagingBranchingPrereqs = (): string => {
   return `2. **\`staging\` as default branch** — Create a \`staging\` branch and set it as the **default** branch (\`Settings\` → \`General\`). CI runs on pull requests targeting \`staging\`.
-3. **Branch protection** — Protect \`staging\` and \`main\` with rules your org requires—for example require PRs before merge, **required status checks** (once \`.github/workflows/ci.yml\` exists, require that workflow), block force-push, and approver counts as needed. The \`create-release\` workflow pushes each release tag to \`main\`, so add **GitHub Actions** to the \`main\` ruleset's bypass list.
+3. **Branch protection** — Protect \`staging\` and \`main\` with rules your org requires—for example require PRs before merge, **required status checks** (once \`.github/workflows/ci.yml\` exists, require that workflow), block force-push, and approver counts as needed. The \`create-release\` workflow fast-forwards \`main\` to each release tag, so create a personal access token (Contents read/write) for someone on the \`main\` ruleset's bypass list and add it as the repository secret **\`RELEASE_PUSH_TOKEN\`**. The default \`GITHUB_TOKEN\` can't bypass a ruleset.
 4. **Initial GitHub Release** — In **Releases**, manually publish **\`v0.0.0\`** (or similar first tag). The \`create-release\` workflow (triggered when you push \`v*\` tags) and changelog generation assume there is existing release/tag history so the first prod release behaves predictably.
 5. **Scaffold with kickoff and push** — From your machine, run the **kickoff** CLI that generated this scaffold, compare or regenerate if needed, then commit and push the tree to **\`staging\`** (\`git push origin staging\`) following your branching rules.`;
 };
@@ -1186,9 +1186,9 @@ Releases follow a \`make release tag=vX.X.X\` workflow:
 1. The Makefile target runs \`scripts/verify-vercel-for-release.sh\` to confirm you are a Vercel project member.
 2. It then creates and pushes a git tag.
 3. **\`scripts/watch-release.sh\`** follows the GitHub **release** workflow for the pushed tag (requires \`gh\` when available).
-4. The release workflow (\`.github/workflows/release.yml\`) pushes the tag to \`main\` and creates a GitHub Release with a generated changelog. Vercel deploys production because \`main\` changed.
+4. The release workflow (\`.github/workflows/release.yml\`) fast-forwards \`main\` to the tag and creates a GitHub Release with a generated changelog. Vercel deploys production because \`main\` changed.
 
-If \`main\` is protected, add **GitHub Actions** to the ruleset bypass list so step 4 can push.
+Step 4 pushes with the **\`RELEASE_PUSH_TOKEN\`** secret, a personal access token (Contents read/write) whose owner can bypass the \`main\` ruleset; the default \`GITHUB_TOKEN\` can't. Without the secret the workflow stops with an error that says so. If \`main\` has a commit that isn't on \`staging\` (a hotfix merged straight to \`main\`), the fast-forward is rejected: merge \`main\` back into \`staging\` and release again.
 `;
 };
 
