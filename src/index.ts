@@ -99,6 +99,17 @@ const refreshPackageVersions = async (
     return result.versions;
   }
 
+  const checked = Object.keys(DEFAULT_VERSIONS).length - KEEP_PINNED.length;
+
+  if (result.failed.length === checked) {
+    console.log(
+      chalk.yellow(
+        `  Couldn't reach npm to check ${extraPackages.join(", ")}; pnpm will pick its version at install, still holding back releases under 7 days old.`,
+      ),
+    );
+    return result.versions;
+  }
+
   const extras = await resolveExtraPackages({
     fetchMetadata: fetchFromNpm,
     names: extraPackages,

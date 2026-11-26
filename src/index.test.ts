@@ -452,4 +452,22 @@ describe("kickoff CLI", () => {
     expect(await run()).toBe(1);
     expect(errors()).toContain("Couldn't add not-a-real-package");
   });
+
+  it("leaves extra packages to pnpm when npm can't be reached", async () => {
+    vi.mocked(prompts).mockResolvedValueOnce({
+      ...answers,
+      extraPackages: "date-fns",
+    });
+
+    expect(await run()).toBeNull();
+
+    const pkg = JSON.parse(
+      readFileSync(path.join(root, "prompted-site", "package.json"), "utf-8"),
+    ) as { dependencies: Record<string, string> };
+
+    expect(pkg.dependencies["date-fns"]).toBe("latest");
+    expect(output()).toContain(
+      "Couldn't reach npm to check date-fns; pnpm will pick its version at install",
+    );
+  });
 });
