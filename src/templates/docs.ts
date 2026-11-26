@@ -1,5 +1,6 @@
 import type { ProjectAnswers } from "../types.js";
 import { getBaseBranch, usesPlaywright, usesVercel } from "./config.js";
+import { getTestRunner, usesVitest } from "./testRunner.js";
 
 export const getHandbookChangePolicy = (a: ProjectAnswers): string =>
   a.includeClaudePipeline
@@ -260,7 +261,8 @@ ${a.includeClaudePipeline ? "\nThe quality gate hook runs its checks through rtk
 | \`pnpm knip\` / \`pnpm knip:ci\` | Dead-code / unused export analysis ([knip.json](knip.json)) |
 | \`pnpm next:upgrade\` | Upgrade Next.js and React to the latest minor with the official codemod |
 | \`pnpm next:agents-md\` | Refresh the Next.js docs index in \`docs/nextjs.md\` |
-| \`pnpm test:ci\` | Run Jest test suite |
+| \`pnpm test:ci\` | Run the ${getTestRunner(a).name} test suite |
+| \`pnpm test:file <path>\` | Run the specs that match a path or name |
 ${usesPlaywright(a) ? "| `pnpm test:e2e` | Playwright tests in `e2e/` against `BASE_URL` (default: local dev server) |\n" : ""}${a.includeClaudePipeline ? "| `pnpm typecheck` | TypeScript check used by Vercel Deployment Checks |\n" : ""}${scriptsTypesRow}| \`pnpm scaffold MyComponent\` | Scaffold a new component with all standard files |
 
 ${contentfulSection}${draftSection}## Component scaffolding
@@ -287,7 +289,7 @@ See \`docs/handbook/README.md\` for the index or \`docs/handbook/llms.md\` for a
 ${usesVercel(a) ? "- Connect your repository to [Vercel](https://vercel.com)\n- Add **all** env vars from `.env.local.example` to Vercel (**Settings** → **Environment Variables**) for the Preview / Development / Production scopes you use\n- Locally, use **`npx vercel link`** and **`npx vercel env pull .env.local`** to mirror those values into `.env.local` (see **[Prerequisites (greenfield bootstrap)](#prerequisites-greenfield-bootstrap)**)\n" : "- Deploy with any host that runs Next.js: build with `pnpm build`, serve with `pnpm start`\n- Add **all** env vars from `.env.local.example` to your host's environment settings\n"}${a.includeClaudePipeline ? getPipelineDeploymentReadme(a) : getStagingDeploymentReadme(a)}
 ## CI
 
-PRs to \`${base}\`${a.includeClaudePipeline ? " and pushes to `main`" : ""} run: TypeScript strict check, Biome lint, Stylelint, Jest tests, and Knip.
+PRs to \`${base}\`${a.includeClaudePipeline ? " and pushes to `main`" : ""} run: TypeScript strict check, Biome lint, Stylelint, ${getTestRunner(a).name} tests, and Knip.
 `;
 };
 
@@ -562,7 +564,7 @@ If you are new here, this page is your map. It explains how the site is structur
 - **UI**: React 19, TypeScript. Headless primitives: **[Base UI](https://base-ui.com/react/overview/quick-start)** (\`@base-ui/react\`) in \`src/ui/\`; styled controls in \`src/components/\` (e.g. \`Button\`${usesVercel(a) ? ", `DeployButton`" : ""}).
 - **Data**: Server Components for request/build-time data; **React Query** for client mutations. This scaffold was generated **without** Contentful.
 - **Styling**: **CSS Modules** with tokens in \`src/styles/globals.css\`.
-- **Tooling**: pnpm, Biome, Stylelint, Jest.
+- **Tooling**: pnpm, Biome, Stylelint, ${getTestRunner(a).name}.
 
 ## Config and deployment
 
@@ -586,7 +588,7 @@ If you are new here, this page is your map. It explains how the site is structur
 - **CMS**: Contentful. Content types are generated into \`src/contentful/types/\`; getters and parsers live in \`src/contentful/\`.
 - **Data fetching**: Server Components and Contentful getters at request/build time; **React Query** (TanStack) for client-side mutations and any future client queries. Mutation hooks live in \`src/hooks/mutations/\` and call the API surface in \`src/api/urls.ts\`.
 - **Styling**: **CSS Modules** (\`.module.css\`) with modern CSS (nesting, custom properties). Global tokens and reset live in \`src/styles/globals.css\`.
-- **Tooling**: pnpm, Biome for lint and format, Stylelint for CSS, Jest for tests (page-object pattern).
+- **Tooling**: pnpm, Biome for lint and format, Stylelint for CSS, ${getTestRunner(a).name} for tests (page-object pattern).
 
 ## Directory map
 
@@ -653,7 +655,7 @@ Page text and repeated content (cards, lists, people, links) as typed \`as const
 
 - \`basePageObject.po.ts\` — base class for page objects.
 - \`test-utils.tsx\` — custom \`render\` with app providers.
-- \`mocks/\` — Jest doubles for \`next/navigation\`, \`IntersectionObserver\`, \`matchMedia\`.
+- \`mocks/\` — test doubles for \`next/navigation\`, \`IntersectionObserver\`, \`matchMedia\`.
 - \`factories/\` — \`BaseFactory\` + per-type factory classes.
 
 ## Data flow
@@ -748,7 +750,9 @@ The repo uses \`.editorconfig\`: indent 2 spaces, UTF-8, insert final newline, t
 // docs/handbook/react.md
 // ---------------------------------------------------------------------------
 
-export const getHandbookReact = (_a: ProjectAnswers): string => {
+export const getHandbookReact = (a: ProjectAnswers): string => {
+  const { mock } = getTestRunner(a);
+
   return `# React
 
 Read this when you write or change a component's TSX, fetch data with React Query, or check accessibility.
@@ -793,7 +797,7 @@ Keep data-fetching hooks in their own files under \`src/hooks/queries/\` and \`s
 ### Do not test React Query
 
 - Do **not** add specs under **\`src/hooks/mutations/\`** or **\`src/hooks/queries/\`**.
-- In feature tests, mock **\`src/api/urls\`** and let real query/mutation hooks run in the shared test \`render\` wrapper. Do **not** \`jest.mock\` or \`jest.mocked\` hooks from those folders.
+- In feature tests, mock **\`src/api/urls\`** and let real query/mutation hooks run in the shared test \`render\` wrapper. Do **not** \`${mock}.mock\` or \`${mock}.mocked\` hooks from those folders.
 - Rules are enforced in **\`handbookTestRules.ts\`** and Cursor **\`block-query-hook-mocks.sh\`**.
 `;
 };
@@ -843,12 +847,22 @@ Write base styles for mobile; override for larger viewports.
 // docs/handbook/testing.md
 // ---------------------------------------------------------------------------
 
-export const getHandbookTesting = (_a: ProjectAnswers): string => {
+export const getHandbookTesting = (a: ProjectAnswers): string => {
+  const runner = getTestRunner(a);
+  const nextScriptMock = usesVitest(a)
+    ? `vi.mock("next/script", async () => ({
+  default: (await import("src/tests/mocks/yourNextScriptMock")).default,
+}));`
+    : `jest.mock("next/script", () => ({
+  __esModule: true,
+  default: require("src/tests/mocks/yourNextScriptMock").default,
+}));`;
+
   return `# Testing
 
 Read this when you write or change a spec, a page object, or a mock.
 
-Tests use Jest, **page objects** for **render setup, mocks, and shared test data only**. **Do not call \`screen\` / \`queryBy*\`** from page objects—put all DOM queries in **\`<Name>.spec.tsx\`** via **\`screen\`**, **\`userEvent\`**, and **\`within\`** as needed.
+Tests use ${runner.name}, **page objects** for **render setup, mocks, and shared test data only**. **Do not call \`screen\` / \`queryBy*\`** from page objects—put all DOM queries in **\`<Name>.spec.tsx\`** via **\`screen\`**, **\`userEvent\`**, and **\`within\`** as needed.
 
 ## Write the test first
 
@@ -858,13 +872,13 @@ Build with test-driven development: start each change with a failing test, then 
 2. Write the smallest change that makes it pass.
 3. Clean up the code while the test keeps passing.
 
-For a bug, the failing test proves you reproduced it and keeps it from coming back. Run just the spec you're working on while you go, like \`pnpm exec jest Navigation\`.
+For a bug, the failing test proves you reproduced it and keeps it from coming back. Run just the spec you're working on while you go, like \`pnpm test:file Navigation\`.
 
 ## Page object pattern
 
 - **Base class**: \`src/tests/basePageObject.po.ts\` (optional \`debug\`, \`raiseOnFind\`).
-- **Per-component page object**: In \`<Name>.po.tsx\`, define a class that extends \`BasePageObject\`, sets \`testId = "rh<ComponentName>"\`, implements \`render<Name>()\` using the custom \`render\` from test-utils, and holds test data and setup (factories, \`jest.resetAllMocks()\`, mock implementations). No \`screen\` queries in the PO.
-- **Tests**: In \`<Name>.spec.tsx\`, import **\`describe\`**, **\`it\`**, **\`expect\`**, **\`beforeEach\`** from **\`@jest/globals\`**. Matchers: **\`@testing-library/jest-dom/jest-globals\`** in [\`.jest/setupTests.ts\`](../../.jest/setupTests.ts). Instantiate the page object in \`beforeEach\`, then query the DOM with **\`screen\`** / **\`userEvent\`** (e.g. \`expect(screen.getByTestId(po.testId)).toBeInTheDocument()\`).
+- **Per-component page object**: In \`<Name>.po.tsx\`, define a class that extends \`BasePageObject\`, sets \`testId = "rh<ComponentName>"\`, implements \`render<Name>()\` using the custom \`render\` from test-utils, and holds test data and setup (factories, \`${runner.mock}.resetAllMocks()\`, mock implementations). No \`screen\` queries in the PO.
+- **Tests**: In \`<Name>.spec.tsx\`, import **\`describe\`**, **\`it\`**, **\`expect\`**, **\`beforeEach\`** from **\`${runner.globals}\`**. Matchers: **\`@testing-library/jest-dom/${usesVitest(a) ? "vitest" : "jest-globals"}\`** in [\`${runner.setupDir}/setupTests.ts\`](../../${runner.setupDir}/setupTests.ts). Instantiate the page object in \`beforeEach\`, then query the DOM with **\`screen\`** / **\`userEvent\`** (e.g. \`expect(screen.getByTestId(po.testId)).toBeInTheDocument()\`).
 - **Custom render**: Always use the \`render\` from \`src/tests/test-utils.tsx\`. It wraps the tree with the same providers as the app.
 
 ## Test data
@@ -877,20 +891,17 @@ Default to running **in-repo utilities** for real in component tests — URL bui
 
 - **Don't mock**: anything under \`src/utils/\` — URL builders, string helpers, etc. Let them run.
 - **Do mock**: external dependencies — \`src/api/*\` calls, \`src/lib/analytics\`, \`next/navigation\`, \`next/script\`, \`IntersectionObserver\`, and similar.
-- **Toasts in specs**: Jest maps \`src/lib/toast/appToast\` to \`src/tests/mocks/appToast.mock.ts\`. Re-export \`mockToast\` from the page object when asserting deploy/API toasts.
+- **Toasts in specs**: \`${runner.config}\` maps \`src/lib/toast/appToast\` to \`src/tests/mocks/appToast.mock.ts\`. Re-export \`mockToast\` from the page object when asserting deploy/API toasts.
 - **Handbook test rules**: \`src/tests/utils/handbookTestRules.ts\` and \`handbookTestRules.spec.ts\` enforce the **Do not test React Query** rules in [react.md](react.md#do-not-test-react-query); Cursor \`block-query-hook-mocks.sh\` blocks new violations on edit.
 
-## Jest and \`next/script\`
+## Mocking \`next/script\`
 
 Unit tests that assert on DOM from **\`next/script\`** (e.g. JSON-LD \`<script id="schema-structured-data">\`) should **mock** \`next/script\` so injection is synchronous; the real component loads \`afterInteractive\` and can miss timing in JSDOM.
 
 - **Wiring**: Mocks under \`src/tests/mocks/\` need an explicit factory:
 
 \`\`\`ts
-jest.mock("next/script", () => ({
-  __esModule: true,
-  default: require("src/tests/mocks/yourNextScriptMock").default,
-}));
+${nextScriptMock}
 \`\`\`
 
 ## Test IDs
@@ -1018,7 +1029,7 @@ One directory per component under \`src/components/<ComponentName>/\`. Use **Pas
 |------|---------|
 | **\`<Name>.component.tsx\`** | Main React component. Keep it focused on composition and minimal logic. Use CSS Modules (import \`styles\` from \`./<Name>.module.css\`) and apply class names. |
 | **\`<Name>.po.tsx\`** | Page object for tests. Extends \`BasePageObject\`, sets \`testId = "rh<Name>"\`, implements \`render<Name>(...)\` with \`render()\` from \`src/tests/test-utils.tsx\`, and holds setup, mocks, and test data. **No \`screen\` queries in the PO** — queries belong in the spec. |
-| **\`<Name>.spec.tsx\`** | Jest tests. Import \`describe\`, \`it\`, \`expect\`, \`beforeEach\` from \`@jest/globals\`. After the PO renders, use \`screen\` and \`userEvent\` for all queries and interactions. |
+| **\`<Name>.spec.tsx\`** | ${getTestRunner(a).name} tests. Import \`describe\`, \`it\`, \`expect\`, \`beforeEach\` from \`${getTestRunner(a).globals}\`. After the PO renders, use \`screen\` and \`userEvent\` for all queries and interactions. |
 | **\`<Name>.interfaces.ts\`** | Use when the component has **public** props or data types not already defined by a Contentful parser. If the component is driven by Contentful, the "interface" is usually the parsed type from \`src/contentful/parse<Name>.ts\`, so you may not need a separate interfaces file. |
 | **\`src/tests/factories/<Name>.factory.ts\`** | Subclass of \`BaseFactory\` for test data when tests need complex or repeated props. **Lives in \`src/tests/factories/\`, not in the component folder** — factories are shared test infrastructure. See [factories.md](factories.md) and [conventions.md](conventions.md). |
 | **\`<Name>.module.css\`** | Layout, spacing, typography, responsive rules. Use nesting and \`var(--...)\` from the design system. |
@@ -1184,7 +1195,7 @@ PRs that target **\`${base}\`**${a.includeClaudePipeline ? " (and pushes to **`m
 4. **\`pnpm tsc:ci\`** — TypeScript strict
 5. **\`pnpm lint:ci\`** — Biome in CI reporter mode
 6. **\`pnpm lint:css\`** — Stylelint
-7. **\`pnpm test:ci\`** — Jest
+7. **\`pnpm test:ci\`** — ${getTestRunner(a).name}
 8. **\`pnpm knip:ci\`** — unused exports and dependencies
 
 Run **\`pnpm lint:all\`** locally for the same checks as a full pre-push pass (\`lint:check\`, Stylelint fix, \`tsc:ci\`, \`knip:ci\`). Run **\`pnpm tsc:ci\`**, **\`pnpm lint:ci\`**, **\`pnpm lint:css\`**, **\`pnpm test:ci\`**, and **\`pnpm knip:ci\`** individually when iterating.
@@ -1207,7 +1218,8 @@ Run **\`pnpm lint:all\`** locally for the same checks as a full pre-push pass (\
 | \`pnpm lint:all\` | \`lint:check\`, Stylelint fix, \`tsc:ci\`, and \`knip:ci\`. |
 | \`pnpm knip\` / \`pnpm knip:ci\` | Dead-code / unused export analysis ([knip.json](../../knip.json)). |
 | \`pnpm next:upgrade\` / \`pnpm next:agents-md\` | Official Next.js codemods: upgrade, and refresh the docs index in \`docs/nextjs.md\` (see **Upgrading Next.js**). |
-| \`pnpm test:ci\` | Jest (CI-style). |
+| \`pnpm test:ci\` | ${getTestRunner(a).name} (CI-style). |
+| \`pnpm test:file <path>\` | Run the specs that match a path or name. |
 ${usesPlaywright(a) ? "| `pnpm test:e2e` | Playwright (`e2e/`) against `BASE_URL`. |\n" : ""}${a.includeClaudePipeline ? "| `pnpm typecheck` | TypeScript check for Vercel Deployment Checks. |\n" : ""}| \`pnpm scaffold\` | New component folder under \`src/components/\` (see [components.md](components.md)). |
 ${scriptRowsExtra}
 The full list lives in **\`package.json\`**.
@@ -1383,7 +1395,7 @@ const getHandbookBrowserTestsSection = (
   a: ProjectAnswers,
 ): string => `## Browser tests (Playwright)
 
-Tests live in \`e2e/\` (config: \`playwright.config.ts\`). Start the site, then run **\`pnpm test:e2e\`**; it targets \`BASE_URL\` (default \`http://localhost:${a.devPort}\`). The starter smoke test loads the home page and checks it with axe for accessibility problems. Put \`@smoke\` in the \`describe\` title of tests that must pass after every deploy. Jest ignores \`e2e/\`.
+Tests live in \`e2e/\` (config: \`playwright.config.ts\`). Start the site, then run **\`pnpm test:e2e\`**; it targets \`BASE_URL\` (default \`http://localhost:${a.devPort}\`). The starter smoke test loads the home page and checks it with axe for accessibility problems. Put \`@smoke\` in the \`describe\` title of tests that must pass after every deploy. Unit tests skip \`e2e/\`.
 
 `;
 
@@ -1436,7 +1448,7 @@ After a rollback, Vercel stops assigning production domains to new deployments. 
 
 ### Playwright
 
-Tests live in \`e2e/\` (config: \`playwright.config.ts\`). \`pnpm test:e2e\` runs against \`BASE_URL\` (default \`http://localhost:${a.devPort}\`; start \`pnpm dev\` first). Put \`@smoke\` in the \`describe\` title of tests that must pass on production. When \`VERCEL_AUTOMATION_BYPASS_SECRET\` is set, requests send the Vercel protection bypass headers. Jest ignores \`e2e/\`.
+Tests live in \`e2e/\` (config: \`playwright.config.ts\`). \`pnpm test:e2e\` runs against \`BASE_URL\` (default \`http://localhost:${a.devPort}\`; start \`pnpm dev\` first). Put \`@smoke\` in the \`describe\` title of tests that must pass on production. When \`VERCEL_AUTOMATION_BYPASS_SECRET\` is set, requests send the Vercel protection bypass headers. Unit tests skip \`e2e/\`.
 
 ### Limits
 

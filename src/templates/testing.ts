@@ -224,6 +224,53 @@ global.afterAll(() => {
 };
 
 // ---------------------------------------------------------------------------
+// .vitest/setupTests.ts
+// ---------------------------------------------------------------------------
+
+export const getVitestSetupTests = (): string => {
+  return `import "@testing-library/jest-dom/vitest";
+import { setupIntersectionObserverMock } from "src/tests/mocks/mockIntersectionObserver";
+import { setupMockMatchMedia } from "src/tests/mocks/mockMatchMedia";
+import { afterAll, beforeAll, beforeEach, vi } from "vitest";
+
+vi.mock("next/navigation", () => ({
+  useRouter: vi.fn(() => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+  })),
+  usePathname: vi.fn(() => "/"),
+  useSearchParams: vi.fn(() => new URLSearchParams()),
+  useParams: vi.fn(() => ({})),
+  redirect: vi.fn(),
+  notFound: vi.fn(),
+}));
+
+globalThis.fetch = vi.fn<typeof fetch>();
+
+// Testing Library's waitFor steps fake timers forward only when this global exists.
+Object.assign(globalThis, { jest: vi });
+
+beforeAll(() => {
+  setupIntersectionObserverMock();
+  setupMockMatchMedia();
+});
+
+beforeEach(() => {
+  vi.clearAllTimers();
+  vi.restoreAllMocks();
+  vi.clearAllMocks();
+});
+
+afterAll(() => {
+  vi.resetAllMocks();
+});
+`;
+};
+
+// ---------------------------------------------------------------------------
 // src/tests/mocks/mockIntersectionObserver.ts
 // ---------------------------------------------------------------------------
 
@@ -398,26 +445,26 @@ const FORBIDDEN_HOOK_LAYER_SPEC_MESSAGE =
 const QUERY_HOOK_MOCK_LINE_RULES = [
   {
     message:
-      "Do not jest.mock query hooks under src/hooks/queries/. Mock src/api/urls and let the real query hook run in TestProviders. See docs/handbook/react.md (Do not test React Query).",
-    pattern: /jest\\.mock\\s*\\(\\s*["']src\\/hooks\\/queries\\//,
-    rule: "jest-mock-query-hook",
+      "Do not module-mock query hooks under src/hooks/queries/. Mock src/api/urls and let the real query hook run in TestProviders. See docs/handbook/react.md (Do not test React Query).",
+    pattern: /(?:jest|vi)\\.mock\\s*\\(\\s*["']src\\/hooks\\/queries\\//,
+    rule: "module-mock-query-hook",
   },
 ] as const;
 
 const MUTATION_HOOK_MOCK_LINE_RULES = [
   {
     message:
-      "Do not jest.mock mutation hooks under src/hooks/mutations/. Mock src/api/urls and assert outcomes in components or feature hooks. See docs/handbook/react.md (Do not test React Query).",
-    pattern: /jest\\.mock\\s*\\(\\s*["']src\\/hooks\\/mutations\\//,
-    rule: "jest-mock-mutation-hook",
+      "Do not module-mock mutation hooks under src/hooks/mutations/. Mock src/api/urls and assert outcomes in components or feature hooks. See docs/handbook/react.md (Do not test React Query).",
+    pattern: /(?:jest|vi)\\.mock\\s*\\(\\s*["']src\\/hooks\\/mutations\\//,
+    rule: "module-mock-mutation-hook",
   },
 ] as const;
 
 const jestMockedQueryHookPattern =
-  /jest\\.mocked\\s*\\(\\s*use[A-Z][a-zA-Z0-9]*Query\\s*\\)/;
+  /(?:jest|vi)\\.mocked\\s*\\(\\s*use[A-Z][a-zA-Z0-9]*Query\\s*\\)/;
 
 const jestMockedMutationHookPattern =
-  /jest\\.mocked\\s*\\(\\s*use[A-Z][a-zA-Z0-9]*Mutation\\s*\\)/;
+  /(?:jest|vi)\\.mocked\\s*\\(\\s*use[A-Z][a-zA-Z0-9]*Mutation\\s*\\)/;
 
 export const isFeatureTestFile = (relativePath: string): boolean =>
   FEATURE_TEST_SUFFIXES.some((suffix) => relativePath.endsWith(suffix));
@@ -515,8 +562,8 @@ export const validateFeatureTestSource = (
         filePath,
         line: index + 1,
         message:
-          "Do not jest.mocked() query hooks from src/hooks/queries/. Mock src/api/urls instead. See docs/handbook/react.md (Do not test React Query).",
-        rule: "jest-mocked-query-hook",
+          "Do not wrap query hooks in mocked() when they come from src/hooks/queries/. Mock src/api/urls instead. See docs/handbook/react.md (Do not test React Query).",
+        rule: "module-mocked-query-hook",
       });
     }
 
@@ -526,8 +573,8 @@ export const validateFeatureTestSource = (
         filePath,
         line: index + 1,
         message:
-          "Do not jest.mocked() mutation hooks from src/hooks/mutations/. Mock src/api/urls instead. See docs/handbook/react.md (Do not test React Query).",
-        rule: "jest-mocked-mutation-hook",
+          "Do not wrap mutation hooks in mocked() when they come from src/hooks/mutations/. Mock src/api/urls instead. See docs/handbook/react.md (Do not test React Query).",
+        rule: "module-mocked-mutation-hook",
       });
     }
   }
@@ -613,7 +660,7 @@ describe("handbookTestRules", () => {
     expect(violations).toEqual([
       expect.objectContaining({
         line: 1,
-        rule: "jest-mock-mutation-hook",
+        rule: "module-mock-mutation-hook",
       }),
     ]);
   });
@@ -627,7 +674,7 @@ describe("handbookTestRules", () => {
     expect(violations).toEqual([
       expect.objectContaining({
         line: 1,
-        rule: "jest-mock-query-hook",
+        rule: "module-mock-query-hook",
       }),
     ]);
   });
@@ -644,12 +691,12 @@ describe("handbookTestRules", () => {
         excerpt: 'jest.mock("src/hooks/queries/useExample.query");',
         filePath: "src/components/Navigation/Navigation.spec.tsx",
         line: 12,
-        message: "Do not jest.mock query hooks.",
-        rule: "jest-mock-query-hook",
+        message: "Do not module-mock query hooks.",
+        rule: "module-mock-query-hook",
       },
     ]);
 
-    expect(formatted).toContain("[jest-mock-query-hook]");
+    expect(formatted).toContain("[module-mock-query-hook]");
     expect(formatted).toContain("Navigation.spec.tsx:12");
   });
 });

@@ -1,5 +1,6 @@
 import type { ProjectAnswers } from "../types.js";
 import { DEFAULT_VERSIONS, type Versions } from "./config.js";
+import { getTestRunner } from "./testRunner.js";
 
 const CHECKOUT_ACTION =
   "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2";
@@ -74,7 +75,7 @@ ${NODE_SETUP_STEPS}      - name: Run TSC
         run: pnpm lint:ci
       - name: Run Stylelint
         run: pnpm lint:css
-      - name: Run Jest
+      - name: Run ${getTestRunner(a).name}
         run: pnpm test:ci
       - name: Run Knip
         run: pnpm knip:ci
@@ -161,7 +162,7 @@ updates:
 // .github/labeler.yml
 // ---------------------------------------------------------------------------
 
-export const getLabelerYml = (): string => {
+export const getLabelerYml = (a: ProjectAnswers): string => {
   return `javascript:
   - src/**/*
   - scripts/**/*
@@ -179,7 +180,7 @@ configuration:
   - postcss.config.json
   - biome.json
   - stylelint.config.mjs
-  - jest.config.ts
+  - ${getTestRunner(a).config}
   - knip.json
   - tsconfig.json
 
@@ -217,7 +218,7 @@ jobs:
 // ---------------------------------------------------------------------------
 
 /** Paths that need a human CODEOWNERS approval before an automated PR can merge. */
-export const PIPELINE_PROTECTED_PATHS = [
+export const getPipelineProtectedPaths = (a: ProjectAnswers): string[] => [
   "/.github/",
   "/.claude/",
   "/CLAUDE.md",
@@ -231,23 +232,23 @@ export const PIPELINE_PROTECTED_PATHS = [
   "/tsconfig.json",
   "/biome.json",
   "/stylelint.config.mjs",
-  "/jest.config.ts",
+  `/${getTestRunner(a).config}`,
   "/knip.json",
   "/playwright.config.ts",
   "/e2e/",
   "/scripts/",
   "/src/proxy.ts",
   "/src/app/api/",
-] as const;
+];
 
 // ---------------------------------------------------------------------------
 // .github/CODEOWNERS
 // ---------------------------------------------------------------------------
 
-export const getCodeowners = (): string => {
-  const rows = PIPELINE_PROTECTED_PATHS.map(
-    (pattern) => `${pattern} @your-org/web-platform`,
-  ).join("\n");
+export const getCodeowners = (a: ProjectAnswers): string => {
+  const rows = getPipelineProtectedPaths(a)
+    .map((pattern) => `${pattern} @your-org/web-platform`)
+    .join("\n");
 
   return `# Automated (claude/*) PRs auto-merge unless they touch a path below.
 # These paths need a code owner approval (ruleset: "Require review from Code Owners", 0 required approvals).

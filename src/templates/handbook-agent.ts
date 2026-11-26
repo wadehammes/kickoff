@@ -187,9 +187,9 @@ export const getHandbookAgentWorkflow = (a: ProjectAnswers): string => {
 - Run **\`handbookTestRules.spec.ts\`** when feature test files changed
 - Nudge root README when user-facing setup or stack changed
 
-Dedupe state: **\`.cursor/hooks-state/\`** (gitignored); fingerprint includes **file contents** so in-place fixes re-run lint/Jest nags. See [**.cursor/hooks/README.md**](../../.cursor/hooks/README.md).
+Dedupe state: **\`.cursor/hooks-state/\`** (gitignored); fingerprint includes **file contents** so in-place fixes re-run lint and test nags. See [**.cursor/hooks/README.md**](../../.cursor/hooks/README.md).
 
-**preToolUse:** **\`enforce-handbook-edit.sh\`** runs Jest via \`scripts/cursor-handbook-guard.runner.spec.ts\` and blocks only **new** violations (\`newHandbookViolations\` in \`handbookEditGuard.ts\` + \`handbookTestRules.ts\`). Rule \`nested-describe\` ignores multiline \`import { … }\` binding lines.`
+**preToolUse:** **\`enforce-handbook-edit.sh\`** runs \`scripts/cursor-handbook-guard.runner.spec.ts\` through \`pnpm test:file\` and blocks only **new** violations (\`newHandbookViolations\` in \`handbookEditGuard.ts\` + \`handbookTestRules.ts\`). Rule \`nested-describe\` ignores multiline \`import { … }\` binding lines.`
       : `## Claude stop / drift
 
 Claude uses **\`handbook-drift-check\`** on stop when code changes without handbook updates.${a.includeClaudePipeline ? " The **`quality-gate.sh`** Stop hook also runs `tsc:ci`, `lint:ci`, `lint:css`, `test:ci`, and `knip:ci` and blocks finishing until they pass (see [releases.md](releases.md))." : ""} Same finish discipline: [llms.md](llms.md), **\`pnpm handbook:check\`**.`;

@@ -2,6 +2,8 @@ export type AgentTooling = "cursor" | "claude";
 
 export type Hosting = "vercel" | "other";
 
+export type TestRunner = "jest" | "vitest";
+
 export const PROJECT_TYPES = [
   "marketing",
   "careers",
@@ -36,6 +38,8 @@ export interface ProjectAnswers {
   includeForms: boolean;
   /** Playwright smoke and accessibility tests in e2e/ (always on with the Claude pipeline). */
   includePlaywright: boolean;
+  /** Unit test runner for specs and page objects. Defaults to "jest". */
+  testRunner: TestRunner;
   /** Extra npm packages to add, pinned to their newest release that is at least 7 days old. */
   extraPackages: string[];
   siteName: string;

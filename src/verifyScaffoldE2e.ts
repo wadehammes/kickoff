@@ -239,6 +239,46 @@ const driftHook = (root: string, answers: ProjectAnswers): string =>
         "scaffold-assets/claude-hooks/handbook-drift-check.mjs",
       );
 
+const runEditGuard = (root: string, content: string): string => {
+  const result = spawnSync(
+    path.join(root, ".cursor/hooks/enforce-handbook-edit.sh"),
+    [],
+    {
+      cwd: root,
+      encoding: "utf-8",
+      input: JSON.stringify({
+        cwd: root,
+        tool_input: {
+          content,
+          file_path: path.join(root, "src/utils/e2e.helpers.ts"),
+        },
+        tool_name: "Write",
+      }),
+    },
+  );
+
+  return `${result.stdout}${result.stderr}`;
+};
+
+// The guard runs a spec through the project's test runner, so only an
+// installed project shows whether it can find and run that spec.
+const verifyCursorEditGuard = (root: string): void => {
+  console.log("  cursor edit guard allows a clean edit");
+  const clean = runEditGuard(root, "export const e2e = 1;\n");
+  if (clean.includes("deny")) {
+    throw new Error(`edit guard denied a clean edit:\n${clean}`);
+  }
+
+  console.log("  cursor edit guard denies a convention violation");
+  const violation = runEditGuard(
+    root,
+    "export const e2e = (value: any) => value;\n",
+  );
+  if (!violation.includes("deny") || !violation.includes("no-explicit-any")) {
+    throw new Error(`edit guard allowed an explicit any:\n${violation}`);
+  }
+};
+
 const verifyHandbookTooling = (root: string, answers: ProjectAnswers): void => {
   console.log("  handbook drift check on a clean commit");
   execSync(
@@ -255,6 +295,10 @@ const verifyHandbookTooling = (root: string, answers: ProjectAnswers): void => {
     throw new Error(
       `handbook drift check reported problems:\n${drift.stdout}${drift.stderr}`,
     );
+  }
+
+  if (answers.agentTooling === "cursor") {
+    verifyCursorEditGuard(root);
   }
 
   console.log("  kickoff handbook --dry-run");

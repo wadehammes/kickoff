@@ -40,6 +40,7 @@ const baseAnswers = (
   siteName: "Test Site",
   stagingUrl: "https://staging.example.com",
   textColor: "#000000",
+  testRunner: "jest",
   useCurrentDir: true,
   ...overrides,
 });
@@ -476,6 +477,141 @@ describe("generateProject", () => {
       expect(readme).toContain(`rtk init --agent ${agentTooling}`);
       expect(workflow).toContain("rtk");
     }
+  });
+
+  it("sets up Vitest instead of Jest when testRunner is vitest", async () => {
+    const root = await runInTemp(baseAnswers({ testRunner: "vitest" }));
+    const read = (file: string) => readFileSync(path.join(root, file), "utf-8");
+    const pkg = JSON.parse(read("package.json")) as {
+      dependencies: Record<string, string>;
+      devDependencies: Record<string, string>;
+      scripts: Record<string, string>;
+    };
+    const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+
+    expect(existsSync(path.join(root, "vitest.config.ts"))).toBe(true);
+    expect(existsSync(path.join(root, "jest.config.ts"))).toBe(false);
+    expect(existsSync(path.join(root, ".jest"))).toBe(false);
+    expect(read(".vitest/setupTests.ts")).toContain(
+      "@testing-library/jest-dom/vitest",
+    );
+    expect(pkg.scripts["test:ci"]).toBe("vitest run --passWithNoTests");
+    expect(pkg.scripts["test:file"]).toBe("vitest run");
+    expect(deps).toHaveProperty("vitest");
+    expect(Object.keys(deps).filter((name) => /jest/.test(name))).toEqual([
+      "@testing-library/jest-dom",
+    ]);
+    expect(read("tsconfig.json")).not.toContain('"jest"');
+    expect(read("tsconfig.json")).toContain(".vitest/globals.d.ts");
+    expect(read(".vitest/globals.d.ts")).toContain("vitest/globals");
+
+    const jestUses = spawnSync(
+      "grep",
+      ["-rlE", "\\bjest\\.|@jest/", "src", "scripts", ".vitest"],
+      { cwd: root, encoding: "utf-8" },
+    );
+    expect(jestUses.stdout).toBe("");
+  });
+
+  it("flags vi.mock of query hooks in Vitest projects", async () => {
+    const root = await runInTemp(baseAnswers({ testRunner: "vitest" }));
+    const rules = path.join(root, "handbookTestRules.mjs");
+
+    writeFileSync(
+      rules,
+      stripTypeScriptTypes(
+        readFileSync(
+          path.join(root, "src/tests/utils/handbookTestRules.ts"),
+          "utf-8",
+        ),
+      ),
+    );
+
+    const { validateFeatureTestSource } = (await import(rules)) as {
+      validateFeatureTestSource: (
+        filePath: string,
+        source: string,
+      ) => { rule: string }[];
+    };
+
+    expect(
+      validateFeatureTestSource(
+        "src/components/Thing/Thing.spec.tsx",
+        'import { useThingQuery } from "src/hooks/queries/useThing";\nvi.mock("src/hooks/queries/useThing");\nvi.mocked(useThingQuery);\n',
+      ).map((violation) => violation.rule),
+    ).toEqual(["module-mock-query-hook", "module-mocked-query-hook"]);
+    expect(
+      readFileSync(
+        path.join(root, "src/tests/mocks/mockNextNavigation.ts"),
+        "utf-8",
+      ),
+    ).toContain(".vitest/setupTests.ts");
+  });
+
+  it("runs hook checks through the project's test runner", async () => {
+    const root = await runInTemp(baseAnswers({ testRunner: "vitest" }));
+    const hooksDir = path.join(root, ".cursor/hooks");
+    const hooks = readdirSync(hooksDir)
+      .map((file) => readFileSync(path.join(hooksDir, file), "utf-8"))
+      .join("\n");
+
+    expect(hooks).not.toContain("exec jest");
+
+    const result = spawnSync(
+      path.join(hooksDir, "block-query-hook-mocks.sh"),
+      [],
+      {
+        cwd: root,
+        encoding: "utf-8",
+        input: JSON.stringify({
+          tool_input: {
+            content:
+              'import { describe } from "vitest";\nvi.mock("src/hooks/queries/useThing");\n',
+            file_path: path.join(root, "src/components/Thing/Thing.spec.tsx"),
+          },
+          tool_name: "Write",
+        }),
+      },
+    );
+
+    expect(result.stdout).toContain("src/hooks/queries");
+    expect(result.stdout).toContain("deny");
+  });
+
+  it("blocks mocked() wrappers on query and mutation hooks", async () => {
+    const root = await runInTemp(baseAnswers({ testRunner: "vitest" }));
+    const runHook = (content: string) =>
+      spawnSync(
+        path.join(root, ".cursor/hooks/block-query-hook-mocks.sh"),
+        [],
+        {
+          cwd: root,
+          encoding: "utf-8",
+          input: JSON.stringify({
+            tool_input: {
+              content,
+              file_path: path.join(root, "src/components/Thing/Thing.spec.tsx"),
+            },
+            tool_name: "Write",
+          }),
+        },
+      ).stdout;
+
+    expect(
+      runHook(
+        'import { useSaveThingMutation } from "src/hooks/mutations/useSaveThing";\nvi.mocked(useSaveThingMutation);\n',
+      ),
+    ).toContain("src/hooks/mutations/");
+    expect(
+      runHook(
+        "import { useThingQuery } from 'src/hooks/queries/useThing';\nvi.mocked(useThingQuery);\n",
+      ),
+    ).toContain("src/hooks/queries/");
+    expect(
+      runHook(
+        'import { render } from "src/tests/test-utils";\nvi.mocked(fetch);\n',
+      ),
+    ).toBe("");
   });
 
   it("keeps server-only secrets out of next.config env", async () => {

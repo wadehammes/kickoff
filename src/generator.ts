@@ -189,6 +189,7 @@ import {
   getStyleHelpers,
   getStylelintConfig,
   getSvgMock,
+  getTestRunner,
   getToastHostComponent,
   getToastHostCSS,
   getToolVersions,
@@ -207,9 +208,13 @@ import {
   getVerifyVercelForReleaseSh,
   getVerifyVercelRelease,
   getVerifyVercelReleaseTestMjs,
+  getVitestConfig,
+  getVitestSetupTests,
   getWatchReleaseSh,
   getWorkingWithClaudeGuide,
   QUALITY_GATE_HOOK_SCRIPT_NAME,
+  toVitest,
+  usesVitest,
 } from "./templates/index.js";
 import type { ProjectAnswers } from "./types.js";
 
@@ -225,11 +230,25 @@ type Write = (
   options?: { executable?: boolean },
 ) => Promise<void>;
 
+// Templates are written for Jest; Vitest projects get them translated.
+const forTestRunner = (
+  a: ProjectAnswers,
+  relativePath: string,
+  content: string,
+): string =>
+  usesVitest(a) &&
+  !relativePath.startsWith("e2e/") &&
+  /\.(spec|test)\.tsx?$|\.po\.tsx$|^src\/tests\/mocks\//.test(relativePath)
+    ? toVitest(content)
+    : content;
+
 const createWriter = (
+  a: ProjectAnswers,
   root: string,
   { dryRun = false, verbose = false }: GenerateProjectOptions = {},
 ): Write => {
-  return async (relativePath, content, options) => {
+  return async (relativePath, template, options) => {
+    const content = forTestRunner(a, relativePath, template);
     if (dryRun) {
       console.log(relativePath);
       return;
@@ -360,7 +379,7 @@ export const generateHandbook = async (
   root: string,
   options?: GenerateProjectOptions,
 ): Promise<void> => {
-  await writeHandbook(a, createWriter(root, options));
+  await writeHandbook(a, createWriter(a, root, options));
 };
 
 export const getScaffoldRoot = (a: ProjectAnswers): string =>
@@ -372,7 +391,7 @@ export const generateProject = async (
 ): Promise<void> => {
   const root = getScaffoldRoot(a);
   const dryRun = options?.dryRun ?? false;
-  const write = createWriter(root, options);
+  const write = createWriter(a, root, options);
   const versions = options?.versions ?? DEFAULT_VERSIONS;
 
   if (!dryRun) {
@@ -381,7 +400,7 @@ export const generateProject = async (
 
   // ── Root config files ──────────────────────────────────────────────────────
   await write("package.json", getPackageJson(a, versions));
-  await write("tsconfig.json", getTsConfig());
+  await write("tsconfig.json", getTsConfig(a));
   await write("biome.json", getBiomeConfig());
   await write("stylelint.config.mjs", getStylelintConfig());
   await write("postcss.config.json", getPostcssConfig());
@@ -399,7 +418,11 @@ export const generateProject = async (
   if (!a.includeClaudePipeline) {
     await write("Makefile", getMakefile(a));
   }
-  await write("jest.config.ts", getJestConfig());
+  if (usesVitest(a)) {
+    await write("vitest.config.ts", getVitestConfig());
+  } else {
+    await write("jest.config.ts", getJestConfig());
+  }
   await write("knip.json", getKnipConfig(a));
   await write("next-env.d.ts", getNextEnvDeclaration());
   await write("next.config.ts", getNextConfig(a));
@@ -499,21 +522,32 @@ export const generateProject = async (
       ".github/workflows/production-smoke.yml",
       getProductionSmokeWorkflow(a, versions),
     );
-    await write(".github/CODEOWNERS", getCodeowners());
+    await write(".github/CODEOWNERS", getCodeowners(a));
     await write(".github/pull_request_template.md", getPullRequestTemplate());
   } else {
     await write(".github/workflows/release.yml", getReleaseWorkflow());
   }
   await write(".github/dependabot.yml", getDependabotConfig());
-  await write(".github/labeler.yml", getLabelerYml());
+  await write(".github/labeler.yml", getLabelerYml(a));
   await write(".github/workflows/labeler.yml", getLabelerWorkflow());
 
-  // ── .jest/ ─────────────────────────────────────────────────────────────────
-  await write(".jest/setEnvVars.ts", getSetEnvVars());
-  await write(".jest/setupTests.ts", getSetupTests());
+  // ── test setup (.jest/ or .vitest/) ────────────────────────────────────────
+  const { setupDir } = getTestRunner(a);
+  await write(`${setupDir}/setEnvVars.ts`, getSetEnvVars());
+  await write(
+    `${setupDir}/setupTests.ts`,
+    usesVitest(a) ? getVitestSetupTests() : getSetupTests(),
+  );
+  if (usesVitest(a)) {
+    // tsconfig typeRoots only covers @types, so the globals load by reference.
+    await write(
+      ".vitest/globals.d.ts",
+      '/// <reference types="vitest/globals" />\n',
+    );
+  }
 
   // ── scripts/ ───────────────────────────────────────────────────────────────
-  await write("scripts/scaffold.sh", getScaffoldSh());
+  await write("scripts/scaffold.sh", getScaffoldSh(a));
   if (!a.includeClaudePipeline) {
     await write("scripts/watch-release.sh", getWatchReleaseSh(), {
       executable: true,

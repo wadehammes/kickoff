@@ -1,4 +1,5 @@
 import type { ProjectAnswers } from "../types.js";
+import { getTestRunner, usesVitest } from "./testRunner.js";
 
 /**
  * Every package and tool version a generated project can use. `kickoff`
@@ -30,12 +31,14 @@ export const DEFAULT_VERSIONS = {
   "@types/react-dom": "^19.3.0",
   "@types/react-google-recaptcha": "^2.1.9",
   "@types/safe-json-stringify": "^1.1.5",
+  "@vitejs/plugin-react": "^6.3.0",
   "cf-content-types-generator": "^3.0.1",
   classnames: "^2.5.1",
   contentful: "^11.12.10",
   csstype: "^3.2.3",
   "html-react-parser": "^6.1.9",
   "identity-obj-proxy": "^3.0.0",
+  jsdom: "^31.0.1",
   jest: "^30.5.2",
   "jest-environment-jsdom": "^30.5.2",
   "jest-mock": "^30.5.2",
@@ -63,6 +66,8 @@ export const DEFAULT_VERSIONS = {
   typescript: "^7.0.2",
   "typescript-plugin-css-modules": "^5.3.0",
   vercel: "65.14.0",
+  "vite-tsconfig-paths": "^6.1.1",
+  vitest: "^5.1.1",
   zod: "^4.6.7",
 };
 
@@ -91,10 +96,10 @@ export const getPackageJson = (
 ): string => {
   const deps = pick(versions, [
     "@base-ui/react",
-    "@jest/types",
+    !usesVitest(a) && "@jest/types",
     "@tanstack/react-query",
     "classnames",
-    "jest-mock",
+    !usesVitest(a) && "jest-mock",
     "next",
     "postcss-flexbugs-fixes",
     "postcss-preset-env",
@@ -122,7 +127,7 @@ export const getPackageJson = (
   }
 
   const devDeps = pick(versions, [
-    "@jest/globals",
+    !usesVitest(a) && "@jest/globals",
     "@svgr/webpack",
     "@biomejs/biome",
     "@faker-js/faker",
@@ -130,21 +135,25 @@ export const getPackageJson = (
     "@testing-library/jest-dom",
     "@testing-library/react",
     "@testing-library/user-event",
-    "@types/jest",
+    !usesVitest(a) && "@types/jest",
     "@types/node",
     "@types/react",
     "@types/react-dom",
     "csstype",
-    "identity-obj-proxy",
-    "jest",
-    "jest-environment-jsdom",
+    !usesVitest(a) && "identity-obj-proxy",
+    !usesVitest(a) && "jest",
+    !usesVitest(a) && "jest-environment-jsdom",
     "knip",
     "react-is",
     "stylelint",
     "stylelint-config-css-modules",
     "stylelint-config-standard",
     "stylelint-value-no-unknown-custom-properties",
-    "ts-jest",
+    !usesVitest(a) && "ts-jest",
+    usesVitest(a) && "vitest",
+    usesVitest(a) && "@vitejs/plugin-react",
+    usesVitest(a) && "vite-tsconfig-paths",
+    usesVitest(a) && "jsdom",
     "tsx",
     "typescript",
     "typescript-plugin-css-modules",
@@ -172,7 +181,13 @@ export const getPackageJson = (
     "knip:ci": "knip --no-progress",
     scaffold: "bash scripts/scaffold.sh",
     start: `next start -p ${a.devPort}`,
-    "test:ci": "jest --passWithNoTests",
+    "test:ci": usesVitest(a)
+      ? "vitest run --passWithNoTests"
+      : "jest --passWithNoTests",
+    // The hooks run specs under scripts/, which test:ci leaves out.
+    "test:file": usesVitest(a)
+      ? "vitest run"
+      : "jest --testPathIgnorePatterns=/node_modules/ --runInBand --no-cache",
     "test:scripts":
       "node --import tsx --test scripts/verify-vercel-release.test.mjs",
     "tsc:ci": "tsc --strict",
@@ -211,7 +226,7 @@ export const getPackageJson = (
   return `${JSON.stringify(pkg, null, 2)}\n`;
 };
 
-export const getTsConfig = (): string => {
+export const getTsConfig = (a: ProjectAnswers): string => {
   return `{
   "compilerOptions": {
     "allowJs": false,
@@ -236,7 +251,7 @@ export const getTsConfig = (): string => {
     "strict": true,
     "target": "es2015",
     "typeRoots": ["node_modules/@types"],
-    "types": ["jest", "node"],
+    "types": ${usesVitest(a) ? '["node"]' : '["jest", "node"]'},
     "incremental": true,
     "plugins": [
       { "name": "next" },
@@ -247,7 +262,7 @@ export const getTsConfig = (): string => {
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".jest/setupTests.ts",
+    "${getTestRunner(a).setupDir}/setupTests.ts",${usesVitest(a) ? '\n    ".vitest/globals.d.ts",' : ""}
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
@@ -620,6 +635,43 @@ export default async () => {
 `;
 };
 
+export const getVitestConfig = (): string => {
+  return `// vitest.config.ts
+import { fileURLToPath } from "node:url";
+import react from "@vitejs/plugin-react";
+import tsconfigPaths from "vite-tsconfig-paths";
+import { defineConfig } from "vitest/config";
+
+const fromRoot = (file: string) =>
+  fileURLToPath(new URL(file, import.meta.url));
+
+export default defineConfig({
+  plugins: [tsconfigPaths(), react()],
+  resolve: {
+    alias: [
+      {
+        find: /^.+\\.svg$/,
+        replacement: fromRoot("./src/tests/mocks/svgMock.tsx"),
+      },
+      {
+        find: /^src\\/lib\\/toast\\/appToast$/,
+        replacement: fromRoot("./src/tests/mocks/appToast.mock.ts"),
+      },
+    ],
+  },
+  test: {
+    environment: "jsdom",
+    // Specs can use describe, it, and expect without importing them.
+    globals: true,
+    // scripts/ holds the edit guard spec the Cursor hook runs (a no-op otherwise).
+    include: ["src/**/*.{spec,test}.{ts,tsx}", "scripts/**/*.spec.ts"],
+    setupFiles: ["./.vitest/setEnvVars.ts", "./.vitest/setupTests.ts"],
+    testTimeout: 20000,
+  },
+});
+`;
+};
+
 export const getKnipConfig = (a: ProjectAnswers): string => {
   const ignore = [
     "scripts/**",
@@ -647,7 +699,7 @@ export const getKnipConfig = (a: ProjectAnswers): string => {
 
   const ignoreDependencies = [
     "@faker-js/faker",
-    "jest-mock",
+    ...(usesVitest(a) ? [] : ["jest-mock"]),
     "csstype",
     "react-is",
   ];
@@ -655,7 +707,10 @@ export const getKnipConfig = (a: ProjectAnswers): string => {
   return `${JSON.stringify(
     {
       $schema: "./node_modules/knip/schema.json",
-      entry: ["jest.config.ts", "scripts/cursor-handbook-guard.runner.spec.ts"],
+      entry: [
+        getTestRunner(a).config,
+        "scripts/cursor-handbook-guard.runner.spec.ts",
+      ],
       ignoreExportsUsedInFile: true,
       ignore,
       ignoreDependencies,

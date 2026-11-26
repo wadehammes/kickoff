@@ -308,9 +308,23 @@ describe("kickoff CLI", () => {
     const hostingIndex = questions.findIndex((q) => q.name === "hosting");
 
     expect(question("hosting").type).toBe("select");
+    expect(question("testRunner").type).toBe("select");
+    expect(question("testRunner").initial).toBe(0);
     expect(hostingIndex).toBeLessThan(
       questions.findIndex((q) => q.name === "includeClaudePipeline"),
     );
+  });
+
+  it("generates a Vitest project when Vitest is picked", async () => {
+    vi.mocked(prompts).mockResolvedValueOnce({
+      ...answers,
+      testRunner: "vitest",
+    });
+
+    expect(await run("--no-refresh")).toBeNull();
+    expect(
+      existsSync(path.join(root, "prompted-site", "vitest.config.ts")),
+    ).toBe(true);
   });
 
   it("generates a project for another host without Vercel files", async () => {

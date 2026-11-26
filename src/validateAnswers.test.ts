@@ -13,6 +13,7 @@ const valid: Omit<
   | "includePlaywright"
   | "projectDescription"
   | "projectType"
+  | "testRunner"
 > = {
   agentTooling: "cursor",
   bgColor: "#ffffff",
@@ -171,7 +172,14 @@ describe("validateAnswers", () => {
       includePlaywright: false,
       projectDescription: "",
       projectType: "marketing",
+      testRunner: "jest",
     });
+  });
+
+  it("accepts Vitest as the test runner", () => {
+    expect(
+      validateProjectAnswers({ ...valid, testRunner: "vitest" }),
+    ).toMatchObject({ testRunner: "vitest" });
   });
 
   it("always includes Playwright with the Claude pipeline", () => {
@@ -209,6 +217,7 @@ describe("validateAnswers", () => {
     [{ projectDescription: 4 }, "projectDescription must be a string"],
     [{ includeForms: "yes" }, "includeForms must be a boolean"],
     [{ includePlaywright: 1 }, "includePlaywright must be a boolean"],
+    [{ testRunner: "mocha" }, 'testRunner must be "jest" or "vitest"'],
     [
       { extraPackages: "date-fns" },
       "extraPackages must be a list of npm package names",

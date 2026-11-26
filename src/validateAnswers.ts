@@ -28,6 +28,7 @@ const OPTIONAL_KEYS: (keyof ProjectAnswers)[] = [
   "includePlaywright",
   "projectDescription",
   "projectType",
+  "testRunner",
 ];
 
 const NPM_NAME = /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/;
@@ -42,6 +43,7 @@ const validateProfile = (
       | "includePlaywright"
       | "projectDescription"
       | "projectType"
+      | "testRunner"
     >
   | string => {
   const projectType = o.projectType ?? "marketing";
@@ -60,6 +62,12 @@ const validateProfile = (
     if (o[key] !== undefined && typeof o[key] !== "boolean") {
       return `${key} must be a boolean`;
     }
+  }
+
+  const testRunner = o.testRunner ?? "jest";
+
+  if (testRunner !== "jest" && testRunner !== "vitest") {
+    return 'testRunner must be "jest" or "vitest"';
   }
 
   const extraPackages = o.extraPackages ?? [];
@@ -86,6 +94,7 @@ const validateProfile = (
       o.includePlaywright === true || o.includeClaudePipeline === true,
     projectDescription: projectDescription.trim(),
     projectType: projectType as ProjectAnswers["projectType"],
+    testRunner,
   };
 };
 

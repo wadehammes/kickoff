@@ -36,11 +36,12 @@ src/
     ├── next.ts           ← next.config.ts
     ├── scripts.ts        ← scaffold.sh, verify-vercel...
     ├── styles.ts         ← globals.css, variables.css, runtime-variables
+    ├── testRunner.ts     ← getTestRunner (per-runner names and files), toVitest (translates Jest test templates)
     ├── testing.ts        ← BasePageObject, BaseFactory, mocks, setupTests, RichTextDocument factory, Playwright config + e2e smoke spec
     ├── types.ts          ← KeysMatch, PropsWithChildrenOnly
     └── utils.ts          ← array/string/url/environment/contentful/style/factory helpers, constants, interfaces
 
-fixtures/scaffold-e2e/     ← Answer JSON for scaffold E2E (cursor-static, cursor-selfhost-i18n, claude-static, claude-pipeline, claude-pipeline-i18n, cursor-contentful-all)
+fixtures/scaffold-e2e/     ← Answer JSON for scaffold E2E (cursor-static, cursor-selfhost-i18n, cursor-vitest, claude-static, claude-pipeline, claude-pipeline-i18n, cursor-contentful-all)
 .cursor/                   ← Cursor hooks for this repo (see .cursor/hooks/README.md)
 ```
 
@@ -61,6 +62,7 @@ Examples:
 - Change the handbook layout (`getHandbookReadme`, `getHandbookLlms`, `getHandbookNonNegotiables`) → make the same change to the structure `src/handbook/prompt.ts` asks agents to write, so existing repos and new projects get the same handbook
 - Add anything Vercel-specific to a generated project → put it behind `usesVercel(a)` (`config.ts`); the generation matrix fails if a `hosting: "other"` project mentions Vercel, refresh-content, or the deploy components
 - Add an add-on → add its key to `ProjectAnswers` and `OPTIONAL_KEYS` (with a default), to `ADD_ONS` and the `RECOMMENDED` lists in `recommendations.ts`, and to `OPTION_KEYS` in the generation matrix
+- Add or change a test template (spec, page object, mock, setup) → write it for Jest (`jest.`, `@jest/globals`). The generator runs every `.ts`/`.tsx` file through `toVitest` for Vitest projects. Take runner-specific names and paths in templates and docs from `getTestRunner(a)`; the generation matrix fails if a Vitest project mentions Jest
 - Add a package to a generated project → add it to `DEFAULT_VERSIONS` in `config.ts` (the refresh only updates packages listed there), and to `KEEP_PINNED` if it must stay exactly pinned
 - Change the `/handbook-review` command (`getHandbookReviewCommand` in `agents.ts`) → keep its list of hook rules in step with the hooks tables in `getClaudeHooksReadme` / `getCursorHooksReadme`
 - Change the Claude pipeline (`includeClaudePipeline`: workflows in `github.ts`, quality gate in `agents.ts`, Playwright in `testing.ts`) → update `getHandbookPipelineSection` / `getPipeline*` helpers in `docs.ts` (rendered into `releases.md`), `getClaudePipelineInstructions` (generated `CLAUDE.md`), `getWorkingWithClaudeGuide` (`docs/working-with-claude.md` for non-technical requesters), root `README.md`, and `fixtures/scaffold-e2e/claude-pipeline.json` if answers change
@@ -94,7 +96,7 @@ Kickoff ships **`.cursor/hooks.json`** and scripts under **`.cursor/hooks/`** th
 ## Testing generation scenarios
 
 - Token budgets: every handbook page stays under ~1,500 tokens, /handbook-review under ~1,500, and what loads at session start (`CLAUDE.md`, plus the non-negotiables and the `llms.md` routing table the session hook injects) under ~2,750 (`TOKEN_BUDGETS` in the generation matrix). Split a page by topic when it grows past its budget instead of raising the number.
-- `src/generationMatrix.test.ts` generates every tooling × option combination (96 projects) in seconds and checks structural invariants. Add an invariant there when you fix a class of generator bug.
+- `src/generationMatrix.test.ts` generates every tooling × option combination (896 projects, including Vitest projects) in seconds and checks structural invariants. Add an invariant there when you fix a class of generator bug.
 - `fixtures/scaffold-e2e/*.json` covers each option at least once for the slow end-to-end run. Add a fixture when a new option or combination needs a real install, build, or browser test.
 - Write the test first and watch it fail for the reason you expect before you change the code. When you add tests for code that already exists, break the code on purpose to prove the test catches it.
 - `pnpm test:coverage` must stay above the thresholds in `vitest.config.ts`. Code that only runs as a separate process (the CLI and hook entry points) is covered by subprocess tests and the scaffold E2E instead.

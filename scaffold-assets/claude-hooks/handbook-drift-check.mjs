@@ -190,7 +190,7 @@ export const collectFindings = () => {
 
   const codeChanged = matching(/^src\/(?!copy\/).*\.(ts|tsx|css)$/);
   const opsChanged = matching(
-    /^(package\.json|jest\.config\.ts|next\.config\.ts|biome\.json|knip\.json|stylelint\.config\.mjs|pnpm-workspace\.yaml|Makefile|\.tool-versions|\.jest\/.*|\.github\/.*|scripts\/.*|i18next\.config\.ts)$/,
+    /^(package\.json|(?:jest|vitest)\.config\.ts|next\.config\.ts|biome\.json|knip\.json|stylelint\.config\.mjs|pnpm-workspace\.yaml|Makefile|\.tool-versions|\.(?:jest|vitest)\/.*|\.github\/.*|scripts\/.*|i18next\.config\.ts)$/,
   );
   const docsChanged = matching(
     /^(docs\/handbook\/.*\.md|README\.md|CLAUDE\.md)$/,
@@ -231,7 +231,7 @@ export const collectFindings = () => {
 
     if (opsChanged.length > 0) {
       scope.push(
-        `Changed config/ops (documented in platform.md for scripts and CI, env.md for env vars and next.config, testing.md for jest config):\n${opsChanged.join("\n")}`,
+        `Changed config/ops (documented in platform.md for scripts and CI, env.md for env vars and next.config, testing.md for test runner config):\n${opsChanged.join("\n")}`,
       );
     }
 

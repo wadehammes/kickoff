@@ -30,6 +30,7 @@ const answers: ProjectAnswers = {
   projectName: "handbook-only",
   siteName: "Handbook Only",
   stagingUrl: "https://staging.example.com",
+  testRunner: "jest",
   textColor: "#000000",
   useCurrentDir: false,
 };

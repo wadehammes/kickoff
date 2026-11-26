@@ -102,7 +102,7 @@ Every generated project includes:
 | Framework | Next.js 16 (App Router), React 19, strict TypeScript 7 |
 | Styling | CSS Modules, PostCSS Preset Env, design tokens from your brand colors |
 | UI | Base UI primitives, SVGs as components, React Query for client data |
-| Quality | Biome (lint and format), Stylelint, Jest with Testing Library, knip for dead code |
+| Quality | Biome (lint and format), Stylelint, Jest or Vitest with Testing Library, knip for dead code |
 | SEO and security | Next.js sitemap (`src/app/sitemap.ts`), robots, web manifest, JSON-LD helpers, security headers with a Content Security Policy |
 | Deployment | Vercel, plus a token-protected page for triggering a redeploy, or any other host that runs Next.js |
 | CI | GitHub Actions with every action pinned to a commit, Dependabot, PR labeling |
@@ -125,6 +125,7 @@ kickoff starts by asking what kind of project it is (marketing site, careers or 
 | Browser tests | Playwright smoke and accessibility tests in `e2e/` with `pnpm test:e2e`. Always on with the Claude pipeline. |
 | Extra packages | Any npm packages you name, each pinned to its newest release that has been out at least 7 days. kickoff stops if one isn't on npm. |
 | Agent tooling | Cursor (`.cursor/` hooks, rules, and commands) or Claude Code (`.claude/` settings, hooks, and commands) |
+| Test runner | `jest` (default) runs specs through `next/jest`. `vitest` gives you the same specs, page objects, and mocks on Vitest, with no Jest packages installed. |
 | Hosting | `vercel` (default) adds the redeploy page, the Vercel release check, and Vercel env vars. `other` leaves every Vercel file and mention out, for any host that runs Next.js. |
 | Claude pipeline | The hands-off pipeline below. Requires Claude Code tooling and Vercel hosting. |
 
@@ -145,11 +146,11 @@ A monthly workflow also runs the official Next.js upgrade codemod and opens a PR
 
 ### Interactive
 
-Run `kickoff` and answer the prompts: project name, site name, project type and description, production and staging URLs, dev port, brand colors, the add-on checklist, extra packages, hosting, and agent tooling. Choosing Claude Code with Vercel hosting adds the pipeline question. The project is written to `./<project-name>/`, or to the current directory if you choose that.
+Run `kickoff` and answer the prompts: project name, site name, project type and description, production and staging URLs, dev port, brand colors, the add-on checklist, extra packages, hosting, test runner, and agent tooling. Choosing Claude Code with Vercel hosting adds the pipeline question. The project is written to `./<project-name>/`, or to the current directory if you choose that.
 
 ### Non-interactive
 
-Pass a JSON file with every answer. kickoff rejects missing or unknown keys, and values must be real JSON booleans and numbers. The project profile keys are optional, so older answers files still work: `hosting` defaults to `"vercel"`, `projectType` to `"marketing"`, `projectDescription` to `""`, `includeForms` and `includePlaywright` to `false`, and `extraPackages` to `[]`.
+Pass a JSON file with every answer. kickoff rejects missing or unknown keys, and values must be real JSON booleans and numbers. The project profile keys are optional, so older answers files still work: `hosting` defaults to `"vercel"`, `testRunner` to `"jest"`, `projectType` to `"marketing"`, `projectDescription` to `""`, `includeForms` and `includePlaywright` to `false`, and `extraPackages` to `[]`.
 
 ```sh
 kickoff --answers ./answers.json
@@ -173,6 +174,7 @@ kickoff --answers ./answers.json
   "includeRecaptcha": false,
   "agentTooling": "claude",
   "hosting": "vercel",
+  "testRunner": "vitest",
   "includeClaudePipeline": true,
   "projectType": "careers",
   "projectDescription": "Careers site with role pages in English and Spanish.",
@@ -273,7 +275,8 @@ Claude pipeline projects are trunk-based on `main`:
 | `pnpm dev` | Start the dev server |
 | `pnpm build` | Production build |
 | `pnpm lint:all` | Biome on changed files, Stylelint, typecheck, and knip |
-| `pnpm test:ci` | Jest |
+| `pnpm test:ci` | Unit tests (Jest or Vitest) |
+| `pnpm test:file <path>` | Run the specs that match a path or name |
 | `pnpm scaffold MyComponent` | Create a component with its CSS module, interfaces, spec, page object, and test factory |
 | `pnpm handbook:check` | Fail if code changed without a matching handbook update |
 | `pnpm next:upgrade` | Upgrade Next.js and React to the latest minor with the official codemod |
@@ -313,7 +316,7 @@ Templates and the generated handbook (`src/templates/docs.ts`) have to stay in s
 | `pnpm build` | Compile to `dist/` |
 | `pnpm dev` | Compile in watch mode |
 | `pnpm lint` / `pnpm lint:fix` | Biome |
-| `pnpm test` | Unit and integration tests, plus a matrix that generates all 640 combinations of tooling, hosting, and options and checks each one |
+| `pnpm test` | Unit and integration tests, plus a matrix that generates all 896 combinations of tooling, hosting, test runner, and options and checks each one |
 | `pnpm test:coverage` | The same tests with a coverage report. CI fails below 95% of lines, statements, and functions or 90% of branches |
 | `pnpm test:scaffold-e2e` | Run `kickoff handbook` end to end, then generate each fixture project, install it, run its CI checks and its handbook drift check, and build, serve and smoke-test the ones without Contentful |
 
@@ -323,7 +326,7 @@ The matrix test (`src/generationMatrix.test.ts`) takes under a minute. For every
 - imports resolve, `pnpm` scripts that docs mention exist, and JSON and TypeScript parse;
 - every markdown link and anchor resolves;
 - generated code follows its own handbook (arrow functions, test IDs, exports, braces, spacing);
-- projects not hosted on Vercel never mention it;
+- projects not hosted on Vercel never mention it, and Vitest projects never mention Jest;
 - handbook pages and session-start context stay within their token budgets.
 
 When you fix a class of generator bug, add a check there.

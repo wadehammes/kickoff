@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import type { ProjectAnswers } from "../types.js";
 import { getBaseBranch } from "./config.js";
 import { getHandbookChangePolicy } from "./docs.js";
+import { getTestRunner } from "./testRunner.js";
 
 const scaffoldAssetsDir = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -1076,7 +1077,7 @@ export const getHandbookReviewCommand = (a: ProjectAnswers): string => {
   const dir = getAgentDir(a);
   const keepPaths = [
     "`src/`",
-    "`jest.config.ts`",
+    `\`${getTestRunner(a).config}\``,
     "`next.config.ts`",
     ...(a.includeClaudePipeline ? ["`e2e/`", "`playwright.config.ts`"] : []),
     "`docs/handbook/`, when the branch also changes handbook text (check that it is accurate, not its style)",
