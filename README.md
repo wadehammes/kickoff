@@ -17,6 +17,7 @@
 
 <p>
   <a href="#built-for-agents">Built for agents</a> ·
+  <a href="#built-to-keep-agent-context-small">Token-lean</a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="#what-you-get">What you get</a> ·
   <a href="#the-hands-off-claude-pipeline">Claude pipeline</a> ·
@@ -54,6 +55,15 @@ Cursor or Claude Code hooks run on every edit, so a rule that's written down is 
 ### A review command for everything else
 
 `/handbook-review` reviews a branch the way a teammate who knows the handbook would. It routes each changed file to its pages, runs the linters read-only, checks every added line against the non-negotiables, and reports findings with a link to the rule and a suggested fix. Code written outside an agent session never went through the hooks, so this is how it gets the same check. Reply **go** and the agent applies the fixes.
+
+### Built to keep agent context small
+
+Every token an agent spends reading instructions is one it can't spend on your code, so the generated project is designed to load as little as possible:
+
+- **Small pages, read on demand.** The handbook is split by topic, and every page stays under about 1,500 tokens. `llms.md` sends an agent to the one page that matches the file it's touching, so a CSS change reads the CSS page, not the whole handbook. Tests fail if a page or the session-start context grows past its budget.
+- **A lean `CLAUDE.md`.** What loads at the start of every session stays under about 2,000 tokens. The Next.js docs index (about 2,400 tokens on its own) lives in `docs/nextjs.md`, and `CLAUDE.md` carries a one-line pointer to it.
+- **Quiet hooks.** The handbook reminder fires once per file per session, and the quality gate reports only the failing checks, trimmed to their errors.
+- **[rtk](https://www.rtk-ai.app/) built in.** Generated projects recommend rtk, which condenses test, build, lint, and git output before an agent reads it, and the quality gate uses it automatically when it's installed.
 
 ## Quick start
 
@@ -198,7 +208,7 @@ After generation, Dependabot keeps the GitHub Actions pins current, with the sam
 cd my-new-site
 cp .env.local.example .env.local   # or: npx vercel link && npx vercel env pull .env.local
 pnpm install
-pnpm next:agents-md                # index the Next.js docs into CLAUDE.md
+pnpm next:agents-md                # index the Next.js docs into docs/nextjs.md
 pnpm dev
 ```
 
@@ -266,7 +276,7 @@ Claude pipeline projects are trunk-based on `main`:
 | `pnpm scaffold MyComponent` | Create a component with its CSS module, interfaces, spec, page object, and test factory |
 | `pnpm handbook:check` | Fail if code changed without a matching handbook update |
 | `pnpm next:upgrade` | Upgrade Next.js and React to the latest minor with the official codemod |
-| `pnpm next:agents-md` | Refresh the Next.js docs index in `CLAUDE.md` |
+| `pnpm next:agents-md` | Refresh the Next.js docs index in `docs/nextjs.md` |
 | `pnpm test:e2e` | Playwright smoke and accessibility tests (pipeline projects) |
 | `pnpm types:contentful` | Regenerate Contentful types (Contentful projects) |
 

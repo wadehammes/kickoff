@@ -433,8 +433,14 @@ const findOverBudget = (root: string): string[] => {
 
   return [
     ...over(
-      "always loaded (CLAUDE.md + session-start llms.md)",
-      estimateTokens(read("CLAUDE.md") + read("docs/handbook/llms.md")),
+      "always loaded (CLAUDE.md + session-start routing table)",
+      estimateTokens(
+        read("CLAUDE.md") +
+          read("docs/handbook/llms.md")
+            .split("\n")
+            .filter((line) => line.startsWith("|"))
+            .join("\n"),
+      ),
       TOKEN_BUDGETS.alwaysLoaded,
     ),
     ...readdirSync(handbookDir)

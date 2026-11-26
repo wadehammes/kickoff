@@ -425,12 +425,12 @@ const verifyFixture = async (
       stdio: "inherit",
     });
     if (
-      !readFileSync(path.join(tmpRoot, "CLAUDE.md"), "utf-8").includes(
+      !readFileSync(path.join(tmpRoot, "docs/nextjs.md"), "utf-8").includes(
         NEXT_DOCS_INDEX_MARKER,
       )
     ) {
       throw new Error(
-        "pnpm next:agents-md did not add the docs index to CLAUDE.md",
+        "pnpm next:agents-md did not write the docs index to docs/nextjs.md",
       );
     }
 
