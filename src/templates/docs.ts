@@ -33,7 +33,7 @@ export const getClaude = (a: ProjectAnswers): string => {
 
 ${getProjectSummary(a)}
 
-Before **substantive** work in this repo (features, refactors, ${cmsClause}patterns that touch the App Router or API routes, CI or env, analytics), read **\`docs/handbook/non-negotiables.md\`** and the handbook page that matches the task. **\`docs/handbook/llms.md\`** maps tasks and files to pages. When unsure which pattern to use, read **\`docs/handbook/decisions.md\`** first.
+Before **substantive** work in this repo (features, refactors, ${cmsClause}patterns that touch the App Router or API routes, CI or env, analytics), read the handbook page that matches the task (**\`docs/handbook/llms.md\`** maps tasks and files to pages). The non-negotiables (\`docs/handbook/non-negotiables.md\`) load at the start of every session; every change follows them. When unsure which pattern to use, read **\`docs/handbook/decisions.md\`** first.
 
 Follow documented patterns.
 

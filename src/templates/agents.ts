@@ -225,20 +225,23 @@ export const getSessionHandbookRoutingSh = (): string => {
   return `#!/usr/bin/env bash
 set -euo pipefail
 
-# Session start: inject handbook routing map once per agent session.
+# Session start: inject the non-negotiables and the handbook routing table once per agent session.
 
 source "$(dirname "$0")/_lib.sh"
 hook_input
 
 root="$(project_dir)"
 map_file="$root/docs/handbook/llms.md"
+rules_file="$root/docs/handbook/non-negotiables.md"
 
 [ -f "$map_file" ] || exit 0
 
 map_content="$(grep "^|" "$map_file")"
+rules_content=""
+[ -f "$rules_file" ] && rules_content="$(<"$rules_file")"
 
 session_context "$(
-  printf 'Handbook routing — read the chapter matching this task BEFORE editing code (from docs/handbook/llms.md):\\n\\n%s' "$map_content"
+  printf '%s\\n\\nHandbook routing — read the page matching this task BEFORE editing code (from docs/handbook/llms.md):\\n\\n%s' "$rules_content" "$map_content"
 )"
 
 exit 0
@@ -1000,7 +1003,7 @@ Shared team files under \`.cursor/\` are tracked in git (\`hooks.json\`, \`hooks
 
 | Script | Event | What it does |
 |--------|-------|--------------|
-| \`session-handbook-routing.sh\` | \`sessionStart\` | Injects the handbook routing map (\`llms.md\`) into session context. |
+| \`session-handbook-routing.sh\` | \`sessionStart\` | Injects the non-negotiables and the handbook routing table (from \`llms.md\`) into session context. |
 | \`block-added-comments.sh\` | \`preToolUse\` | Denies edits that add code comments. |
 | \`block-toplevel-media.sh\` | \`preToolUse\` | Denies top-level \`@media\` in CSS — nest inside selectors. |
 | \`block-custom-media.sh\` | \`preToolUse\` | Denies \`@custom-media\` / \`@media (--var)\` — use range syntax. |
@@ -1047,7 +1050,7 @@ Shared team files under \`.claude/\` are tracked in git (\`settings.json\`, \`ho
 
 | Script | Event | What it does |
 |--------|-------|--------------|
-| \`session-handbook-routing.sh\` | \`SessionStart\` | Injects the handbook routing map (\`llms.md\`) into session context. |
+| \`session-handbook-routing.sh\` | \`SessionStart\` | Injects the non-negotiables and the handbook routing table (from \`llms.md\`) into session context. |
 | \`block-added-comments.sh\` | \`PreToolUse\` | Denies edits that add code comments. |
 | \`block-toplevel-media.sh\` | \`PreToolUse\` | Denies top-level \`@media\` in CSS — nest inside selectors. |
 | \`block-custom-media.sh\` | \`PreToolUse\` | Denies \`@custom-media\` / \`@media (--var)\` — use range syntax. |

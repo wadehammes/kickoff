@@ -414,7 +414,9 @@ const findVercelMentions = (root: string): string[] =>
 const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
 
 const TOKEN_BUDGETS = {
-  alwaysLoaded: 2_000,
+  // CLAUDE.md, plus what the session-start hook injects: the non-negotiables
+  // (always loaded by design, so agents never skip them) and the routing table.
+  alwaysLoaded: 2_750,
   handbookPage: 1_500,
   reviewCommand: 1_500,
 };
@@ -433,9 +435,10 @@ const findOverBudget = (root: string): string[] => {
 
   return [
     ...over(
-      "always loaded (CLAUDE.md + session-start routing table)",
+      "always loaded (CLAUDE.md + session-start non-negotiables and routing table)",
       estimateTokens(
         read("CLAUDE.md") +
+          read("docs/handbook/non-negotiables.md") +
           read("docs/handbook/llms.md")
             .split("\n")
             .filter((line) => line.startsWith("|"))

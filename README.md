@@ -38,7 +38,7 @@ Besides the app, kickoff writes down how it's built, blocks agent edits that bre
 Every project gets `docs/handbook/`, which describes how the code is built, one page per part of the work, each rule with an example.
 
 - `non-negotiables.md` puts every always-and-never rule on one page, each linked to the section that explains it.
-- `llms.md` maps tasks and file patterns to the page an agent should read before touching them. Its routing table loads at the start of every agent session.
+- `llms.md` maps tasks and file patterns to the page an agent should read before touching them. Its routing table and the non-negotiables load at the start of every agent session.
 - A glossary, a decisions page for "which pattern fits?", and feature playbooks for new components, API routes, hooks, and factories.
 
 Already have a codebase? [`kickoff handbook`](#generating-just-a-handbook) has the agent of your choice (Claude Code, Cursor, Codex, Gemini, or anything that takes a prompt) study the code and write the same handbook for it, with examples taken from your files.
@@ -61,7 +61,7 @@ Cursor or Claude Code hooks run on every edit, so a rule that's written down is 
 A generated project keeps what an agent has to read small, so more of each session goes to the code:
 
 - The handbook is split by topic, and every page stays under about 1,500 tokens. `llms.md` sends an agent to the page that matches the file it's touching, so a CSS change reads the CSS page and nothing else.
-- What loads at the start of every session (`CLAUDE.md` and the routing table) stays under about 2,000 tokens. The Next.js docs index, about 2,400 tokens on its own, lives in `docs/nextjs.md`, and `CLAUDE.md` points to it.
+- The non-negotiables load at the start of every session, so an agent never skips them. Together with `CLAUDE.md` and the routing table, that context stays under about 2,750 tokens. The Next.js docs index, about 2,400 tokens on its own, lives in `docs/nextjs.md`, and `CLAUDE.md` points to it.
 - Tests in kickoff fail if a page or the session-start context grows past its budget, so the numbers can't creep up unnoticed.
 - The handbook reminder fires once per file per session, and the quality gate reports only failing checks, trimmed to their errors.
 - Projects recommend [rtk](https://www.rtk-ai.app/), which condenses test, build, lint, and git output before an agent reads it. The quality gate uses it automatically when it's installed.

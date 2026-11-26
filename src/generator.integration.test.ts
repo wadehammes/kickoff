@@ -440,7 +440,7 @@ describe("generateProject", () => {
     expect(gate(false)).not.toContain("[rtk]");
   });
 
-  it("injects only the routing table at session start", async () => {
+  it("injects the non-negotiables and the routing table at session start", async () => {
     const root = await runInTemp(
       baseAnswers({ agentTooling: "claude", projectName: "session-site" }),
     );
@@ -455,6 +455,8 @@ describe("generateProject", () => {
     ).stdout;
 
     expect(injected).toContain("| Any change, before anything else |");
+    expect(injected).toContain("# Non-negotiables");
+    expect(injected).toContain("| Always | Never | Page |");
     expect(injected).not.toContain("Outside this folder");
     expect(injected).not.toContain("Written for agents and tools");
   });
