@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, join, normalize } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const MAX_REPORTED = 20;
 
@@ -63,8 +63,30 @@ const docPaths = () =>
     existsSync(doc),
   );
 
-const withoutFencedCode = (markdown) =>
-  markdown.replace(/^```[\s\S]*?^```/gm, "");
+const withoutFencedCode = (markdown) => {
+  const kept = [];
+  let fence = null;
+
+  for (const line of markdown.split("\n")) {
+    const marker = line.match(/^ {0,3}(`{3,}|~{3,})/)?.[1];
+
+    if (fence === null && marker) {
+      fence = marker;
+    } else if (
+      fence !== null &&
+      marker &&
+      marker[0] === fence[0] &&
+      marker.length >= fence.length &&
+      line.trim() === marker
+    ) {
+      fence = null;
+    } else if (fence === null) {
+      kept.push(line);
+    }
+  }
+
+  return kept.join("\n");
+};
 
 export const headingSlugs = (path) => {
   const slugs = new Set();
@@ -253,6 +275,17 @@ const main = async () => {
   process.stdout.write(JSON.stringify({ decision: "block", reason }));
 };
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+const isEntryPoint = () => {
+  try {
+    return (
+      realpathSync(process.argv[1] ?? "") ===
+      realpathSync(fileURLToPath(import.meta.url))
+    );
+  } catch {
+    return false;
+  }
+};
+
+if (isEntryPoint()) {
   await main();
 }
