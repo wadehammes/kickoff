@@ -16,6 +16,7 @@
 </p>
 
 <p>
+  <a href="#built-for-agents">Built for agents</a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="#what-you-get">What you get</a> ·
   <a href="#the-hands-off-claude-pipeline">Claude pipeline</a> ·
@@ -27,7 +28,32 @@
 
 kickoff is a command-line tool that generates a complete Next.js and TypeScript project, ready for a team or an AI agent to build on.
 
-You answer a few questions (or pass a JSON file), and kickoff writes out a repo with the framework, tooling, CI, Vercel helpers, and a project handbook that agents read before changing anything. Optional modules add a CMS, i18n, analytics, email, reCAPTCHA, and a hands-off pipeline where Claude opens pull requests and automated checks stand in for human review.
+Plenty of tools scaffold an app. kickoff also writes down how the app is built, stops agents from breaking those rules while they edit, and checks a branch against them before it becomes a PR. An agent working in a kickoff project follows the same conventions as the people who set them, without anyone repeating them in every prompt.
+
+## Built for agents
+
+### A handbook agents read first
+
+Every project gets `docs/handbook/`, which describes how the code is built, one page per part of the work, each rule with an example.
+
+- `non-negotiables.md` puts every always-and-never rule on one page, each linked to the section that explains it.
+- `llms.md` maps tasks and file patterns to the page an agent should read before touching them, and every agent session starts with it loaded.
+- A glossary, a decisions page for "which pattern fits?", and feature playbooks for new components, API routes, hooks, and factories.
+
+Already have a codebase? [`kickoff handbook`](#generating-just-a-handbook) has the agent of your choice (Claude Code, Cursor, Codex, Gemini, or anything that takes a prompt) study the code and write the same handbook for it, with examples taken from your files.
+
+### Hooks that hold the line
+
+Cursor or Claude Code hooks run on every edit, so a rule that's written down is also enforced:
+
+- Edits are blocked when they add code comments, `margin-top`, top-level or custom `@media`, `index.ts` barrels, placeholder names, factories outside `src/tests/factories/`, or a component folder that didn't come from `pnpm scaffold`.
+- Destructive git commands and force pushes to protected branches are blocked too, and so are hand edits to generated Contentful types in Claude Code projects that use Contentful.
+- After each edit, the agent is told which handbook page the change touches.
+- Before the agent finishes, a drift check flags code that changed without a handbook update, handbook links that no longer resolve, and docs that name `pnpm` scripts that don't exist. Hands-off pipeline projects add a quality gate that keeps Claude working until typecheck, lint, tests, and knip pass.
+
+### A review command for everything else
+
+`/handbook-review` reviews a branch the way a teammate who knows the handbook would. It routes each changed file to its pages, runs the linters read-only, checks every added line against the non-negotiables, and reports findings with a link to the rule and a suggested fix. Code written outside an agent session never went through the hooks, so this is how it gets the same check. Reply **go** and the agent applies the fixes.
 
 ## Quick start
 
