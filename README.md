@@ -1,6 +1,31 @@
-# kickoff
+<div align="center">
 
-A command-line tool that generates a complete Next.js and TypeScript project, ready for a team or an AI agent to build on.
+<img src=".github/assets/logo.svg" alt="kickoff logo" width="120" height="120" />
+
+<h1>kickoff</h1>
+
+<p><strong>Start a Next.js project that people and AI agents can both build on.</strong></p>
+
+<p>
+  <img alt="Node 24" src="https://img.shields.io/badge/node-24-5fa04e?logo=nodedotjs&logoColor=white" />
+  <img alt="pnpm 12" src="https://img.shields.io/badge/pnpm-12-f69220?logo=pnpm&logoColor=white" />
+  <img alt="Next.js 16" src="https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white" />
+  <img alt="React 19" src="https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white" />
+  <img alt="TypeScript 7" src="https://img.shields.io/badge/TypeScript-7-3178c6?logo=typescript&logoColor=white" />
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-blue" /></a>
+</p>
+
+<p>
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#what-you-get">What you get</a> ·
+  <a href="#the-hands-off-claude-pipeline">Claude pipeline</a> ·
+  <a href="#generating-just-a-handbook">Handbook only</a> ·
+  <a href="#developing-kickoff">Contributing</a>
+</p>
+
+</div>
+
+kickoff is a command-line tool that generates a complete Next.js and TypeScript project, ready for a team or an AI agent to build on.
 
 You answer a few questions (or pass a JSON file), and kickoff writes out a repo with the framework, tooling, CI, Vercel helpers, and a project handbook that agents read before changing anything. Optional modules add a CMS, i18n, analytics, email, reCAPTCHA, and a hands-off pipeline where Claude opens pull requests and automated checks stand in for human review.
 
