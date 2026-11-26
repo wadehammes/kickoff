@@ -4,7 +4,7 @@ export type Hosting = "vercel" | "other";
 
 export type TestRunner = "jest" | "vitest";
 
-export const CMS_IDS = ["none", "contentful"] as const;
+export const CMS_IDS = ["none", "contentful", "prismic"] as const;
 
 /** Content source for pages. "none" keeps all content in code. */
 export type Cms = (typeof CMS_IDS)[number];

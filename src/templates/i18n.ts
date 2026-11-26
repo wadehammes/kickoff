@@ -1,5 +1,5 @@
 import type { ProjectAnswers } from "../types.js";
-import { getCms, usesCms } from "./cms/index.js";
+import { getCms, getLayoutPreview, usesCms } from "./cms/index.js";
 import { usesVercel } from "./config.js";
 
 // ---------------------------------------------------------------------------
@@ -136,7 +136,9 @@ export const getLocaleLayout = (a: ProjectAnswers): string => {
 `
     : "";
 
-  return `${gaImport}import type { Metadata } from "next";
+  const preview = getLayoutPreview(a);
+
+  return `${gaImport}${preview.packageImports}import type { Metadata } from "next";
 ${draftModeImport}import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
@@ -145,7 +147,7 @@ import Providers from "src/app/providers";
 ${exitDraftImport}import { Footer } from "src/components/Footer/Footer.component";
 import { Navigation } from "src/components/Navigation/Navigation.component";
 import { routing } from "src/i18n/routing";
-import "src/styles/globals.css";
+${preview.localImports}import "src/styles/globals.css";
 import { envUrl } from "src/utils/environment.helpers";
 
 interface LocaleLayoutProps {
@@ -199,7 +201,7 @@ ${draftUi}        <NextIntlClientProvider>
           </Providers>
         </NextIntlClientProvider>
       </body>
-${gaElement}    </html>
+${preview.element}${gaElement}    </html>
   );
 };
 

@@ -75,8 +75,6 @@ import {
   getDeployStatusRoute,
   getDeployTypes,
   getDevWithPreview,
-  getDisableDraftRoute,
-  getDraftRoute,
   getE2eSmokeSpec,
   getEditorConfig,
   getEnvironmentHelpers,
@@ -461,7 +459,7 @@ export const generateProject = async (
     });
     await write(
       ".claude/hooks/handbook-drift-check.mjs",
-      getHandbookDriftCheckMjs(),
+      getHandbookDriftCheckMjs(cms),
       { executable: true },
     );
     for (const scriptName of getClaudeHookScriptNames(a)) {
@@ -610,12 +608,8 @@ export const generateProject = async (
   }
 
   // ── src/app/api/ ───────────────────────────────────────────────────────────
-  if (cms) {
-    await write(
-      "src/app/api/draft/route.ts",
-      getDraftRoute(cms.previewSecretEnv),
-    );
-    await write("src/app/api/disable-draft/route.ts", getDisableDraftRoute());
+  for (const [file, content] of cms?.preview.routes() ?? []) {
+    await write(file, content);
   }
 
   // ── src/components/ ────────────────────────────────────────────────────────
@@ -634,7 +628,7 @@ export const generateProject = async (
   await write("src/components/Footer/Footer.module.css", getFooterCSS());
   await write(
     "src/components/ExitDraftModeLink/ExitDraftModeLink.component.tsx",
-    getExitDraftModeLink(),
+    getExitDraftModeLink(cms?.preview.exitPath),
   );
   await write(
     "src/components/NotFoundPage/NotFoundPage.component.tsx",
@@ -837,8 +831,8 @@ const Page = async ({ params }: PageProps) => {
       <div className="page-container">
         <h1>{slug}</h1>
         <p>
-          This project was scaffolded without Contentful. Add routes in{" "}
-          <code>generateStaticParams</code> or enable Contentful in kickoff.
+          This project has no CMS. Add routes in{" "}
+          <code>generateStaticParams</code> or pick a CMS when you run kickoff.
         </p>
       </div>
     </>

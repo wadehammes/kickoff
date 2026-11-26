@@ -48,7 +48,7 @@ Already have a codebase? [`kickoff handbook`](#generating-just-a-handbook) has t
 Cursor or Claude Code hooks run on every edit, so a rule that's written down is also enforced:
 
 - Edits are blocked when they add code comments, `margin-top`, top-level or custom `@media`, `index.ts` barrels, placeholder names, factories outside `src/tests/factories/`, or a component folder that didn't come from `pnpm scaffold`.
-- Destructive git commands and force pushes to protected branches are blocked too, and so are hand edits to generated Contentful types in Claude Code projects that use Contentful.
+- Destructive git commands and force pushes to protected branches are blocked too, and so are hand edits to generated CMS types in projects that use a CMS.
 - After each edit, the agent is told which handbook page the change touches.
 - Before the agent finishes, a drift check flags code that changed without a handbook update, handbook links that no longer resolve, and docs that name `pnpm` scripts that don't exist. Hands-off pipeline projects add a quality gate that keeps Claude working until typecheck, lint, tests, and knip pass.
 
@@ -116,7 +116,7 @@ kickoff starts by asking what kind of project it is (marketing site, careers or 
 
 | Option | Adds |
 | --- | --- |
-| CMS | `none` (default) keeps pages and copy in code. `contentful` adds the Contentful client, getters and parsers, draft mode routes, and type generation (`pnpm types:contentful`). Content sites start with Contentful selected. |
+| CMS | `none` (default) keeps pages and copy in code. `contentful` adds the Contentful client, getters and parsers, draft mode routes, and type generation (`pnpm types:contentful`). `prismic` adds the Prismic client and page getters, previews through Prismic's toolbar, a revalidation webhook, and model and type pulls (`pnpm types:prismic`). Content sites start with Contentful selected. |
 | i18n | English at `/` and Spanish at `/es` with next-intl. Copy in `src/copy/` is typed per language, so a missing translation fails the typecheck. Includes a language switcher. |
 | Google Analytics | GA through `@next/third-parties` |
 | Resend | The Resend email package and env vars |
@@ -215,7 +215,7 @@ pnpm next:agents-md                # index the Next.js docs into docs/nextjs.md
 pnpm dev
 ```
 
-With Contentful, run `pnpm types:contentful` after filling in the Contentful env vars.
+With Contentful, run `pnpm types:contentful` after filling in the Contentful env vars. With Prismic, run `npx prismic init --repo <your-repository-name>` to connect the repository, then `pnpm types:prismic`.
 
 ## Generating just a handbook
 
@@ -282,7 +282,7 @@ Claude pipeline projects are trunk-based on `main`:
 | `pnpm next:upgrade` | Upgrade Next.js and React to the latest minor with the official codemod |
 | `pnpm next:agents-md` | Refresh the Next.js docs index in `docs/nextjs.md` |
 | `pnpm test:e2e` | Playwright smoke and accessibility tests (browser tests add-on, or the pipeline) |
-| `pnpm types:contentful` | Regenerate Contentful types (Contentful projects) |
+| `pnpm types:contentful` / `pnpm types:prismic` | Regenerate CMS types (projects with that CMS) |
 
 The main folders:
 
@@ -291,7 +291,7 @@ docs/handbook/      project handbook; agents start at llms.md
 src/app/            routes (under src/app/[locale]/ with i18n)
 src/components/     components, each with styles, spec and page object
 src/copy/           page text and repeated content, kept out of components
-src/contentful/     CMS client, getters and parsers (Contentful only)
+src/contentful/, src/prismic/  CMS client, getters and parsers (with that CMS)
 src/lib/, src/utils/  shared helpers
 src/tests/          page objects, factories, mocks
 e2e/                Playwright tests (browser tests add-on, or the pipeline)
@@ -316,9 +316,9 @@ Templates and the generated handbook (`src/templates/docs.ts`) have to stay in s
 | `pnpm build` | Compile to `dist/` |
 | `pnpm dev` | Compile in watch mode |
 | `pnpm lint` / `pnpm lint:fix` | Biome |
-| `pnpm test` | Unit and integration tests, plus a matrix that generates all 896 combinations of tooling, hosting, test runner, and options and checks each one |
+| `pnpm test` | Unit and integration tests, plus a matrix that generates all 1,344 combinations of tooling, hosting, test runner, CMS, and options and checks each one |
 | `pnpm test:coverage` | The same tests with a coverage report. CI fails below 95% of lines, statements, and functions or 90% of branches |
-| `pnpm test:scaffold-e2e` | Run `kickoff handbook` end to end, then generate each fixture project, install it, run its CI checks and its handbook drift check, and build, serve and smoke-test the ones without Contentful |
+| `pnpm test:scaffold-e2e` | Run `kickoff handbook` end to end, then generate each fixture project, install it, run its CI checks and its handbook drift check, and build, serve and smoke-test the ones without a CMS |
 
 The matrix test (`src/generationMatrix.test.ts`) takes under a minute. For every combination it checks that:
 
@@ -326,7 +326,7 @@ The matrix test (`src/generationMatrix.test.ts`) takes under a minute. For every
 - imports resolve, `pnpm` scripts that docs mention exist, and JSON and TypeScript parse;
 - every markdown link and anchor resolves;
 - generated code follows its own handbook (arrow functions, test IDs, exports, braces, spacing);
-- projects not hosted on Vercel never mention it, and Vitest projects never mention Jest;
+- projects not hosted on Vercel never mention it, Vitest projects never mention Jest, and no project mentions a CMS it does not use;
 - handbook pages and session-start context stay within their token budgets.
 
 When you fix a class of generator bug, add a check there.

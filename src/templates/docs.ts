@@ -1,5 +1,5 @@
 import type { ProjectAnswers } from "../types.js";
-import { getCms } from "./cms/index.js";
+import { getCms, listGeneratedPaths } from "./cms/index.js";
 import { getBaseBranch, usesPlaywright, usesVercel } from "./config.js";
 import { getTestRunner, usesVitest } from "./testRunner.js";
 
@@ -162,7 +162,7 @@ ${hostingSteps(7)}`
 
   const scriptsTypesRow = cms?.docs.readmeScriptsRow ?? "";
 
-  const devPreviewDesc = cms
+  const devPreviewDesc = cms?.preview.secretEnv
     ? `Start dev server and auto-open ${cms.name} draft mode`
     : "Start dev server (starts Next only—no CMS draft URL)";
 
@@ -171,10 +171,7 @@ ${hostingSteps(7)}`
   const draftSection = cms
     ? `## Draft mode
 
-Visit \`/api/draft?previewSecret=YOUR_SECRET&redirect=/\` to enable draft mode.
-Visit \`/api/disable-draft\` to exit.
-
-Or use \`pnpm dev:preview\` which auto-opens draft mode after the server starts.
+${cms.docs.readmePreview}
 
 `
     : "";
@@ -329,7 +326,7 @@ There is no manual release step: each merge to \`main\` deploys to production. U
 export const getHandbookNonNegotiables = (a: ProjectAnswers): string => {
   const cms = getCms(a);
   const contentfulRow = cms
-    ? `| Getters fetch entries and parsers turn them into component props | Components that read raw ${cms.name} entries, or edits to \`${cms.generatedTypesDir}/\` | [${cms.handbook.file}](${cms.handbook.file}) |\n`
+    ? `| Getters fetch entries and parsers turn them into component props | Components that read raw ${cms.name} entries, or edits to ${listGeneratedPaths(cms)} | [${cms.handbook.file}](${cms.handbook.file}) |\n`
     : "";
   const formsRow = a.includeForms
     ? "| `react-hook-form` with a `zod` schema and `zodResolver`, validated again in the Route Handler | Hand-rolled form state, or validation only in the browser | [patterns.md](patterns.md#forms) |\n"
@@ -552,7 +549,7 @@ If you are new here, this page is your map. It explains how the site is structur
 
 - **Framework**: Next.js 16 with the **App Router**. Routes live under \`src/app/\`.
 - **UI**: React 19, TypeScript. Headless primitives: **[Base UI](https://base-ui.com/react/overview/quick-start)** (\`@base-ui/react\`) in \`src/ui/\`; styled controls in \`src/components/\` (e.g. \`Button\`${usesVercel(a) ? ", `DeployButton`" : ""}).
-- **Data**: Server Components for request/build-time data; **React Query** for client mutations. This scaffold was generated **without** Contentful.
+- **Data**: Server Components for request/build-time data; **React Query** for client mutations. This scaffold was generated **without** a CMS.
 - **Styling**: **CSS Modules** with tokens in \`src/styles/globals.css\`.
 - **Tooling**: pnpm, Biome, Stylelint, ${getTestRunner(a).name}.
 
@@ -567,7 +564,7 @@ If you are new here, this page is your map. It explains how the site is structur
 
   return `# Architecture
 
-If you are new here, this page is your map. It explains how the site is structured, which technologies we rely on, and how a request goes from the App Router through Contentful data to UI.
+If you are new here, this page is your map. It explains how the site is structured, which technologies we rely on, and how a request goes from the App Router through ${cms.name} data to UI.
 
 <!-- site: ${s} -->
 
@@ -575,8 +572,8 @@ If you are new here, this page is your map. It explains how the site is structur
 
 - **Framework**: Next.js 16 with the **App Router**. Routes live under \`src/app/\` (\`page.tsx\`, \`layout.tsx\`, Route Handlers under \`src/app/api/\`).
 - **UI**: React 19, TypeScript. Headless primitives: **[Base UI](https://base-ui.com/react/overview/quick-start)** (\`@base-ui/react\`) in \`src/ui/\`; styled controls in \`src/components/\` (e.g. \`Button\`${usesVercel(a) ? ", `DeployButton`" : ""}).
-- **CMS**: Contentful. Content types are generated into \`src/contentful/types/\`; getters and parsers live in \`src/contentful/\`.
-- **Data fetching**: Server Components and Contentful getters at request/build time; **React Query** (TanStack) for client-side mutations and any future client queries. Mutation hooks live in \`src/hooks/mutations/\` and call the API surface in \`src/api/urls.ts\`.
+- **CMS**: ${cms.name}. Content types are generated into ${listGeneratedPaths(cms)}; getters and parsers live in \`${cms.dir}/\`.
+- **Data fetching**: Server Components and ${cms.name} getters at request/build time; **React Query** (TanStack) for client-side mutations and any future client queries. Mutation hooks live in \`src/hooks/mutations/\` and call the API surface in \`src/api/urls.ts\`.
 - **Styling**: **CSS Modules** (\`.module.css\`) with modern CSS (nesting, custom properties). Global tokens and reset live in \`src/styles/globals.css\`.
 - **Tooling**: pnpm, Biome for lint and format, Stylelint for CSS, ${getTestRunner(a).name} for tests (page-object pattern).
 
@@ -642,7 +639,7 @@ Page text and repeated content (cards, lists, people, links) as typed \`as const
 
 ## Data flow
 
-1. A \`page.tsx\` calls Contentful getters with \`preview\` from \`draftMode()\`.
+1. A \`page.tsx\` calls ${cms.name} getters with \`preview\` from \`draftMode()\`.
 2. Getters return raw entries; parsers produce typed shapes for components.
 3. Page components compose layout pieces and pass parsed data into feature components.
 4. Forms and interactive flows use React Query mutations and Route Handlers.
@@ -651,7 +648,7 @@ Page text and repeated content (cards, lists, people, links) as typed \`as const
 flowchart LR
   subgraph server [Server / RSC]
     Page[app/.../page.tsx]
-    Get[Contentful getters]
+    Get[${cms.name} getters]
     Parse[Parsers]
     Page --> Get --> Parse
   end
@@ -666,7 +663,7 @@ flowchart LR
 - **\`next.config.ts\`** — env exposure, images, Turbopack/SVG rules, security headers, redirects.
 - **\`biome.json\`** — lint and format (includes CSS). Run \`pnpm lint\`, \`pnpm lint:fix\`.
 - **Branching**: ${a.includeClaudePipeline ? "Trunk-based. PRs target `main`; each merge deploys to production through the hands-off Claude pipeline ([releases.md](releases.md))." : "Default branch is `staging`. Releases use `make release tag=vX.X.X`."}
-- **Provisioning**: Hosting bootstrap (GitHub, ${usesVercel(a) ? "Vercel" : "your host"}, Contentful) is documented under **Prerequisites (greenfield bootstrap)** in the repo root README.
+- **Provisioning**: Hosting bootstrap (GitHub, ${usesVercel(a) ? "Vercel" : "your host"}, ${cms.name}) is documented under **Prerequisites (greenfield bootstrap)** in the repo root README.
 `;
 };
 
@@ -675,6 +672,8 @@ flowchart LR
 // ---------------------------------------------------------------------------
 
 export const getHandbookConventions = (a: ProjectAnswers): string => {
+  const cms = getCms(a);
+
   return `# Conventions
 
 Read this before writing TypeScript in this repo: the house style for code, formatting, and comments. Component code is in [react.md](react.md), styles in [css.md](css.md), and tests in [testing.md](testing.md).
@@ -691,16 +690,16 @@ If you are unsure, copy a nearby file that already does the right thing and run 
 - **Never use non-null assertion (\`!\`).** Use optional chaining, nullish coalescing (\`??\`), or explicit checks instead.
 - **Omit redundant return types.** Do not add an explicit return type annotation when the compiler can infer it. Add return types only when needed for public API clarity or when inference would be wrong or unclear.
 - **No nested ternaries.** Use \`if\`/\`else\` or extract to a variable or helper so each branch is clear. A single ternary is fine; nesting is not.
-- **No barrel files.** Do not add \`index.ts\` (or \`index.tsx\`) files that re-export from other modules. Import directly from the target module file. **Exception:** \`src/contentful/types/\` is generated and includes \`index.ts\`.
+- **No barrel files.** Do not add \`index.ts\` (or \`index.tsx\`) files that re-export from other modules. Import directly from the target module file.${cms ? ` **Exception:** generated ${cms.name} types (${listGeneratedPaths(cms)}).` : ""}
 - **Base UI imports.** Import from \`@base-ui/react/<module>\` subpaths (e.g. \`@base-ui/react/button\`) — never through barrel re-exports like \`base-ui.ts\`.
 - **Absolute imports (\`src/…\`).** Import application TypeScript and JavaScript modules with paths rooted at \`src/\`. Do not use relative paths (\`./\`, \`../\`) to reach another module under \`src/\` unless an exception below applies.
-- **Exceptions to absolute imports:** (1) **CSS Modules** and other static assets co-located with the importing file (e.g. \`import styles from "./MyComponent.module.css"\`). (2) **\`src/contentful/types/\`**—generated; do not hand-edit their import style.
+- **Exceptions to absolute imports:** (1) **CSS Modules** and other static assets co-located with the importing file (e.g. \`import styles from "./MyComponent.module.css"\`).${cms ? ` (2) **${listGeneratedPaths(cms)}**—generated; do not hand-edit their import style.` : ""}
 - **Do not re-export types (or values) from another module.** Import from the module that defines them. Never re-export types from a component file so consumers can import from a single place — have them import from the defining module directly.
 - **Use a single params object for function parameters.** For any function that takes more than one argument or an optional argument, pass a single object parameter so call sites are self-documenting and order-independent.
 - **Use semantic parameter and variable names.** Pick a name that describes what the value *is* — its domain meaning, format, or source — not its lifecycle state. Avoid generic placeholders like \`raw\`, \`data\`, \`val\`, \`tmp\`, \`result\`, \`thing\`. Prefer \`encodedValue\`, \`apiResponse\`, \`candidateSlug\`, \`trimmedDescription\`.
 ${getCms(a)?.docs.conventions ?? ""}- **App-level types**: Shared slugs, navigation IDs, and similar **constants** live in \`src/utils/constants.ts\`. Feature-scoped interfaces live under \`src/interfaces/\`. Prefer colocating types with a feature when they are not cross-cutting.
 - **API and forms**: When adding new API or form payloads, define interfaces in the relevant module, next to \`src/api/urls.ts\`, or alongside the route handler under \`src/app/api/\`.
-- **Site constants**: App-wide slugs, Contentful entry IDs, and similar **data constants** belong in \`src/utils/constants.ts\`, not scattered as magic strings.
+- **Site constants**: App-wide slugs, ${cms ? `${cms.name} entry IDs, ` : ""}and similar **data constants** belong in \`src/utils/constants.ts\`, not scattered as magic strings.
 
 ## Formatting and linting
 
@@ -916,7 +915,7 @@ One directory per component under \`src/components/<ComponentName>/\`. Use **Pas
 | **\`<Name>.component.tsx\`** | Main React component. Keep it focused on composition and minimal logic. Use CSS Modules (import \`styles\` from \`./<Name>.module.css\`) and apply class names. |
 | **\`<Name>.po.tsx\`** | Page object for tests. Extends \`BasePageObject\`, sets \`testId = "rh<Name>"\`, implements \`render<Name>(...)\` with \`render()\` from \`src/tests/test-utils.tsx\`, and holds setup, mocks, and test data. **No \`screen\` queries in the PO** — queries belong in the spec. |
 | **\`<Name>.spec.tsx\`** | ${getTestRunner(a).name} tests. Import \`describe\`, \`it\`, \`expect\`, \`beforeEach\` from \`${getTestRunner(a).globals}\`. After the PO renders, use \`screen\` and \`userEvent\` for all queries and interactions. |
-| **\`<Name>.interfaces.ts\`** | Use when the component has **public** props or data types not already defined by a Contentful parser. If the component is driven by Contentful, the "interface" is usually the parsed type from \`src/contentful/parse<Name>.ts\`, so you may not need a separate interfaces file. |
+| **\`<Name>.interfaces.ts\`** | Use when the component has **public** props or data types not already defined${cms ? ` by a ${cms.name} parser. If the component is driven by ${cms.name}, the "interface" is usually the parsed type from \`${cms.dir}/parse<Name>.ts\`, so you may not need a separate interfaces file` : " elsewhere"}. |
 | **\`src/tests/factories/<Name>.factory.ts\`** | Subclass of \`BaseFactory\` for test data when tests need complex or repeated props. **Lives in \`src/tests/factories/\`, not in the component folder** — factories are shared test infrastructure. See [factories.md](factories.md) and [conventions.md](conventions.md). |
 | **\`<Name>.module.css\`** | Layout, spacing, typography, responsive rules. Use nesting and \`var(--...)\` from the design system. |
 | **\`use<Something>.hook.ts\`** | Optional. When the component has a custom hook used only by that component, place it in the same folder. |
@@ -1045,11 +1044,11 @@ export const getHandbookPlatform = (a: ProjectAnswers): string => {
     ? `GitHub, ${usesVercel(a) ? "Vercel" : "hosting"}, and ${cms.name} setup that happens **outside** this repo—including ${greenfieldBranching} importing the scaffold from kickoff, adding **all** env vars from **\`.env.local.example\`**${usesVercel(a) ? " in Vercel, and **`npx vercel env pull .env.local`** in the clone" : " in your host's settings"}—is captured in root **[README.md](../../README.md)** — **Prerequisites (greenfield bootstrap)**.`
     : `GitHub and ${usesVercel(a) ? "Vercel" : "hosting"} setup that happens **outside** this repo—including ${greenfieldBranching} importing the scaffold from kickoff, adding env vars from **\`.env.local.example\`**${usesVercel(a) ? " in Vercel, and **`npx vercel env pull .env.local`** in the clone" : " in your host's settings"}—is captured in root **[README.md](../../README.md)** — **Prerequisites (greenfield bootstrap)**.`;
 
-  const scriptRowsExtra = cms
-    ? `${cms.docs.platformScriptRows}| \`pnpm dev:preview\` | Dev server with ${cms.name} preview mode enabled. |
+  const devPreviewRow = cms?.preview.secretEnv
+    ? `| \`pnpm dev:preview\` | Dev server with ${cms.name} preview mode enabled. |
 `
-    : `| \`pnpm dev:preview\` | Starts Next dev only (no \`/api/draft\` auto-open when Contentful is omitted). |
-`;
+    : "| `pnpm dev:preview` | Starts Next dev only; nothing opens draft mode automatically. |\n";
+  const scriptRowsExtra = `${cms?.docs.platformScriptRows ?? ""}${devPreviewRow}`;
 
   const agentHooksSection =
     a.agentTooling === "cursor"
@@ -1091,7 +1090,7 @@ Run **\`pnpm lint:all\`** locally for the same checks as a full pre-push pass (\
 
 ### Knip
 
-**[knip](https://knip.dev/)** runs in CI to flag unused files, exports, and dependencies. Config: [knip.json](../../knip.json). Generated Contentful types, **\`scripts/\`**, and starter scaffold files under **\`src/ui/\`**, **\`src/tests/factories/\`**, and related paths are ignored until you wire them up. Unused **files** and **dependencies** are reported as warnings, not failures, because a fresh scaffold ships starter code and packages (Contentful, Resend, reCAPTCHA) before anything uses them; unused exports, unlisted dependencies, and unresolved imports still fail CI; fix or explicitly ignore new false positives rather than disabling checks globally.
+**[knip](https://knip.dev/)** runs in CI to flag unused files, exports, and dependencies. Config: [knip.json](../../knip.json). ${cms ? `Generated ${cms.name} types, ` : ""}**\`scripts/\`**, and starter scaffold files under **\`src/ui/\`**, **\`src/tests/factories/\`**, and related paths are ignored until you wire them up. Unused **files** and **dependencies** are reported as warnings, not failures, because a fresh scaffold ships starter code and packages (${cms ? `${cms.name}, ` : ""}Resend, reCAPTCHA) before anything uses them; unused exports, unlisted dependencies, and unresolved imports still fail CI; fix or explicitly ignore new false positives rather than disabling checks globally.
 
 ## Package scripts (local workflow)
 
@@ -1120,14 +1119,12 @@ ${agentHooksSection}${a.includePlaywright && !a.includeClaudePipeline ? getHandb
 
 export const getHandbookEnv = (a: ProjectAnswers): string => {
   const cms = getCms(a);
-  const notableContentful = cms?.docs.envSummary ?? "";
+  const cmsSummary = cms?.docs.envSummary ?? "";
   const draftSection = cms
     ? `## Preview and draft mode
 
 Draft mode uses App Router APIs:
 
-- **Enable draft**: \`src/app/api/draft/route.ts\` checks \`previewSecret\` against **\`${cms.previewSecretEnv}\`**, enables draft mode, then redirects.
-- **Disable draft**: \`src/app/api/disable-draft/route.ts\`.
 ${cms.docs.envPreview}
 
 `
@@ -1139,7 +1136,7 @@ Read this when you add or change an env var, draft preview, or \`src/proxy.ts\`.
 
 ## Environment variables and \`next.config\`
 
-**\`next.config.ts\`** \`env: { ... }\` inlines values into the build—including client bundles wherever they are referenced—so list **only values that are safe to expose** (\`ENVIRONMENT\`, public site keys). Server-only secrets (${usesVercel(a) ? "`VERCEL_API_TOKEN`, " : ""}Contentful preview keys, \`RESEND_API_KEY\`, \`RECAPTCHA_SECRET_KEY\`) are read from \`process.env\` in Route Handlers and server code; never add them to \`env:\` or give them a \`NEXT_PUBLIC_*\` name.
+**\`next.config.ts\`** \`env: { ... }\` inlines values into the build—including client bundles wherever they are referenced—so list **only values that are safe to expose** (\`ENVIRONMENT\`, public site keys). Server-only secrets (${usesVercel(a) ? "`VERCEL_API_TOKEN`, " : ""}${cms ? `${cms.name} tokens, ` : ""}\`RESEND_API_KEY\`, \`RECAPTCHA_SECRET_KEY\`) are read from \`process.env\` in Route Handlers and server code; never add them to \`env:\` or give them a \`NEXT_PUBLIC_*\` name.
 
 ${usesVercel(a) ? "Configure values in **Vercel** and mirror locally via `npx vercel env pull` as described in the root README." : "Configure values in your host's environment settings and copy them into `.env.local` locally, as described in the root README."}
 
@@ -1150,7 +1147,7 @@ ${
     ? `- **Build (Vercel)** — **\`ENABLE_EXPERIMENTAL_COREPACK\`** — set to **\`1\`** in the Vercel project (and in **\`.env.local.example\`**) so production installs respect **\`packageManager\`** in \`package.json\`; not wired through \`next.config.ts\` (build-time only).
 `
     : ""
-}${notableContentful}- **ENVIRONMENT** — drives URLs in helpers such as \`envUrl()\`.
+}${cmsSummary}- **ENVIRONMENT** — drives URLs in helpers such as \`envUrl()\`.
 ${
   usesVercel(a)
     ? `- **Refresh content** — **\`REFRESH_CONTENT_ACCESS_TOKEN\`**, **\`VERCEL_DEPLOY_HOOK_STAGING\`**, **\`VERCEL_DEPLOY_HOOK_PRODUCTION\`**, **\`VERCEL_API_TOKEN\`** (server-only; used by refresh-content page and deploy API routes). **\`VERCEL_TEAM_SLUG\`** or **\`VERCEL_TEAM_ID\`** scopes List Deployments API calls when the project lives under a team.

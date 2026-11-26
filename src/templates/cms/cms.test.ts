@@ -29,9 +29,15 @@ describe("CMS adapters", () => {
     expect(files.get(`${cms.dir}/getPages.ts`)).toMatch(
       /export const fetchPages[\s\S]*export const fetchPage\b/,
     );
-    expect(cms.generatedTypesDir.startsWith(`${cms.dir}/`)).toBe(true);
-    expect(cms.typesScript.command).toContain(cms.generatedTypesDir);
-    expect(envNames).toContain(cms.previewSecretEnv);
+    expect(cms.generatedPaths.length).toBeGreaterThan(0);
+    expect(cms.preview.routes().length).toBeGreaterThan(0);
+    expect(cms.preview.routes().map(([route]) => route)).toContain(
+      `src/app${cms.preview.exitPath}/route.ts`,
+    );
+
+    if (cms.preview.secretEnv) {
+      expect(envNames).toContain(cms.preview.secretEnv);
+    }
     expect(cms.handbook.file).toMatch(/^[a-z-]+\.md$/);
     expect(
       [...cms.dependencies, ...cms.devDependencies].filter(

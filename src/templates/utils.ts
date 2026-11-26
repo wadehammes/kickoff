@@ -46,8 +46,8 @@ export const getArrayHelpers = (): string => {
 };
 
 /**
- * Do not use for data fetched from Contentful; order at fetch time via the
- * API \`order\` parameter instead.
+ * Do not use for data fetched from a CMS; order at fetch time in the CMS
+ * query instead.
  */
 export const alphabetize = <T>(array: T[], key: keyof T): T[] => {
   if (typeof array !== "object") {

@@ -30,7 +30,9 @@ ${cms.imageHosts
     ]`
     : "[]";
 
-  const cspImgSrc = `img-src * blob: data:${(cms?.cspImgHosts ?? []).map((host) => ` ${host}`).join("")};`;
+  const cspHosts = (hosts: readonly string[] = []) =>
+    hosts.map((host) => ` ${host}`).join("");
+  const cspImgSrc = `img-src * blob: data:${cspHosts(cms?.csp.imgSrc)};`;
 
   const optimizePackages = [
     "@base-ui/react",
@@ -185,11 +187,11 @@ const scriptSrc = [
   "*.google-analytics.com",
   "*.gstatic.com",
   "*.googletagmanager.com",
-${vercel ? '  "*.vercel-insights.com",\n  "*.vercel.app",\n  "vercel.live",\n' : ""}];
+${(cms?.csp.scriptSrc ?? []).map((host) => `  "${host}",\n`).join("")}${vercel ? '  "*.vercel-insights.com",\n  "*.vercel.app",\n  "vercel.live",\n' : ""}];
 const ContentSecurityPolicy = \`
   default-src 'self';
   script-src \${scriptSrc.join(" ")};
-  child-src *.google.com *.twitter.com *.vimeo.com *.youtube.com${vercel ? " vercel.live" : ""};
+  child-src *.google.com *.twitter.com *.vimeo.com *.youtube.com${vercel ? " vercel.live" : ""}${cspHosts(cms?.csp.childSrc)};
   style-src 'self' 'unsafe-inline' *.googleapis.com${vercel ? " vercel.live" : ""};
   ${cspImgSrc}
   media-src * 'self';

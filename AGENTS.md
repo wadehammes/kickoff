@@ -2,7 +2,7 @@
 
 ## What this repo is
 
-`kickoff` is a CLI scaffolding tool that generates new Next.js + TypeScript projects, with optional Contentful CMS. It asks a series of prompts and writes a full project structure to disk.
+`kickoff` is a CLI scaffolding tool that generates new Next.js + TypeScript projects, with an optional CMS (Contentful or Prismic). It asks a series of prompts and writes a full project structure to disk.
 
 ## Source layout
 
@@ -30,7 +30,8 @@ src/
     ├── cms/
     │   ├── types.ts      ← CmsAdapter: everything that changes between content sources
     │   ├── index.ts      ← getCms / usesCms, and the adapter registry
-    │   └── contentful.ts ← Contentful adapter: client, getters, parsers, richText, handbook page and prose
+    │   ├── contentful.ts ← Contentful adapter: client, getters, parsers, richText, handbook page and prose
+    │   └── prismic.ts    ← Prismic adapter: client, page getters, preview and revalidate routes, handbook page and prose
     ├── docs.ts           ← CLAUDE.md, README, handbook index/llms/non-negotiables/core chapters (generated projects)
     ├── handbook-agent.ts ← glossary, decisions, agent-workflow, api-routes, factories, data-storage
     ├── github.ts         ← CI, release, dependabot, labeler workflows; Claude pipeline workflows, CODEOWNERS, PR template
@@ -44,7 +45,7 @@ src/
     ├── types.ts          ← KeysMatch, PropsWithChildrenOnly
     └── utils.ts          ← array/string/url/environment/contentful/style/factory helpers, constants, interfaces
 
-fixtures/scaffold-e2e/     ← Answer JSON for scaffold E2E (cursor-static, cursor-selfhost-i18n, cursor-vitest, claude-static, claude-pipeline, claude-pipeline-i18n, cursor-contentful-all)
+fixtures/scaffold-e2e/     ← Answer JSON for scaffold E2E (cursor-static, cursor-selfhost-i18n, cursor-vitest, claude-static, claude-pipeline, claude-pipeline-i18n, cursor-contentful-all, cursor-prismic)
 .cursor/                   ← Cursor hooks for this repo (see .cursor/hooks/README.md)
 ```
 
@@ -100,7 +101,7 @@ Kickoff ships **`.cursor/hooks.json`** and scripts under **`.cursor/hooks/`** th
 ## Testing generation scenarios
 
 - Token budgets: every handbook page stays under ~1,500 tokens, /handbook-review under ~1,500, and what loads at session start (`CLAUDE.md`, plus the non-negotiables and the `llms.md` routing table the session hook injects) under ~2,750 (`TOKEN_BUDGETS` in the generation matrix). Split a page by topic when it grows past its budget instead of raising the number.
-- `src/generationMatrix.test.ts` generates every tooling × option combination (896 projects, including Vitest projects) in seconds and checks structural invariants. Add an invariant there when you fix a class of generator bug.
+- `src/generationMatrix.test.ts` generates every tooling × option combination (1,344 projects: every tooling, test runner, and CMS) in seconds and checks structural invariants. Add an invariant there when you fix a class of generator bug.
 - `fixtures/scaffold-e2e/*.json` covers each option at least once for the slow end-to-end run. Add a fixture when a new option or combination needs a real install, build, or browser test.
 - Write the test first and watch it fail for the reason you expect before you change the code. When you add tests for code that already exists, break the code on purpose to prove the test catches it.
 - `pnpm test:coverage` must stay above the thresholds in `vitest.config.ts`. Code that only runs as a separate process (the CLI and hook entry points) is covered by subprocess tests and the scaffold E2E instead.

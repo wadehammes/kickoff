@@ -1,6 +1,6 @@
 import type { ProjectAnswers } from "../types.js";
 import { getAgentDir } from "./agents.js";
-import { getCms } from "./cms/index.js";
+import { getCms, listGeneratedPaths } from "./cms/index.js";
 import { usesVercel } from "./config.js";
 
 export const getHandbookGlossary = (a: ProjectAnswers): string => {
@@ -23,10 +23,10 @@ Terms agents see in this scaffold. Paths are under **\`src/\`** unless noted.
 
 | Term | Meaning |
 | ---- | ------- |
-| **Getter** | Contentful (or other) read function that returns raw entries — parsers shape UI props. |
+| **Getter** | ${cms ? `${cms.name} read function` : "Read function"} that returns raw entries — parsers shape UI props. |
 | **Parser** | Maps CMS entry → typed component props${cms ? ` ([${cms.handbook.file}](${cms.handbook.file}))` : ""}. |
-| **Draft mode** | Preview unpublished CMS content via \`/api/draft\` when Contentful is scaffolded. |
-${cms ? `| **Generated types** | \`${cms.generatedTypesDir}/\` — output of \`pnpm ${cms.typesScript.name}\`; do not hand-edit. |` : "| **Generated types** | None in this project; Contentful was not scaffolded. |"}
+| **Draft mode** | ${cms ? `Preview unpublished ${cms.name} content in Next.js draft mode ([env.md](env.md)).` : "Not used; this project has no CMS."} |
+${cms ? `| **Generated types** | ${listGeneratedPaths(cms)} — output of \`pnpm ${cms.typesScript.name}\`; do not hand-edit. |` : "| **Generated types** | None in this project; it has no CMS. |"}
 
 ## Client API surface
 
@@ -251,9 +251,7 @@ export const getHandbookApiRoutes = (a: ProjectAnswers): string => {
 
 | Route | Role |
 | ----- | ---- |
-| \`GET /api/draft\` | Enable draft mode (preview secret query param) |
-| \`GET /api/disable-draft\` | Exit draft mode |
-
+${cms.docs.apiRoutesPreview}
 Details: [env.md](env.md), [${cms.handbook.file}](${cms.handbook.file}).
 
 `

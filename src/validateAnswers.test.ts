@@ -181,6 +181,9 @@ describe("validateAnswers", () => {
     expect(
       validateProjectAnswers({ ...valid, cms: "contentful" }),
     ).toMatchObject({ cms: "contentful" });
+    expect(validateProjectAnswers({ ...valid, cms: "prismic" })).toMatchObject({
+      cms: "prismic",
+    });
   });
 
   it("maps the legacy includeContentful key onto cms", () => {
@@ -238,7 +241,7 @@ describe("validateAnswers", () => {
     [{ includeForms: "yes" }, "includeForms must be a boolean"],
     [{ includePlaywright: 1 }, "includePlaywright must be a boolean"],
     [{ testRunner: "mocha" }, 'testRunner must be "jest" or "vitest"'],
-    [{ cms: "wordpress" }, 'cms must be "none" or "contentful"'],
+    [{ cms: "wordpress" }, 'cms must be "none" or "contentful" or "prismic"'],
     [{ includeContentful: "yes" }, "includeContentful must be a boolean"],
     [
       { cms: "none", includeContentful: true },

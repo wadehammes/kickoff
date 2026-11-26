@@ -20,6 +20,9 @@ export const DEFAULT_VERSIONS = {
   "@next/codemod": "16.4.6",
   "@next/third-parties": "^16.4.3",
   "@playwright/test": "^1.65.0",
+  "@prismicio/client": "^7.23.1",
+  "@prismicio/next": "^3.0.0",
+  "@prismicio/react": "^3.5.1",
   "@svgr/webpack": "^8.1.0",
   "@tanstack/react-query": "^5.105.0",
   "@testing-library/dom": "^10.4.2",
@@ -48,6 +51,7 @@ export const DEFAULT_VERSIONS = {
   "next-intl": "^4.14.9",
   "postcss-flexbugs-fixes": "^5.0.2",
   "postcss-preset-env": "^11.6.1",
+  prismic: "^1.30.0",
   react: "^19.3.1",
   "react-dom": "^19.3.1",
   "react-google-recaptcha": "^3.1.0",
@@ -238,7 +242,9 @@ export const getTsConfig = (a: ProjectAnswers): string => {
     "module": "esnext",
     "moduleResolution": "bundler",
     "noEmit": true,
-    "paths": {
+    "paths": {${Object.entries(getCms(a)?.tsconfigPaths ?? {})
+      .map(([alias, target]) => `\n      "${alias}": ["${target}"],`)
+      .join("")}
       "src/*": ["./src/*"]
     },
     "resolveJsonModule": true,
@@ -686,7 +692,11 @@ export const getKnipConfig = (a: ProjectAnswers): string => {
   const cms = getCms(a);
 
   if (cms) {
-    ignore.unshift(`${cms.generatedTypesDir}/**`);
+    ignore.unshift(
+      ...cms.generatedPaths.map((generated) =>
+        generated.endsWith("/") ? `${generated}**` : generated,
+      ),
+    );
   } else {
     ignore.push("src/components/ExitDraftModeLink/**");
   }
