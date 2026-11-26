@@ -6,6 +6,7 @@ const { ensureDir, writeFile } = fsExtra;
 
 import {
   DEFAULT_VERSIONS,
+  usesPlaywright,
   usesVercel,
   type Versions,
 } from "./templates/config.js";
@@ -517,8 +518,8 @@ export const generateProject = async (
   await write("scripts/lib/preview-local.ts", getPreviewLocal());
   await write("scripts/dev-with-preview.ts", getDevWithPreview(a));
 
-  // ── e2e/ (Claude pipeline) ─────────────────────────────────────────────────
-  if (a.includeClaudePipeline) {
+  // ── e2e/ (browser tests) ─────────────────────────────────────────────────
+  if (usesPlaywright(a)) {
     await write("playwright.config.ts", getPlaywrightConfig(a));
     await write("e2e/smoke.spec.ts", getE2eSmokeSpec(a));
   }

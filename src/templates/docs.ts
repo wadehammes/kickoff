@@ -1,5 +1,5 @@
 import type { ProjectAnswers } from "../types.js";
-import { getBaseBranch, usesVercel } from "./config.js";
+import { getBaseBranch, usesPlaywright, usesVercel } from "./config.js";
 
 export const getHandbookChangePolicy = (a: ProjectAnswers): string =>
   a.includeClaudePipeline
@@ -10,9 +10,28 @@ export const getHandbookChangePolicy = (a: ProjectAnswers): string =>
 // CLAUDE.md
 // ---------------------------------------------------------------------------
 
+const PROJECT_TYPE_LABELS: Record<ProjectAnswers["projectType"], string> = {
+  app: "a web app",
+  careers: "a careers or landing page",
+  content: "a content site or blog",
+  marketing: "a marketing site",
+};
+
+export const getProjectSummary = (a: ProjectAnswers): string =>
+  [
+    `${a.siteName} is ${PROJECT_TYPE_LABELS[a.projectType ?? "marketing"]}.`,
+    a.projectDescription,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
 export const getClaude = (a: ProjectAnswers): string => {
   const cmsClause = a.includeContentful ? "Contentful/CMS changes, " : "";
   return `# Agent instructions
+
+## About this project
+
+${getProjectSummary(a)}
 
 Before **substantive** work in this repo (features, refactors, ${cmsClause}patterns that touch the App Router or API routes, CI or env, analytics), read **\`docs/handbook/non-negotiables.md\`** and the handbook page that matches the task. **\`docs/handbook/llms.md\`** maps tasks and files to pages. When unsure which pattern to use, read **\`docs/handbook/decisions.md\`** first.
 
@@ -186,6 +205,8 @@ This project includes **Claude Code** hooks under **\`.claude/\`** (\`settings.j
 
   return `# ${a.siteName}
 
+${getProjectSummary(a)}
+
 ## Prerequisites (greenfield bootstrap)
 
 These steps happen **outside application code**: GitHub repository settings, the **kickoff** scaffolding CLI on your machine${a.includeContentful ? ", " : " and "}${usesVercel(a) ? "Vercel" : "your host"}${a.includeContentful ? ", and Contentful." : "."} Work through them once when standing up this repo—not for every contributor clone.
@@ -228,7 +249,7 @@ pnpm dev
 | \`pnpm next:upgrade\` | Upgrade Next.js and React to the latest minor with the official codemod |
 | \`pnpm next:agents-md\` | Refresh the Next.js docs index in \`CLAUDE.md\` |
 | \`pnpm test:ci\` | Run Jest test suite |
-${a.includeClaudePipeline ? "| `pnpm test:e2e` | Playwright tests in `e2e/` against `BASE_URL` (default: local dev server) |\n| `pnpm typecheck` | TypeScript check used by Vercel Deployment Checks |\n" : ""}${scriptsTypesRow}| \`pnpm scaffold MyComponent\` | Scaffold a new component with all standard files |
+${usesPlaywright(a) ? "| `pnpm test:e2e` | Playwright tests in `e2e/` against `BASE_URL` (default: local dev server) |\n" : ""}${a.includeClaudePipeline ? "| `pnpm typecheck` | TypeScript check used by Vercel Deployment Checks |\n" : ""}${scriptsTypesRow}| \`pnpm scaffold MyComponent\` | Scaffold a new component with all standard files |
 
 ${contentfulSection}${draftSection}## Component scaffolding
 
@@ -310,6 +331,9 @@ export const getHandbookNonNegotiables = (a: ProjectAnswers): string => {
   const contentfulRow = a.includeContentful
     ? "| Getters fetch entries and parsers turn them into component props | Components that read raw Contentful entries, or edits to `src/contentful/types/` | [contentful.md](contentful.md) |\n"
     : "";
+  const formsRow = a.includeForms
+    ? "| `react-hook-form` with a `zod` schema and `zodResolver`, validated again in the Route Handler | Hand-rolled form state, or validation only in the browser | [patterns.md](patterns.md#forms) |\n"
+    : "";
   const copyRow = a.includeI18n
     ? "| User-facing text in `src/copy/`, in English and Spanish | Hard-coded text in a component, or a change to one language only | [platform.md](platform.md#languages-english-and-spanish) |\n"
     : "";
@@ -339,7 +363,7 @@ These apply to code you add or rewrite. Older code that breaks one can stay unti
 | ------ | ----- | ---- |
 | Server Components load page data; client code calls \`api.*\` from \`src/api/urls.ts\` | \`fetch("/api/...")\` written out in client code | [patterns.md](patterns.md#api-layer-and-route-handlers) |
 | A Route Handler for every \`api.*\` method, listed in the route map | An \`api.*\` method with no documented handler | [api-routes.md](api-routes.md) |
-${contentfulRow}${copyRow}
+${contentfulRow}${formsRow}${copyRow}
 ## Tests
 
 | Always | Never | Page |
@@ -371,7 +395,9 @@ export const getHandbookReadme = (a: ProjectAnswers): string => {
 
   return `# ${s} handbook
 
-How ${s} is built: one page per part of the work, with the rules we follow and an example for each. Agents route through [llms.md](llms.md) instead of this index.
+${getProjectSummary(a)}
+
+This handbook covers how ${s} is built: one page per part of the work, with the rules we follow and an example for each. Agents route through [llms.md](llms.md) instead of this index.
 
 ## Pages
 
@@ -455,7 +481,7 @@ export const getHandbookLlms = (a: ProjectAnswers): string => {
         ]
       : []),
     [
-      `\`package.json\`, \`.github/**\`, \`next.config.ts\`, \`src/proxy.ts\`, env vars${a.includeClaudePipeline ? ", `e2e/**`, `playwright.config.ts`" : ""}`,
+      `\`package.json\`, \`.github/**\`, \`next.config.ts\`, \`src/proxy.ts\`, env vars${usesPlaywright(a) ? ", `e2e/**`, `playwright.config.ts`" : ""}`,
       "[platform.md](platform.md)",
     ],
     [
@@ -1038,9 +1064,7 @@ ${
 
 ## Forms
 
-- **Library**: \`react-hook-form\` is used where complex forms exist.
-- **Submit**: On submit, call the appropriate mutation hook, which uses the API layer and Route Handlers.
-
+${a.includeForms ? getFormsSection() : "- **Library**: `react-hook-form` is used where complex forms exist.\n- **Submit**: On submit, call the appropriate mutation hook, which uses the API layer and Route Handlers.\n"}
 ## Layout and page structure
 
 - **Root layout**: \`src/app/layout.tsx\` loads global styles, providers, navigation, and footer data.
@@ -1157,7 +1181,7 @@ Run **\`pnpm lint:all\`** locally for the same checks as a full pre-push pass (\
 | \`pnpm knip\` / \`pnpm knip:ci\` | Dead-code / unused export analysis ([knip.json](../../knip.json)). |
 | \`pnpm next:upgrade\` / \`pnpm next:agents-md\` | Official Next.js codemods: upgrade, and refresh the docs index in \`CLAUDE.md\` (see **Upgrading Next.js**). |
 | \`pnpm test:ci\` | Jest (CI-style). |
-${a.includeClaudePipeline ? "| `pnpm test:e2e` | Playwright (`e2e/`) against `BASE_URL`. |\n| `pnpm typecheck` | TypeScript check for Vercel Deployment Checks. |\n" : ""}| \`pnpm scaffold\` | New component folder under \`src/components/\` (see [components.md](components.md)). |
+${usesPlaywright(a) ? "| `pnpm test:e2e` | Playwright (`e2e/`) against `BASE_URL`. |\n" : ""}${a.includeClaudePipeline ? "| `pnpm typecheck` | TypeScript check for Vercel Deployment Checks. |\n" : ""}| \`pnpm scaffold\` | New component folder under \`src/components/\` (see [components.md](components.md)). |
 ${scriptRowsExtra}
 The full list lives in **\`package.json\`**.
 
@@ -1204,7 +1228,7 @@ ${
 `
     : ""
 }${draftSection}
-${agentHooksSection}${a.includeClaudePipeline ? getHandbookPipelineSection(a) : getHandbookReleaseSection(a)}
+${agentHooksSection}${a.includePlaywright && !a.includeClaudePipeline ? getHandbookBrowserTestsSection(a) : ""}${a.includeClaudePipeline ? getHandbookPipelineSection(a) : getHandbookReleaseSection(a)}
 ${a.includeI18n ? getHandbookLanguagesSection() : ""}${getHandbookUpgradingSection(a)}## \`src/proxy.ts\`
 
 ${
@@ -1247,6 +1271,39 @@ The site is served in English at \`/\` and Spanish at \`/es\` using **next-intl*
 
 `;
 };
+
+const getFormsSection =
+  (): string => `Build forms with **\`react-hook-form\`** and a **\`zod\`** schema, joined by **\`zodResolver\`**. The schema is the single source for field rules and the submitted type.
+
+\`\`\`tsx
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
+const contactSchema = z.object({
+  email: z.email(),
+  message: z.string().min(1, "Tell us how we can help"),
+});
+
+type ContactValues = z.infer<typeof contactSchema>;
+
+const { formState, handleSubmit, register } = useForm<ContactValues>({
+  resolver: zodResolver(contactSchema),
+});
+\`\`\`
+
+- Keep each schema next to its form (\`ContactForm.schema.ts\`) and export the inferred type.
+- Show errors with **\`FieldErrorMessage\`** from \`src/ui/Field/\`.
+- On submit, call the matching mutation hook, which goes through \`api.*\` and a Route Handler. Validate the body again in the Route Handler with the same schema.
+`;
+
+const getHandbookBrowserTestsSection = (
+  a: ProjectAnswers,
+): string => `## Browser tests (Playwright)
+
+Tests live in \`e2e/\` (config: \`playwright.config.ts\`). Start the site, then run **\`pnpm test:e2e\`**; it targets \`BASE_URL\` (default \`http://localhost:${a.devPort}\`). The starter smoke test loads the home page and checks it with axe for accessibility problems. Put \`@smoke\` in the \`describe\` title of tests that must pass after every deploy. Jest ignores \`e2e/\`.
+
+`;
 
 const getHandbookReleaseSection = (a: ProjectAnswers): string => {
   return `## Release process

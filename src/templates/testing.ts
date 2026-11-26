@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ProjectAnswers } from "../types.js";
+import { usesVercel } from "./config.js";
 
 const srcTestsUtilsAssetDir = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -665,7 +666,7 @@ export const getHandbookEditGuardSpec = (): string =>
   );
 
 // ---------------------------------------------------------------------------
-// playwright.config.ts (includeClaudePipeline)
+// playwright.config.ts (includePlaywright or includeClaudePipeline)
 // ---------------------------------------------------------------------------
 
 export const getPlaywrightConfig = (a: ProjectAnswers): string => {
@@ -675,8 +676,7 @@ const rawBaseUrl = process.env.BASE_URL ?? "http://localhost:${a.devPort}";
 const baseURL = rawBaseUrl.startsWith("http")
   ? rawBaseUrl
   : \`https://\${rawBaseUrl}\`;
-const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
-const isCI = Boolean(process.env.CI);
+${usesVercel(a) ? "const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;\n" : ""}const isCI = Boolean(process.env.CI);
 
 export default defineConfig({
   forbidOnly: isCI,
@@ -686,20 +686,14 @@ export default defineConfig({
   testDir: "./e2e",
   use: {
     baseURL,
-    extraHTTPHeaders: bypassSecret
-      ? {
-          "x-vercel-protection-bypass": bypassSecret,
-          "x-vercel-set-bypass-cookie": "true",
-        }
-      : {},
-    trace: "retain-on-failure",
+${usesVercel(a) ? '    extraHTTPHeaders: bypassSecret\n      ? {\n          "x-vercel-protection-bypass": bypassSecret,\n          "x-vercel-set-bypass-cookie": "true",\n        }\n      : {},\n' : ""}    trace: "retain-on-failure",
   },
 });
 `;
 };
 
 // ---------------------------------------------------------------------------
-// e2e/smoke.spec.ts (includeClaudePipeline)
+// e2e/smoke.spec.ts (includePlaywright or includeClaudePipeline)
 // ---------------------------------------------------------------------------
 
 export const getE2eSmokeSpec = (a: ProjectAnswers): string => {

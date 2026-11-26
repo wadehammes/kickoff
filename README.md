@@ -94,6 +94,8 @@ Every generated project includes:
 
 ## Options
 
+kickoff starts by asking what kind of project it is (marketing site, careers or landing page, content site or blog, or web app) and for a sentence describing it. The description goes into `CLAUDE.md`, the handbook, and the README, so agents know what they're building. The project type pre-selects the add-ons that usually fit it in a single checklist, and you can name any other npm packages to add.
+
 | Option | Adds |
 | --- | --- |
 | Contentful | Contentful client, getters and parsers, draft mode routes, and type generation (`pnpm types:contentful`) |
@@ -101,6 +103,9 @@ Every generated project includes:
 | Google Analytics | GA through `@next/third-parties` |
 | Resend | The Resend email package and env vars |
 | reCAPTCHA | `react-google-recaptcha` and env vars |
+| Forms | `react-hook-form`, `zod`, and `@hookform/resolvers`, plus a forms section and non-negotiables row in the handbook |
+| Browser tests | Playwright smoke and accessibility tests in `e2e/` with `pnpm test:e2e`. Always on with the Claude pipeline. |
+| Extra packages | Any npm packages you name, each pinned to its newest release that has been out at least 7 days. kickoff stops if one isn't on npm. |
 | Agent tooling | Cursor (`.cursor/` hooks, rules, and commands) or Claude Code (`.claude/` settings, hooks, and commands) |
 | Hosting | `vercel` (default) adds the redeploy page, the Vercel release check, and Vercel env vars. `other` leaves every Vercel file and mention out, for any host that runs Next.js. |
 | Claude pipeline | The hands-off pipeline below. Requires Claude Code tooling and Vercel hosting. |
@@ -122,11 +127,11 @@ A monthly workflow also runs the official Next.js upgrade codemod and opens a PR
 
 ### Interactive
 
-Run `kickoff` and answer the prompts: project name, site name, production and staging URLs, dev port, brand colors, the options above, and agent tooling. Choosing Claude Code adds the pipeline question. The project is written to `./<project-name>/`, or to the current directory if you choose that.
+Run `kickoff` and answer the prompts: project name, site name, project type and description, production and staging URLs, dev port, brand colors, the add-on checklist, extra packages, hosting, and agent tooling. Choosing Claude Code with Vercel hosting adds the pipeline question. The project is written to `./<project-name>/`, or to the current directory if you choose that.
 
 ### Non-interactive
 
-Pass a JSON file with every answer. kickoff rejects missing or unknown keys, and values must be real JSON booleans and numbers. `hosting` is the one optional key; it defaults to `"vercel"`.
+Pass a JSON file with every answer. kickoff rejects missing or unknown keys, and values must be real JSON booleans and numbers. The project profile keys are optional, so older answers files still work: `hosting` defaults to `"vercel"`, `projectType` to `"marketing"`, `projectDescription` to `""`, `includeForms` and `includePlaywright` to `false`, and `extraPackages` to `[]`.
 
 ```sh
 kickoff --answers ./answers.json
@@ -150,7 +155,12 @@ kickoff --answers ./answers.json
   "includeRecaptcha": false,
   "agentTooling": "claude",
   "hosting": "vercel",
-  "includeClaudePipeline": true
+  "includeClaudePipeline": true,
+  "projectType": "careers",
+  "projectDescription": "Careers site with role pages in English and Spanish.",
+  "includeForms": true,
+  "includePlaywright": true,
+  "extraPackages": ["date-fns"]
 }
 ```
 

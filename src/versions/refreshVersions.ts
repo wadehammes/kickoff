@@ -199,6 +199,46 @@ export const refreshVersions = async <T extends VersionSet>({
   };
 };
 
+export const resolveExtraPackages = async ({
+  fetchMetadata,
+  names,
+  now = new Date(),
+}: {
+  fetchMetadata: FetchMetadata;
+  names: string[];
+  now?: Date;
+}): Promise<{ problems: string[]; versions: VersionSet }> => {
+  const results = await Promise.all(
+    names.map(async (name) => {
+      try {
+        const newest = eligibleVersions(await fetchMetadata(name), now).at(-1);
+
+        return newest
+          ? { name, version: `^${format(newest)}` }
+          : { name, problem: "no release is at least 7 days old yet" };
+      } catch (error) {
+        return {
+          name,
+          problem: error instanceof Error ? error.message : String(error),
+        };
+      }
+    }),
+  );
+
+  return {
+    problems: results.flatMap((result) =>
+      "problem" in result ? [`${result.name}: ${result.problem}`] : [],
+    ),
+    versions: Object.fromEntries(
+      results.flatMap((result) =>
+        "version" in result && result.version
+          ? [[result.name, result.version] as const]
+          : [],
+      ),
+    ),
+  };
+};
+
 export const fetchFromNpm: FetchMetadata = async (name) => {
   const response = await fetch(
     `https://registry.npmjs.org/${name.replace("/", "%2f")}`,

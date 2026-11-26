@@ -21,8 +21,14 @@ const baseAnswers = (
   agentTooling: "cursor",
   bgColor: "#ffffff",
   devPort: 3000,
+  extraPackages: [],
+  hosting: "vercel",
   includeClaudePipeline: false,
   includeContentful: true,
+  includeForms: false,
+  includePlaywright: false,
+  projectDescription: "",
+  projectType: "marketing",
   includeGA: false,
   includeI18n: false,
   includeRecaptcha: false,
@@ -303,6 +309,56 @@ describe("generateProject", () => {
     expect(getDraftPreviewUrl("s3cret", "http://localhost:3000")).toBe(
       "http://localhost:3000/api/draft?previewSecret=s3cret&redirect=/",
     );
+  });
+
+  it("tells agents and people what the project is", async () => {
+    const root = await runInTemp(
+      baseAnswers({
+        projectDescription: "Careers site for Rhythm, in English and Spanish.",
+        projectName: "about-site",
+        projectType: "careers",
+      }),
+    );
+    const read = (file: string) => readFileSync(path.join(root, file), "utf-8");
+
+    for (const file of ["CLAUDE.md", "README.md", "docs/handbook/README.md"]) {
+      expect(read(file), file).toContain(
+        "Careers site for Rhythm, in English and Spanish.",
+      );
+    }
+    expect(read("CLAUDE.md")).toContain("## About this project");
+    expect(read("CLAUDE.md")).toContain("a careers or landing page");
+  });
+
+  it("names the project type even without a description", async () => {
+    const root = await runInTemp(baseAnswers({ projectName: "plain-site" }));
+
+    expect(readFileSync(path.join(root, "CLAUDE.md"), "utf-8")).toContain(
+      "Test Site is a marketing site.",
+    );
+  });
+
+  it("documents browser tests and forms when those add-ons are on", async () => {
+    const root = await runInTemp(
+      baseAnswers({
+        includeForms: true,
+        includePlaywright: true,
+        projectName: "addons-site",
+      }),
+    );
+    const platform = readFileSync(
+      path.join(root, "docs/handbook/platform.md"),
+      "utf-8",
+    );
+    const patterns = readFileSync(
+      path.join(root, "docs/handbook/patterns.md"),
+      "utf-8",
+    );
+
+    expect(existsSync(path.join(root, "e2e/smoke.spec.ts"))).toBe(true);
+    expect(platform).toContain("## Browser tests (Playwright)");
+    expect(platform).toContain("pnpm test:e2e");
+    expect(patterns).toContain("zodResolver");
   });
 
   it("keeps server-only secrets out of next.config env", async () => {

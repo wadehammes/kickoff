@@ -22,8 +22,10 @@ type Tooling = Pick<
 type Options = Pick<
   ProjectAnswers,
   | "includeContentful"
+  | "includeForms"
   | "includeGA"
   | "includeI18n"
+  | "includePlaywright"
   | "includeRecaptcha"
   | "includeResend"
 >;
@@ -38,8 +40,10 @@ const TOOLINGS: Tooling[] = [
 
 const OPTION_KEYS: (keyof Options)[] = [
   "includeContentful",
+  "includeForms",
   "includeGA",
   "includeI18n",
+  "includePlaywright",
   "includeRecaptcha",
   "includeResend",
 ];
@@ -94,6 +98,9 @@ const SCENARIOS = TOOLINGS.flatMap((tooling) =>
       ...options,
       bgColor: "#ffffff",
       devPort: 3000,
+      extraPackages: [],
+      projectDescription: "",
+      projectType: "marketing",
       primaryColor: "#000000",
       prodUrl: "https://example.com",
       projectName: scenarioName(tooling, options),
