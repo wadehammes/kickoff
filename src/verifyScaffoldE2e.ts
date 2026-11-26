@@ -18,6 +18,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { generateProject } from "./generator.js";
+import { getCms } from "./templates/cms/index.js";
 import {
   DEFAULT_VERSIONS,
   KEEP_PINNED,
@@ -64,14 +65,13 @@ const writeMinimalEnvLocal = (root: string, answers: ProjectAnswers): void => {
     "VERCEL_TEAM_ID=e2e-vercel-team",
   ];
 
-  if (answers.includeContentful) {
-    lines.push(
-      "CONTENTFUL_SPACE_ID=e2e-space",
-      "CONTENTFUL_CONTENT_DELIVERY_API_KEY=e2e-delivery",
-      "CONTENTFUL_PREVIEW_API_KEY=e2e-preview",
-      "CONTENTFUL_PREVIEW_SECRET=e2e-preview-secret",
-      "CONTENTFUL_CMA_TOKEN=e2e-cma",
-    );
+  // Placeholder values for every variable the CMS adapter asks for.
+  for (const line of getCms(answers)?.envExample ?? []) {
+    const name = line.match(/^([A-Z0-9_]+)=$/)?.[1];
+
+    if (name) {
+      lines.push(`${name}=e2e-${name.toLowerCase().replaceAll("_", "-")}`);
+    }
   }
 
   if (answers.includeGA) {
@@ -485,8 +485,10 @@ const verifyFixture = async (
 
     verifyHandbookTooling(tmpRoot, answers);
 
-    if (answers.includeContentful) {
-      console.log("  skip build: next build needs a real Contentful space");
+    const cms = getCms(answers);
+
+    if (cms) {
+      console.log(`  skip build: next build needs a real ${cms.name} space`);
     } else {
       await smokeTestBuild(tmpRoot, answers);
     }

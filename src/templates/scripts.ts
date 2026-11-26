@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ProjectAnswers } from "../types.js";
+import { getCms } from "./cms/index.js";
 import { getBaseBranch, usesVercel } from "./config.js";
 import { getTestRunner, usesVitest } from "./testRunner.js";
 
@@ -474,7 +475,9 @@ export const openBrowser = (targetUrl: string): void => {
 // ---------------------------------------------------------------------------
 
 export const getDevWithPreview = (a: ProjectAnswers): string => {
-  if (!a.includeContentful) {
+  const cms = getCms(a);
+
+  if (!cms) {
     return `/**
  * Starts Next.js dev (${a.devPort}). Draft preview URL logic is omitted when
  * the scaffold was generated without Contentful.
@@ -514,7 +517,7 @@ child.on("exit", (code, signal) => process.exit(signal ? 1 : (code ?? 0)));
   }
 
   return `/**
- * Runs \`next dev\` and, when CONTENTFUL_PREVIEW_SECRET is set, waits until
+ * Runs \`next dev\` and, when ${cms.previewSecretEnv} is set, waits until
  * the dev server answers then opens /api/draft so draft mode is on.
  */
 
@@ -608,12 +611,12 @@ const main = async (): Promise<void> => {
   child.on("exit", (code, signal) => process.exit(signal ? 1 : (code ?? 0)));
 
   const env = resolveEnvForScripts(repoRoot);
-  const secret = env.CONTENTFUL_PREVIEW_SECRET;
+  const secret = env.${cms.previewSecretEnv};
   const origin = \`http://localhost:\${PORT}\`;
 
   if (!secret) {
     console.info(
-      "\\n[dev:preview] Tip: set CONTENTFUL_PREVIEW_SECRET in .env.local to auto-open draft preview.\\n",
+      "\\n[dev:preview] Tip: set ${cms.previewSecretEnv} in .env.local to auto-open draft preview.\\n",
     );
     return;
   }
@@ -653,6 +656,7 @@ main().catch((err: unknown) => {
 // ---------------------------------------------------------------------------
 
 export const getHandbookSyncCheckSh = (a: ProjectAnswers): string => {
+  const cms = getCms(a);
   const runner = getTestRunner(a).setupDir.slice(1);
 
   return `#!/usr/bin/env bash
@@ -671,8 +675,7 @@ fi
 handbook_chapters_for_path() {
   case "$1" in
     src/app/api/*) echo "api-routes.md" ;;
-    src/contentful/*) echo "contentful.md" ;;
-    src/components/* | src/ui/*) echo "components.md" ;;
+${cms ? `    ${cms.dir}/*) echo "${cms.handbook.file}" ;;\n` : ""}    src/components/* | src/ui/*) echo "components.md" ;;
     src/tests/factories/*) echo "factories.md" ;;
     src/tests/* | *.spec.ts | *.spec.tsx | *.test.ts | *.test.tsx) echo "testing.md" ;;
     src/utils/* | src/lib/* | src/interfaces/* | src/types/*) echo "source-layout.md" ;;

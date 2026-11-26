@@ -1,8 +1,7 @@
-import type { ProjectAnswers, ProjectType } from "./types.js";
+import type { Cms, ProjectAnswers, ProjectType } from "./types.js";
 
 export type AddOnKey = keyof Pick<
   ProjectAnswers,
-  | "includeContentful"
   | "includeForms"
   | "includeGA"
   | "includeI18n"
@@ -13,12 +12,6 @@ export type AddOnKey = keyof Pick<
 
 export const ADD_ONS: { description: string; key: AddOnKey; title: string }[] =
   [
-    {
-      description:
-        "Contentful client, parsers, draft mode, and type generation",
-      key: "includeContentful",
-      title: "CMS (Contentful)",
-    },
     {
       description: "English at / and Spanish at /es with next-intl",
       key: "includeI18n",
@@ -81,7 +74,7 @@ export const PROJECT_TYPE_CHOICES: {
 const RECOMMENDED: Record<ProjectType, AddOnKey[]> = {
   app: ["includeForms", "includeResend", "includePlaywright"],
   careers: ["includeI18n", "includeGA", "includeForms", "includePlaywright"],
-  content: ["includeContentful", "includeGA", "includePlaywright"],
+  content: ["includeGA", "includePlaywright"],
   marketing: [
     "includeGA",
     "includeForms",
@@ -92,3 +85,21 @@ const RECOMMENDED: Record<ProjectType, AddOnKey[]> = {
 
 export const recommendedAddOns = (type: ProjectType): AddOnKey[] =>
   RECOMMENDED[type];
+
+export const CMS_CHOICES: { description: string; title: string; value: Cms }[] =
+  [
+    {
+      description: "Pages and copy live in code",
+      title: "None",
+      value: "none",
+    },
+    {
+      description: "Client, parsers, draft mode, and type generation",
+      title: "Contentful",
+      value: "contentful",
+    },
+  ];
+
+/** Content sites get a CMS by default; everything else keeps content in code. */
+export const recommendedCms = (type: ProjectType): Cms =>
+  type === "content" ? "contentful" : "none";

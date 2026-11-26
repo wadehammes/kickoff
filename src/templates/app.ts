@@ -1,4 +1,5 @@
 import type { ProjectAnswers } from "../types.js";
+import { getCms, usesCms } from "./cms/index.js";
 
 // ---------------------------------------------------------------------------
 // src/app/layout.tsx
@@ -15,23 +16,21 @@ export const getAppLayout = (a: ProjectAnswers): string => {
       ) : null}`
     : "";
 
-  const draftImport = a.includeContentful
+  const draftImport = usesCms(a)
     ? `import { draftMode } from "next/headers";\nimport { ExitDraftModeLink } from "src/components/ExitDraftModeLink/ExitDraftModeLink.component";\n`
     : "";
 
-  const preconnectCtf = a.includeContentful
-    ? `        <link rel="preconnect" href="https://images.ctfassets.net" />
-        <link rel="preconnect" href="https://assets.ctfassets.net" />
-`
-    : "";
+  const preconnectCms = (getCms(a)?.preconnectOrigins ?? [])
+    .map((origin) => `        <link rel="preconnect" href="${origin}" />\n`)
+    .join("");
 
-  const draftBanner = a.includeContentful
+  const draftBanner = usesCms(a)
     ? `  const draft = await draftMode();
 
 `
     : "";
 
-  const draftUi = a.includeContentful
+  const draftUi = usesCms(a)
     ? `        {draft.isEnabled ? (
           <div className="draftMode">
             You are previewing in draft mode!{" "}
@@ -67,7 +66,7 @@ const RootLayout = async ({ children }: { children: React.ReactNode }) => {
 ${draftBanner}  return (
     <html lang="en">
       <head>
-${preconnectCtf}        <link
+${preconnectCms}        <link
           rel="sitemap"
           type="application/xml"
           title="Sitemap"
@@ -331,21 +330,18 @@ export default robots;
 // ---------------------------------------------------------------------------
 
 export const getAppSitemap = (a: ProjectAnswers): string => {
+  const cms = getCms(a);
   const imports = [
     'import type { MetadataRoute } from "next";',
-    ...(a.includeContentful
-      ? ['import { fetchPages } from "src/contentful/getPages";']
-      : []),
+    ...(cms ? [`import { fetchPages } from "${cms.dir}/getPages";`] : []),
     ...(a.includeI18n
       ? ['import { type Locale, routing } from "src/i18n/routing";']
       : []),
-    ...(a.includeContentful
-      ? ['import { HOME_PAGE_SLUG } from "src/utils/constants";']
-      : []),
+    ...(cms ? ['import { HOME_PAGE_SLUG } from "src/utils/constants";'] : []),
     'import { envUrl } from "src/utils/environment.helpers";',
   ].join("\n");
 
-  const cmsRoutes = a.includeContentful
+  const cmsRoutes = cms
     ? `
 const fetchCmsRoutes = async (): Promise<SitemapRoute[]> => {
   const pages = await fetchPages({ preview: false });
@@ -360,7 +356,7 @@ const fetchCmsRoutes = async (): Promise<SitemapRoute[]> => {
 `
     : "";
 
-  const collectRoutes = a.includeContentful
+  const collectRoutes = cms
     ? `const collectRoutes = async (): Promise<SitemapRoute[]> => {
   const cmsRoutes = await fetchCmsRoutes();
   const cmsPaths = new Set(cmsRoutes.map((entry) => entry.route));
@@ -466,7 +462,7 @@ export default manifest;
 // src/app/api/draft/route.ts
 // ---------------------------------------------------------------------------
 
-export const getDraftRoute = (): string => {
+export const getDraftRoute = (previewSecretEnv: string): string => {
   return `import { draftMode } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -475,7 +471,7 @@ export const GET = async (request: Request) => {
   const { searchParams } = new URL(request.url);
 
   if (
-    searchParams.get("previewSecret") !== process.env.CONTENTFUL_PREVIEW_SECRET
+    searchParams.get("previewSecret") !== process.env.${previewSecretEnv}
   ) {
     return new Response("Invalid token", { status: 401 });
   }

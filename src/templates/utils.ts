@@ -315,43 +315,6 @@ describe("isNonNullable", () => {
 };
 
 // ---------------------------------------------------------------------------
-// src/utils/contentful.helpers.ts
-// ---------------------------------------------------------------------------
-
-export const getContentfulUtilHelpers = (): string => {
-  return `export const createImageUrl = (src: string): string => {
-  if (!src) {
-    return "";
-  }
-
-  if (src.startsWith("http")) {
-    return src;
-  }
-
-  return \`https:\${src}\`;
-};
-
-export const isVideo = (url: string | undefined): boolean => {
-  if (!url) {
-    return false;
-  }
-
-  return url.includes("videos.ctfassets.net");
-};
-
-export const getContentfulEntryWebUrl = (entryId: string): string | null => {
-  const spaceId = process.env.CONTENTFUL_SPACE_ID;
-
-  if (!spaceId || !entryId) {
-    return null;
-  }
-
-  return \`https://app.contentful.com/spaces/\${spaceId}/entries/\${entryId}\`;
-};
-`;
-};
-
-// ---------------------------------------------------------------------------
 // src/utils/style.helpers.ts
 // ---------------------------------------------------------------------------
 

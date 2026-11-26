@@ -1,4 +1,5 @@
 import type { ProjectAnswers } from "../types.js";
+import { getCms, usesCms } from "./cms/index.js";
 import { usesVercel } from "./config.js";
 
 // ---------------------------------------------------------------------------
@@ -109,25 +110,23 @@ export const getLocaleLayout = (a: ProjectAnswers): string => {
 `
     : "";
 
-  const draftModeImport = a.includeContentful
+  const draftModeImport = usesCms(a)
     ? `import { draftMode } from "next/headers";\n`
     : "";
-  const exitDraftImport = a.includeContentful
+  const exitDraftImport = usesCms(a)
     ? `import { ExitDraftModeLink } from "src/components/ExitDraftModeLink/ExitDraftModeLink.component";\n`
     : "";
 
-  const preconnectCtf = a.includeContentful
-    ? `        <link rel="preconnect" href="https://images.ctfassets.net" />
-        <link rel="preconnect" href="https://assets.ctfassets.net" />
-`
-    : "";
+  const preconnectCms = (getCms(a)?.preconnectOrigins ?? [])
+    .map((origin) => `        <link rel="preconnect" href="${origin}" />\n`)
+    .join("");
 
-  const draftBlock = a.includeContentful
+  const draftBlock = usesCms(a)
     ? `  const draft = await draftMode();
 `
     : "";
 
-  const draftUi = a.includeContentful
+  const draftUi = usesCms(a)
     ? `        {draft.isEnabled ? (
           <div className="draftMode">
             You are previewing in draft mode!{" "}
@@ -182,7 +181,7 @@ ${draftBlock}
   return (
     <html lang={locale}>
       <head>
-${preconnectCtf}        <link
+${preconnectCms}        <link
           rel="sitemap"
           type="application/xml"
           title="Sitemap"

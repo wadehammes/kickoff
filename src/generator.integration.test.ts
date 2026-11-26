@@ -25,7 +25,7 @@ const baseAnswers = (
   extraPackages: [],
   hosting: "vercel",
   includeClaudePipeline: false,
-  includeContentful: true,
+  cms: "contentful",
   includeForms: false,
   includePlaywright: false,
   projectDescription: "",
@@ -83,9 +83,9 @@ describe("generateProject", () => {
     expect(pkg.dependencies?.contentful).toBe("^11.12.10");
   });
 
-  it("omits Contentful when includeContentful is false", async () => {
+  it("omits Contentful when cms is none", async () => {
     const root = await runInTemp(
-      baseAnswers({ includeContentful: false, projectName: "static-site" }),
+      baseAnswers({ cms: "none", projectName: "static-site" }),
     );
     expect(existsSync(path.join(root, "package.json"))).toBe(true);
     expect(existsSync(path.join(root, "src/contentful/client.ts"))).toBe(false);

@@ -3,6 +3,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { ProjectAnswers } from "../types.js";
+import { getCms, usesCms } from "./cms/index.js";
+import type { CmsAdapter } from "./cms/types.js";
 import { getBaseBranch } from "./config.js";
 import { getHandbookChangePolicy } from "./docs.js";
 import { getTestRunner } from "./testRunner.js";
@@ -54,14 +56,14 @@ export const getClaudeHookScriptNames = (a: ProjectAnswers): string[] => [
     (name) => name !== "handbook-drift-check.sh",
   ),
   ...CLAUDE_ONLY_HOOK_SCRIPT_NAMES.filter(
-    (name) => name !== "block-generated-types.sh" || a.includeContentful,
+    (name) => name !== "block-generated-types.sh" || usesCms(a),
   ),
 ];
 
 export const getCursorHookScriptNames = (a: ProjectAnswers): string[] => [
   ...AGENT_HOOK_SCRIPT_NAMES,
   ...CURSOR_EXTRA_HOOK_SCRIPT_NAMES,
-  ...(a.includeContentful ? ["block-generated-types.sh"] : []),
+  ...(usesCms(a) ? ["block-generated-types.sh"] : []),
 ];
 
 export const getCursorHooksLib = (): string => {
@@ -491,7 +493,7 @@ exit 0
 `;
 };
 
-export const getHandbookSyncNudgeSh = (): string => {
+export const getHandbookSyncNudgeSh = (cms?: CmsAdapter): string => {
   return `#!/usr/bin/env bash
 set -euo pipefail
 
@@ -516,9 +518,13 @@ case "$file" in
     chapter="patterns.md (App Router pages, metadata, layouts)" ;;
   */src/components/* | src/components/*)
     chapter="components.md (folder layout, scaffold, exports)" ;;
-  */src/contentful/* | src/contentful/*)
-    chapter="contentful.md (getters, parsers, types)" ;;
-  */src/lib/* | src/lib/*)
+${
+  cms
+    ? `  */${cms.dir}/* | ${cms.dir}/*)
+    chapter="${cms.handbook.file} (getters, parsers, types)" ;;
+`
+    : ""
+}  */src/lib/* | src/lib/*)
     chapter="patterns.md (JSON-LD, sitemaps) or source-layout.md" ;;
   */src/utils/* | src/utils/*)
     chapter="source-layout.md (utils map) or conventions.md" ;;
@@ -638,6 +644,14 @@ export const getCursorBlockDestructiveGitSh = (): string =>
 export const getCursorBlockCoAuthoredByCommitSh = (): string =>
   readScaffoldAsset(cursorHooksExtraDir, "block-co-authored-by-commit.sh");
 
+// The generated-types hooks are written for Contentful's folder and script.
+const forCmsTypes = (script: string, cms?: CmsAdapter): string =>
+  cms
+    ? script
+        .replaceAll("src/contentful/types", cms.generatedTypesDir)
+        .replaceAll("types:contentful", cms.typesScript.name)
+    : script;
+
 export const getCursorBlockGeneratedTypesSh = (): string =>
   readScaffoldAsset(cursorHooksExtraDir, "block-generated-types.sh");
 
@@ -724,7 +738,7 @@ export const getCursorHooksJson = (a: ProjectAnswers): string => {
     },
   ];
 
-  if (a.includeContentful) {
+  if (usesCms(a)) {
     preToolUse.push({
       command: ".cursor/hooks/block-generated-types.sh",
       matcher: "Write|StrReplace",
@@ -931,7 +945,7 @@ export const getClaudeSettingsJson = (a: ProjectAnswers): string => {
         ],
         Stop: [
           hook(".claude/hooks/handbook-drift-check.mjs"),
-          ...(a.includeContentful
+          ...(usesCms(a)
             ? [hook(".claude/hooks/block-generated-types.sh")]
             : []),
           ...(a.includeClaudePipeline
@@ -1082,8 +1096,9 @@ export const getHandbookReviewCommand = (a: ProjectAnswers): string => {
     ...(a.includeClaudePipeline ? ["`e2e/`", "`playwright.config.ts`"] : []),
     "`docs/handbook/`, when the branch also changes handbook text (check that it is accurate, not its style)",
   ];
-  const skipGenerated = a.includeContentful
-    ? ", generated Contentful types (`src/contentful/types/`)"
+  const cms = getCms(a);
+  const skipGenerated = cms
+    ? `, generated ${cms.name} types (\`${cms.generatedTypesDir}/\`)`
     : "";
   const i18nCheck = a.includeI18n
     ? "- Copy: user-facing text in `src/copy/` with no Spanish (`es`) entry, or a page with hard-coded strings instead of copy ([`docs/handbook/languages.md`](../../docs/handbook/languages.md)).\n"
@@ -1170,7 +1185,11 @@ export type AgentHookScriptName =
 
 export const getAgentHookScriptContent = (
   name: AgentHookScriptName,
-  options?: { tooling?: "cursor" | "claude"; trunkBased?: boolean },
+  options?: {
+    cms?: CmsAdapter;
+    tooling?: "cursor" | "claude";
+    trunkBased?: boolean;
+  },
 ): string => {
   switch (name) {
     case "session-handbook-routing.sh":
@@ -1192,7 +1211,7 @@ export const getAgentHookScriptContent = (
     case "enforce-factory-location.sh":
       return getEnforceFactoryLocationSh();
     case "handbook-sync-nudge.sh":
-      return getHandbookSyncNudgeSh();
+      return getHandbookSyncNudgeSh(options?.cms);
     case "check-css-nesting.sh":
       return getCheckCssNestingSh();
     case "handbook-drift-check.sh":
@@ -1216,9 +1235,12 @@ export const getAgentHookScriptContent = (
         ? getCursorBlockCoAuthoredByCommitSh()
         : getBlockCoAuthoredByCommitSh();
     case "block-generated-types.sh":
-      return options?.tooling === "cursor"
-        ? getCursorBlockGeneratedTypesSh()
-        : getBlockGeneratedTypesSh();
+      return forCmsTypes(
+        options?.tooling === "cursor"
+          ? getCursorBlockGeneratedTypesSh()
+          : getBlockGeneratedTypesSh(),
+        options?.cms,
+      );
     default:
       return "";
   }

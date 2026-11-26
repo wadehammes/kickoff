@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ProjectAnswers } from "../types.js";
+import { getCms } from "./cms/index.js";
 import { usesVercel } from "./config.js";
 
 const srcTestsUtilsAssetDir = join(
@@ -14,11 +15,16 @@ const srcTestsUtilsAssetDir = join(
 );
 
 export const getRichTextDocumentFactory = (a: ProjectAnswers): string => {
-  if (!a.includeContentful) {
-    return `import { BaseFactory } from "src/tests/factories/BaseFactory";
+  const cms = getCms(a);
+
+  if (cms) {
+    return cms.richTextDocumentFactory();
+  }
+
+  return `import { BaseFactory } from "src/tests/factories/BaseFactory";
 import type { KeysMatch } from "src/types/KeysMatch";
 
-/** Minimal rich-text document stub for tests when Contentful is not scaffolded. */
+/** Minimal rich-text document stub for tests when no CMS is scaffolded. */
 export type RichTextDocumentStub = {
   content: unknown[];
   data: Record<string, never>;
@@ -50,56 +56,6 @@ class RichTextDocumentFactory extends BaseFactory<
       RichTextDocumentStub,
       typeof instance
     > = undefined;
-
-    return factoryBuilt;
-  }
-}
-
-export const richTextDocumentFactory = new RichTextDocumentFactory();
-`;
-  }
-
-  return `import {
-  BLOCKS,
-  type Document,
-  type TopLevelBlock,
-} from "@contentful/rich-text-types";
-import { faker } from "@faker-js/faker";
-import { BaseFactory } from "src/tests/factories/BaseFactory";
-import type { KeysMatch } from "src/types/KeysMatch";
-
-type RichTextDocumentFactoryOptions = Record<string, never>;
-
-const paragraphWithText = (text: string): TopLevelBlock => ({
-  content: [{ data: {}, marks: [], nodeType: "text", value: text }],
-  data: {},
-  nodeType: BLOCKS.PARAGRAPH,
-});
-
-class RichTextDocumentFactory extends BaseFactory<
-  Document,
-  RichTextDocumentFactoryOptions
-> {
-  build(
-    attributes?: Partial<Document>,
-    _options?: RichTextDocumentFactoryOptions,
-  ) {
-    const instance = {
-      content: [
-        paragraphWithText(faker.lorem.sentence()),
-        paragraphWithText(faker.lorem.sentence()),
-      ],
-      data: {},
-      nodeType: BLOCKS.DOCUMENT,
-    } satisfies Document;
-
-    const factoryBuilt: Document = {
-      ...instance,
-      ...(attributes ?? {}),
-    };
-
-    const _allKeysMustBeInTheInstance: KeysMatch<Document, typeof instance> =
-      undefined;
 
     return factoryBuilt;
   }

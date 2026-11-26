@@ -27,7 +27,10 @@ src/
     ├── app.ts            ← src/app/ layout, pages, routes, error, manifest, robots, sitemap
     ├── components.ts     ← Navigation, Footer, ExitDraftModeLink, NotFoundPage
     ├── config.ts         ← package.json, tsconfig, biome, jest, postcss, env...
-    ├── contentful.ts     ← client, helpers, cache, parsers, richText
+    ├── cms/
+    │   ├── types.ts      ← CmsAdapter: everything that changes between content sources
+    │   ├── index.ts      ← getCms / usesCms, and the adapter registry
+    │   └── contentful.ts ← Contentful adapter: client, getters, parsers, richText, handbook page and prose
     ├── docs.ts           ← CLAUDE.md, README, handbook index/llms/non-negotiables/core chapters (generated projects)
     ├── handbook-agent.ts ← glossary, decisions, agent-workflow, api-routes, factories, data-storage
     ├── github.ts         ← CI, release, dependabot, labeler workflows; Claude pipeline workflows, CODEOWNERS, PR template
@@ -63,6 +66,7 @@ Examples:
 - Add anything Vercel-specific to a generated project → put it behind `usesVercel(a)` (`config.ts`); the generation matrix fails if a `hosting: "other"` project mentions Vercel, refresh-content, or the deploy components
 - Add an add-on → add its key to `ProjectAnswers` and `OPTIONAL_KEYS` (with a default), to `ADD_ONS` and the `RECOMMENDED` lists in `recommendations.ts`, and to `OPTION_KEYS` in the generation matrix
 - Add or change a test template (spec, page object, mock, setup) → write it for Jest (`jest.`, `@jest/globals`). The generator runs every `.ts`/`.tsx` file through `toVitest` for Vitest projects. Take runner-specific names and paths in templates and docs from `getTestRunner(a)`; the generation matrix fails if a Vitest project mentions Jest
+- Add a CMS → write an adapter in `src/templates/cms/` that satisfies `CmsAdapter` (`types.ts` documents the `getPages` contract), add its id to `CMS_IDS` and `ADAPTERS`, a choice to `CMS_CHOICES`, and its packages to `DEFAULT_VERSIONS`. Shared templates must read adapter fields (`getCms(a)`) or `usesCms(a)`, never a CMS by name. `src/templates/cms/cms.test.ts` checks the contract, and the generation matrix covers every CMS automatically; add a fixture so the E2E installs it
 - Add a package to a generated project → add it to `DEFAULT_VERSIONS` in `config.ts` (the refresh only updates packages listed there), and to `KEEP_PINNED` if it must stay exactly pinned
 - Change the `/handbook-review` command (`getHandbookReviewCommand` in `agents.ts`) → keep its list of hook rules in step with the hooks tables in `getClaudeHooksReadme` / `getCursorHooksReadme`
 - Change the Claude pipeline (`includeClaudePipeline`: workflows in `github.ts`, quality gate in `agents.ts`, Playwright in `testing.ts`) → update `getHandbookPipelineSection` / `getPipeline*` helpers in `docs.ts` (rendered into `releases.md`), `getClaudePipelineInstructions` (generated `CLAUDE.md`), `getWorkingWithClaudeGuide` (`docs/working-with-claude.md` for non-technical requesters), root `README.md`, and `fixtures/scaffold-e2e/claude-pipeline.json` if answers change

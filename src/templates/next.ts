@@ -1,55 +1,45 @@
 import type { ProjectAnswers } from "../types.js";
+import { getCms } from "./cms/index.js";
 import { usesVercel } from "./config.js";
 
 export const getNextConfig = (a: ProjectAnswers): string => {
   const vercel = usesVercel(a);
-  const envLines: string[] = ["    ENVIRONMENT: process.env.ENVIRONMENT,"];
+  const cms = getCms(a);
+  const envLines: string[] = [
+    ...(cms?.nextConfigEnv ?? []),
+    "    ENVIRONMENT: process.env.ENVIRONMENT,",
+  ];
 
-  if (a.includeContentful) {
-    envLines.unshift(
-      `    CONTENTFUL_CONTENT_DELIVERY_API_KEY:
-      process.env.CONTENTFUL_CONTENT_DELIVERY_API_KEY,`,
-      "    CONTENTFUL_SPACE_ID: process.env.CONTENTFUL_SPACE_ID,",
-    );
-  }
   if (a.includeGA)
     envLines.push("    GA_MEASUREMENT_ID: process.env.GA_MEASUREMENT_ID,");
   if (a.includeRecaptcha)
     envLines.push("    RECAPTCHA_SITE_KEY: process.env.RECAPTCHA_SITE_KEY,");
 
-  const remotePatternsBlock = a.includeContentful
+  const remotePatternsBlock = cms
     ? `[
-      {
+${cms.imageHosts
+  .map(
+    (hostname) => `      {
         protocol: "https",
-        hostname: "images.ctfassets.net",
+        hostname: "${hostname}",
         port: "",
         pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "downloads.ctfassets.net",
-        port: "",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "videos.ctfassets.net",
-        port: "",
-        pathname: "/**",
-      },
+      },`,
+  )
+  .join("\n")}
     ]`
     : "[]";
 
-  const cspImgSrc = a.includeContentful
-    ? "img-src * blob: data: images.ctfassets.net;"
-    : "img-src * blob: data:;";
+  const cspImgSrc = `img-src * blob: data:${(cms?.cspImgHosts ?? []).map((host) => ` ${host}`).join("")};`;
 
-  const optimizePackages = ['"@base-ui/react"', '"@tanstack/react-query"'];
-  if (a.includeContentful) {
-    optimizePackages.unshift('"@contentful/rich-text-react-renderer"');
-    optimizePackages.push('"html-react-parser"');
-  }
-  if (a.includeRecaptcha) optimizePackages.push('"react-google-recaptcha"');
+  const optimizePackages = [
+    "@base-ui/react",
+    "@tanstack/react-query",
+    ...(cms?.optimizePackageImports ?? []),
+    ...(a.includeRecaptcha ? ["react-google-recaptcha"] : []),
+  ]
+    .sort()
+    .map((name) => `"${name}"`);
 
   const optimizePackageImportsBlock =
     optimizePackages.length <= 2

@@ -14,12 +14,12 @@ const valid: Omit<
   | "projectDescription"
   | "projectType"
   | "testRunner"
+  | "cms"
 > = {
   agentTooling: "cursor",
   bgColor: "#ffffff",
   devPort: 3000,
   includeClaudePipeline: false,
-  includeContentful: true,
   includeGA: false,
   includeI18n: false,
   includeRecaptcha: false,
@@ -176,6 +176,26 @@ describe("validateAnswers", () => {
     });
   });
 
+  it("defaults to no CMS and accepts Contentful", () => {
+    expect(validateProjectAnswers(valid)).toMatchObject({ cms: "none" });
+    expect(
+      validateProjectAnswers({ ...valid, cms: "contentful" }),
+    ).toMatchObject({ cms: "contentful" });
+  });
+
+  it("maps the legacy includeContentful key onto cms", () => {
+    const withContentful = validateProjectAnswers({
+      ...valid,
+      includeContentful: true,
+    });
+
+    expect(withContentful).toMatchObject({ cms: "contentful" });
+    expect(withContentful).not.toHaveProperty("includeContentful");
+    expect(
+      validateProjectAnswers({ ...valid, includeContentful: false }),
+    ).toMatchObject({ cms: "none" });
+  });
+
   it("accepts Vitest as the test runner", () => {
     expect(
       validateProjectAnswers({ ...valid, testRunner: "vitest" }),
@@ -218,6 +238,12 @@ describe("validateAnswers", () => {
     [{ includeForms: "yes" }, "includeForms must be a boolean"],
     [{ includePlaywright: 1 }, "includePlaywright must be a boolean"],
     [{ testRunner: "mocha" }, 'testRunner must be "jest" or "vitest"'],
+    [{ cms: "wordpress" }, 'cms must be "none" or "contentful"'],
+    [{ includeContentful: "yes" }, "includeContentful must be a boolean"],
+    [
+      { cms: "none", includeContentful: true },
+      "includeContentful conflicts with cms; use cms only",
+    ],
     [
       { extraPackages: "date-fns" },
       "extraPackages must be a list of npm package names",

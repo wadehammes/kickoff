@@ -4,6 +4,7 @@ import fsExtra from "fs-extra";
 
 const { ensureDir, writeFile } = fsExtra;
 
+import { getCms } from "./templates/cms/index.js";
 import {
   DEFAULT_VERSIONS,
   usesPlaywright,
@@ -51,13 +52,6 @@ import {
   getCollapsibleCSS,
   getCommonInterfaces,
   getConstants,
-  getContentfulCacheConfig,
-  getContentfulCacheKeys,
-  getContentfulClient,
-  getContentfulGetPages,
-  getContentfulHelpers,
-  getContentfulPagination,
-  getContentfulUtilHelpers,
   getCopyGlobal,
   getCursorHandbookGuardRunnerSpec,
   getCursorHookScriptNames,
@@ -102,7 +96,6 @@ import {
   getHandbookApiRoutes,
   getHandbookArchitecture,
   getHandbookComponents,
-  getHandbookContentful,
   getHandbookConventions,
   getHandbookCss,
   getHandbookDataStorage,
@@ -159,7 +152,6 @@ import {
   getNotFoundPageCSS,
   getNpmrc,
   getPackageJson,
-  getParseContentfulAsset,
   getPlaywrightConfig,
   getPnpmWorkspace,
   getPostcssConfig,
@@ -174,7 +166,6 @@ import {
   getRefreshContentAccessSpec,
   getRefreshContentPage,
   getReleaseWorkflow,
-  getRichText,
   getRichTextDocumentFactory,
   getRuntimeVariablesJson,
   getScaffoldSh,
@@ -281,8 +272,10 @@ const writeHandbook = async (a: ProjectAnswers, write: Write) => {
   await write("docs/handbook/react.md", getHandbookReact(a));
   await write("docs/handbook/css.md", getHandbookCss(a));
   await write("docs/handbook/testing.md", getHandbookTesting(a));
-  if (a.includeContentful) {
-    await write("docs/handbook/contentful.md", getHandbookContentful(a));
+  const cms = getCms(a);
+
+  if (cms) {
+    await write(`docs/handbook/${cms.handbook.file}`, cms.handbook.content(a));
   }
   await write("docs/handbook/components.md", getHandbookComponents(a));
   await write("docs/handbook/patterns.md", getHandbookPatterns(a));
@@ -393,6 +386,7 @@ export const generateProject = async (
   const dryRun = options?.dryRun ?? false;
   const write = createWriter(a, root, options);
   const versions = options?.versions ?? DEFAULT_VERSIONS;
+  const cms = getCms(a);
 
   if (!dryRun) {
     await ensureDir(root);
@@ -448,6 +442,7 @@ export const generateProject = async (
       await write(
         `.cursor/hooks/${scriptName}`,
         getAgentHookScriptContent(scriptName as AgentHookScriptName, {
+          cms,
           tooling: "cursor",
         }),
         { executable: true },
@@ -473,6 +468,7 @@ export const generateProject = async (
       await write(
         `.claude/hooks/${scriptName}`,
         getAgentHookScriptContent(scriptName as AgentHookScriptName, {
+          cms,
           tooling: "claude",
           trunkBased: a.includeClaudePipeline,
         }),
@@ -609,13 +605,16 @@ export const generateProject = async (
     await write("src/app/page.tsx", getAppPage());
     await write(
       "src/app/[slug]/page.tsx",
-      a.includeContentful ? getSlugPage() : getSlugPageWithoutContentful(),
+      cms ? getSlugPage(cms.dir) : getSlugPageWithoutCms(),
     );
   }
 
   // ── src/app/api/ ───────────────────────────────────────────────────────────
-  if (a.includeContentful) {
-    await write("src/app/api/draft/route.ts", getDraftRoute());
+  if (cms) {
+    await write(
+      "src/app/api/draft/route.ts",
+      getDraftRoute(cms.previewSecretEnv),
+    );
     await write("src/app/api/disable-draft/route.ts", getDisableDraftRoute());
   }
 
@@ -656,23 +655,9 @@ export const generateProject = async (
   );
   await write("src/components/Toast/ToastHost.module.css", getToastHostCSS());
 
-  // ── src/contentful/ ────────────────────────────────────────────────────────
-  if (a.includeContentful) {
-    await write("src/contentful/getPages.ts", getContentfulGetPages());
-    await write("src/contentful/client.ts", getContentfulClient());
-    await write("src/contentful/helpers.ts", getContentfulHelpers());
-    await write("src/contentful/cacheConfig.ts", getContentfulCacheConfig());
-    await write(
-      "src/contentful/parseContentfulAsset.ts",
-      getParseContentfulAsset(),
-    );
-    await write("src/contentful/richText.tsx", getRichText());
-    await write("src/contentful/types/.gitkeep", "");
-    await write("src/contentful/cacheKeys.ts", getContentfulCacheKeys());
-    await write(
-      "src/contentful/contentfulPagination.ts",
-      getContentfulPagination(),
-    );
+  // ── CMS client, getters, parsers, and helpers ──────────────────────────────
+  for (const [file, content] of cms?.files() ?? []) {
+    await write(file, content);
   }
 
   // ── src/types/ ───────────────────────────────────────────────────────────────
@@ -760,9 +745,6 @@ export const generateProject = async (
     "src/utils/environment.helpers.spec.ts",
     getEnvironmentHelpersSpec(a),
   );
-  if (a.includeContentful) {
-    await write("src/utils/contentful.helpers.ts", getContentfulUtilHelpers());
-  }
   await write("src/utils/style.helpers.ts", getStyleHelpers());
   await write("src/utils/factory.helpers.ts", getFactoryHelpers());
 
@@ -789,7 +771,7 @@ export const generateProject = async (
 };
 
 // Re-export for use in generator
-const getSlugPageWithoutContentful = (): string => {
+const getSlugPageWithoutCms = (): string => {
   return `import type { Metadata } from "next";
 import { draftMode } from "next/headers";
 import {
@@ -867,11 +849,11 @@ export default Page;
 `;
 };
 
-const getSlugPage = (): string => {
+const getSlugPage = (pagesDir: string): string => {
   return `import type { Metadata } from "next";
 import { draftMode } from "next/headers";
 import { notFound } from "next/navigation";
-import { fetchPage, fetchPages } from "src/contentful/getPages";
+import { fetchPage, fetchPages } from "${pagesDir}/getPages";
 import {
   createBreadcrumbSchema,
   createOrganizationSchema,
