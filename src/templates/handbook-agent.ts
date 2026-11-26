@@ -14,14 +14,14 @@ Terms agents see in this scaffold. Paths are under **\`src/\`** unless noted.
 | **App Router** | \`src/app/\` — \`page.tsx\`, \`layout.tsx\`, Route Handlers under \`api/\`. |
 | **RSC** | React Server Components — default in App Router; client boundaries need \`"use client"\`. |
 | **Route Handler** | \`src/app/api/**/route.ts\` — server HTTP endpoints. |
-| **\`src/proxy.ts\`** | Next request proxy (env headers, redirects) — see [platform.md](platform.md). |
+| **\`src/proxy.ts\`** | Next request proxy (env headers, redirects) — see [env.md](env.md). |
 
 ## Data and CMS
 
 | Term | Meaning |
 | ---- | ------- |
 | **Getter** | Contentful (or other) read function that returns raw entries — parsers shape UI props. |
-| **Parser** | Maps CMS entry → typed component props ([contentful.md](contentful.md) when CMS enabled). |
+| **Parser** | Maps CMS entry → typed component props${a.includeContentful ? " ([contentful.md](contentful.md))" : ""}. |
 | **Draft mode** | Preview unpublished CMS content via \`/api/draft\` when Contentful is scaffolded. |
 ${a.includeContentful ? "| **Generated types** | `src/contentful/types/` — output of `pnpm types:contentful`; do not hand-edit. |" : "| **Generated types** | None in this project; Contentful was not scaffolded. |"}
 
@@ -110,7 +110,7 @@ Details: [architecture.md](architecture.md), [patterns.md](patterns.md).
 | New component tree | **\`pnpm scaffold <Name>\`** | Hand-authored folders |
 | Conditional module classes | **\`classnames\`** + CSS module imports | Template literals combining module keys |
 
-Details: [components.md](components.md), [conventions.md](conventions.md).
+Details: [components.md](components.md), [react.md](react.md).
 
 ## API and routes
 
@@ -135,7 +135,7 @@ Details: [api-routes.md](api-routes.md), [patterns.md](patterns.md).
 | Pure helpers | Co-located **\`*.spec.ts\`** in \`src/utils/\` | Burying logic only in component tests |
 | Route Handler | Co-located **\`route.spec.ts\`** (when added) | Component test as API substitute |
 
-Details: [conventions.md](conventions.md), [factories.md](factories.md).
+Details: [testing.md](testing.md), [factories.md](factories.md).
 
 ## Docs and agent finish
 
@@ -144,7 +144,7 @@ Details: [conventions.md](conventions.md), [factories.md](factories.md).
 | Behavior, routes, hooks, test patterns | Matching **\`docs/handbook/*.md\`** ([llms.md](llms.md)) |
 | User-facing features, setup, stack in README | Root **[README.md](../../README.md)** |
 | New \`api.*\` method | [api-routes.md](api-routes.md) |
-| Factory or PO conventions | [factories.md](factories.md), [conventions.md](conventions.md) |
+| Factory or PO conventions | [factories.md](factories.md), [testing.md](testing.md) |
 
 Details: [agent-workflow.md](agent-workflow.md), **[CLAUDE.md](../../CLAUDE.md)**.
 
@@ -155,7 +155,7 @@ Details: [agent-workflow.md](agent-workflow.md), **[CLAUDE.md](../../CLAUDE.md)*
 1. **\`pnpm scaffold <Name>\`** — [components.md](components.md).
 2. PO for mocks; **\`.spec.tsx\`** uses PO only.
 3. Factory in **\`src/tests/factories/\`** when props are non-trivial — [factories.md](factories.md).
-4. Mobile-first CSS; \`data-testid="rh<Name>"\` on root — [conventions.md](conventions.md).
+4. Mobile-first CSS ([css.md](css.md)); \`data-testid="rh<Name>"\` on root ([testing.md](testing.md#test-ids)).
 
 ### New \`api.*\` method + Route Handler
 
@@ -169,7 +169,7 @@ Details: [agent-workflow.md](agent-workflow.md), **[CLAUDE.md](../../CLAUDE.md)*
 
 1. Do **not** add specs under \`src/hooks/queries/\` or \`src/hooks/mutations/\`.
 2. Hook file calls **\`api.*\`** only; components use the hook.
-3. Feature tests mock **\`src/api/urls\`** — [conventions.md](conventions.md) (Do not test React Query).
+3. Feature tests mock **\`src/api/urls\`** — [react.md](react.md#do-not-test-react-query).
 4. Update [patterns.md](patterns.md) if part of a documented flow.
 ${draftPlaybook}
 `;
@@ -192,7 +192,7 @@ Dedupe state: **\`.cursor/hooks-state/\`** (gitignored); fingerprint includes **
 **preToolUse:** **\`enforce-handbook-edit.sh\`** runs Jest via \`scripts/cursor-handbook-guard.runner.spec.ts\` and blocks only **new** violations (\`newHandbookViolations\` in \`handbookEditGuard.ts\` + \`handbookTestRules.ts\`). Rule \`nested-describe\` ignores multiline \`import { … }\` binding lines.`
       : `## Claude stop / drift
 
-Claude uses **\`handbook-drift-check\`** on stop when code changes without handbook updates.${a.includeClaudePipeline ? " The **`quality-gate.sh`** Stop hook also runs `tsc:ci`, `lint:ci`, `lint:css`, `test:ci`, and `knip:ci` and blocks finishing until they pass (see [platform.md](platform.md) — **Hands-off Claude pipeline**)." : ""} Same finish discipline: [llms.md](llms.md), **\`pnpm handbook:check\`**.`;
+Claude uses **\`handbook-drift-check\`** on stop when code changes without handbook updates.${a.includeClaudePipeline ? " The **`quality-gate.sh`** Stop hook also runs `tsc:ci`, `lint:ci`, `lint:css`, `test:ci`, and `knip:ci` and blocks finishing until they pass (see [releases.md](releases.md))." : ""} Same finish discipline: [llms.md](llms.md), **\`pnpm handbook:check\`**.`;
 
   return `# Agent workflow
 
@@ -209,8 +209,8 @@ Checklist for **tools and LLMs** in this repo—complements [CLAUDE.md](../../CL
 
 | Concern | Handbook |
 | ------- | -------- |
-| Tests, POs, query-hook rules | [conventions.md](conventions.md) · [factories.md](factories.md) |
-| CSS / layout | [conventions.md](conventions.md) (mobile-first, Stylelint) |
+| Tests, POs, query-hook rules | [testing.md](testing.md) · [factories.md](factories.md) |
+| CSS / layout | [css.md](css.md) (mobile-first, Stylelint) |
 | New API | [api-routes.md](api-routes.md) + [patterns.md](patterns.md) |
 | Client persistence | [data-storage.md](data-storage.md) |
 | Component folders | [components.md](components.md) + **\`pnpm scaffold\`** |
@@ -248,7 +248,7 @@ export const getHandbookApiRoutes = (a: ProjectAnswers): string => {
 | \`GET /api/draft\` | Enable draft mode (preview secret query param) |
 | \`GET /api/disable-draft\` | Exit draft mode |
 
-Details: [platform.md](platform.md), [contentful.md](contentful.md).
+Details: [env.md](env.md), [contentful.md](contentful.md).
 
 `
     : "";
@@ -321,7 +321,7 @@ All factories live under **[\`src/tests/factories/\`](../../src/tests/factories/
 **Exceptions (inline literals are fine):**
 
 - Minimal stubs (\`{ count: 0 }\`, empty objects for unused branches).
-- User-visible strings repeated in spec assertions (see [conventions.md → Testing](conventions.md)).
+- User-visible strings repeated in spec assertions (see [testing.md](testing.md)).
 
 ## Base class
 
@@ -347,6 +347,14 @@ build(attributes?: Partial<MyType>): MyType {
 
 Use [\`KeysMatch\`](../../src/types/KeysMatch.ts) on closed types so new fields force factory updates.
 
+## Data rules
+
+- **Every key gets random Faker data.** Required, optional, and nullable keys alike are \`faker.*\` calls, never hard-coded strings, numbers, \`null\`, or \`undefined\`. A test that needs a fixed value overrides it with \`.build({ field: value })\`.
+- **Nullable fields use \`nullish\`** from \`src/utils/factory.helpers.ts\`, which returns \`null\` or the value at random so both branches get exercised.
+- **Compound shapes use nested factories**, like \`richTextDocumentFactory.build()\`, instead of inline literals.
+- **No function wrappers.** Each \`.build()\` runs the body fresh, so write \`id: faker.string.uuid()\`, not \`() => faker.string.uuid()\`.
+- **Set every field a test asserts on**, and repeat the literal in the page object and the spec. Don't read it back through \`po.metadata.field\` or share it through a constant; the duplication is the point.
+
 ## File naming
 
 - **One factory per file**: \`MyWidget.factory.ts\` → export **\`myWidgetFactory\`** (camelCase singleton).
@@ -354,8 +362,8 @@ Use [\`KeysMatch\`](../../src/types/KeysMatch.ts) on closed types so new fields 
 
 ## Related rules
 
-- Factories never live next to components — [conventions.md](conventions.md), Cursor **\`enforce-factory-location\`** hook.
-- Hook specs: flat single **\`describe\`** — [conventions.md](conventions.md).
+- Factories never live next to components — [testing.md](testing.md), Cursor **\`enforce-factory-location\`** hook.
+- Hook specs: flat single **\`describe\`** — [testing.md](testing.md).
 - Enforcement: [agent-workflow.md](agent-workflow.md), \`handbookEditGuard.ts\`.
 `;
 };
@@ -400,7 +408,7 @@ The deploy monitor reads/writes labeled progress via **\`src/lib/deployProgressS
 ## Related chapters
 
 - Deploy APIs: [api-routes.md](api-routes.md), [patterns.md](patterns.md)
-- Env and security: [platform.md](platform.md)`
+- Env and security: [env.md](env.md)`
     : ""
 }
 `;

@@ -63,7 +63,7 @@ Examples:
 - Add an add-on → add its key to `ProjectAnswers` and `OPTIONAL_KEYS` (with a default), to `ADD_ONS` and the `RECOMMENDED` lists in `recommendations.ts`, and to `OPTION_KEYS` in the generation matrix
 - Add a package to a generated project → add it to `DEFAULT_VERSIONS` in `config.ts` (the refresh only updates packages listed there), and to `KEEP_PINNED` if it must stay exactly pinned
 - Change the `/handbook-review` command (`getHandbookReviewCommand` in `agents.ts`) → keep its list of hook rules in step with the hooks tables in `getClaudeHooksReadme` / `getCursorHooksReadme`
-- Change the Claude pipeline (`includeClaudePipeline`: workflows in `github.ts`, quality gate in `agents.ts`, Playwright in `testing.ts`) → update `getHandbookPipelineSection` / `getPipeline*` helpers in `docs.ts`, `getClaudePipelineInstructions` (generated `CLAUDE.md`), `getWorkingWithClaudeGuide` (`docs/working-with-claude.md` for non-technical requesters), root `README.md`, and `fixtures/scaffold-e2e/claude-pipeline.json` if answers change
+- Change the Claude pipeline (`includeClaudePipeline`: workflows in `github.ts`, quality gate in `agents.ts`, Playwright in `testing.ts`) → update `getHandbookPipelineSection` / `getPipeline*` helpers in `docs.ts` (rendered into `releases.md`), `getClaudePipelineInstructions` (generated `CLAUDE.md`), `getWorkingWithClaudeGuide` (`docs/working-with-claude.md` for non-technical requesters), root `README.md`, and `fixtures/scaffold-e2e/claude-pipeline.json` if answers change
 
 ## Conventions the scaffolded code must follow
 
@@ -93,6 +93,7 @@ Kickoff ships **`.cursor/hooks.json`** and scripts under **`.cursor/hooks/`** th
 
 ## Testing generation scenarios
 
+- Token budgets: every handbook page stays under ~1,500 tokens, /handbook-review under ~1,500, and what loads at session start (`CLAUDE.md` plus `llms.md`) under ~2,000 (`TOKEN_BUDGETS` in the generation matrix). Split a page by topic when it grows past its budget instead of raising the number.
 - `src/generationMatrix.test.ts` generates every tooling × option combination (96 projects) in seconds and checks structural invariants. Add an invariant there when you fix a class of generator bug.
 - `fixtures/scaffold-e2e/*.json` covers each option at least once for the slow end-to-end run. Add a fixture when a new option or combination needs a real install, build, or browser test.
 - Write the test first and watch it fail for the reason you expect before you change the code. When you add tests for code that already exists, break the code on purpose to prove the test catches it.

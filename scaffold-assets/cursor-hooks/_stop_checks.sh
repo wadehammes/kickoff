@@ -68,7 +68,7 @@ stop_section_handbook_test_jest() {
 
   if [ "$jest_status" -ne 0 ]; then
     stop_mark_notified "handbook_test_jest" "$fp"
-    printf '%s\n\n' "$(printf 'Handbook testing drift check failed. Feature tests must mock src/api/urls — not query/mutation hooks under src/hooks/queries/ or src/hooks/mutations/, and no specs in those folders. Rules: src/tests/utils/handbookTestRules.ts. Handbook: docs/handbook/conventions.md (Do not test React Query).\n\nChanged test files:\n%s\n\nTest output:\n%s' "$feature_tests_changed" "$jest_output")"
+    printf '%s\n\n' "$(printf 'Handbook testing drift check failed. Feature tests must mock src/api/urls — not query/mutation hooks under src/hooks/queries/ or src/hooks/mutations/, and no specs in those folders. Rules: src/tests/utils/handbookTestRules.ts. Handbook: docs/handbook/react.md (Do not test React Query).\n\nChanged test files:\n%s\n\nTest output:\n%s' "$feature_tests_changed" "$jest_output")"
     return 0
   fi
 

@@ -91,7 +91,7 @@ on:
   push:
     tags:
       - "v*"
-# Only this workflow should update main (see docs/handbook/platform.md → Releases).
+# Only this workflow should update main (see docs/handbook/releases.md).
 permissions:
   contents: read
 jobs:
@@ -112,7 +112,7 @@ jobs:
           RELEASE_PUSH_TOKEN: \${{ secrets.RELEASE_PUSH_TOKEN }}
         run: |
           if [ -z "$RELEASE_PUSH_TOKEN" ]; then
-            echo "::error::Add repository secret RELEASE_PUSH_TOKEN (PAT with Contents read/write; owner allowed to bypass the main ruleset). See docs/handbook/platform.md → Releases."
+            echo "::error::Add repository secret RELEASE_PUSH_TOKEN (PAT with Contents read/write; owner allowed to bypass the main ruleset). See docs/handbook/releases.md."
             exit 1
           fi
           git config --global --unset-all "http.https://github.com/.extraheader" || true

@@ -669,10 +669,10 @@ handbook_chapters_for_path() {
     src/contentful/*) echo "contentful.md" ;;
     src/components/* | src/ui/*) echo "components.md" ;;
     src/tests/factories/*) echo "factories.md" ;;
-    src/tests/* | *.spec.ts | *.spec.tsx | *.test.ts | *.test.tsx) echo "conventions.md" ;;
+    src/tests/* | *.spec.ts | *.spec.tsx | *.test.ts | *.test.tsx) echo "testing.md" ;;
     src/utils/* | src/lib/* | src/interfaces/* | src/types/*) echo "source-layout.md" ;;
     src/hooks/* | src/api/*) echo "patterns.md" ;;
-    *.css) echo "conventions.md" ;;
+    *.css) echo "css.md" ;;
     .jest/* | jest.config.* | next.config.*${usesVercel(a) ? " | vercel.json" : ""}) echo "platform.md" ;;
     *) echo "architecture.md" ;;
   esac

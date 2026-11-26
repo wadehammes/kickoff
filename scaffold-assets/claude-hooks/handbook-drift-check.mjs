@@ -22,7 +22,7 @@ const PNPM_BUILTINS = new Set([
 ]);
 
 const ROUTING_FOOTER =
-  "Routing: docs/handbook/llms.md. Chapters most often left stale: platform.md (scripts, CI, env), conventions.md (test setup, mocks, factories), contentful.md (content model, parsers, renderer), source-layout.md (where files live), architecture.md (directory map, data flow), README.md (the setup a new engineer follows on day one).";
+  "Routing: docs/handbook/llms.md. Chapters most often left stale: platform.md (scripts, CI), env.md (env vars, next.config), testing.md (test setup, mocks), factories.md, contentful.md (content model, parsers, renderer), source-layout.md (where files live), architecture.md (directory map, data flow), README.md (the setup a new engineer follows on day one).";
 
 const readStdin = async () => {
   const chunks = [];
@@ -231,7 +231,7 @@ export const collectFindings = () => {
 
     if (opsChanged.length > 0) {
       scope.push(
-        `Changed config/ops (these are documented in platform.md — scripts, CI steps, env, jest config, next.config):\n${opsChanged.join("\n")}`,
+        `Changed config/ops (documented in platform.md for scripts and CI, env.md for env vars and next.config, testing.md for jest config):\n${opsChanged.join("\n")}`,
       );
     }
 

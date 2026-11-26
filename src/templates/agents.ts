@@ -295,7 +295,7 @@ added="$(tool_added_text)"
 violations="$(printf '%s\\n' "$added" | grep -nE '^@media' || true)"
 
 if [ -n "$violations" ]; then
-  reason="$(printf 'Blocked: this edit adds a top-level @media block. CSS convention here is mobile-first base styles with @media (width >= 800px/1120px) nested INSIDE each selector, not top-level @media blocks that group selectors. Move each media query inside the rule it modifies. See docs/handbook/conventions.md (CSS).\\n\\nOffending lines:\\n%s' "$violations")"
+  reason="$(printf 'Blocked: this edit adds a top-level @media block. CSS convention here is mobile-first base styles with @media (width >= 800px/1120px) nested INSIDE each selector, not top-level @media blocks that group selectors. Move each media query inside the rule it modifies. See docs/handbook/css.md (CSS).\\n\\nOffending lines:\\n%s' "$violations")"
   deny_tool "$reason"
 fi
 
@@ -324,7 +324,7 @@ added="$(tool_added_text)"
 violations="$(printf '%s\\n' "$added" | grep -nE '@custom-media|@media[[:space:]]*\\(--' || true)"
 
 if [ -n "$violations" ]; then
-  reason="$(printf 'Blocked: this edit uses @custom-media (or an @media (--var) reference), which is unreliable here. Use range-syntax media queries instead, e.g. @media (width >= 800px) or @media (width >= 1120px). See docs/handbook/conventions.md (CSS).\\n\\nOffending lines:\\n%s' "$violations")"
+  reason="$(printf 'Blocked: this edit uses @custom-media (or an @media (--var) reference), which is unreliable here. Use range-syntax media queries instead, e.g. @media (width >= 800px) or @media (width >= 1120px). See docs/handbook/css.md (CSS).\\n\\nOffending lines:\\n%s' "$violations")"
   deny_tool "$reason"
 fi
 
@@ -357,7 +357,7 @@ violations="$(printf '%s\\n' "$added" \\
   || true)"
 
 if [ -n "$violations" ]; then
-  reason="$(printf 'Blocked: this edit adds margin-top. Do not use margin-top for spacing — put siblings in a flex container and use gap (e.g. display: flex; flex-direction: column; gap: var(--sizing-1)). See docs/handbook/conventions.md (CSS → Style rules).\\n\\nOffending lines:\\n%s' "$violations")"
+  reason="$(printf 'Blocked: this edit adds margin-top. Do not use margin-top for spacing — put siblings in a flex container and use gap (e.g. display: flex; flex-direction: column; gap: var(--sizing-1)). See docs/handbook/css.md (CSS → Style rules).\\n\\nOffending lines:\\n%s' "$violations")"
   deny_tool "$reason"
 fi
 
@@ -501,9 +501,9 @@ file="$(tool_file_path)"
 chapter=""
 case "$file" in
   *.spec.ts | *.spec.tsx | *.test.ts | *.test.tsx)
-    chapter="conventions.md#testing (page objects, specs, screen queries)" ;;
+    chapter="testing.md (page objects, specs, screen queries)" ;;
   *.module.css)
-    chapter="conventions.md (CSS Modules: mobile-first base + nested @media)" ;;
+    chapter="css.md (CSS Modules: mobile-first base + nested @media)" ;;
   */src/app/api/* | src/app/api/*)
     chapter="api-routes.md (route map, api.* wiring)" ;;
   */src/tests/factories/* | src/tests/factories/*)
@@ -570,7 +570,7 @@ violations="$(awk '
 
 [ -z "$violations" ] && exit 0
 
-ctx="$(printf 'CSS nesting check: %s nests selectors 4+ levels deep. Up to 3 levels is fine; beyond that, break the deepest rules out to top-level using the full selector (e.g. \\\`.table .tableCell {}\\\` instead of nesting \\\`.tableCell\\\` further). See docs/handbook/conventions.md (CSS → Style rules).\\n\\nDeeply nested selectors:\\n%s' "$file" "$violations")"
+ctx="$(printf 'CSS nesting check: %s nests selectors 4+ levels deep. Up to 3 levels is fine; beyond that, break the deepest rules out to top-level using the full selector (e.g. \\\`.table .tableCell {}\\\` instead of nesting \\\`.tableCell\\\` further). See docs/handbook/css.md (CSS → Style rules).\\n\\nDeeply nested selectors:\\n%s' "$file" "$violations")"
 
 advise_context "$ctx"
 exit 0
@@ -949,8 +949,8 @@ On **substantive** work (features, refactors, App Router handlers, CSS/layout, t
 
 ## During implementation
 
-- **Optional props** — \`classNames()\` for module \`className\`; \`definedProps({ ... })\` for other optional spreads ([conventions.md](docs/handbook/conventions.md)).
-- **CSS** — mobile-first \`(width >= …)\`; nest under block classes per Stylelint ([conventions.md](docs/handbook/conventions.md)).
+- **Optional props** — \`classNames()\` for module \`className\`; \`definedProps({ ... })\` for other optional spreads ([react.md](docs/handbook/react.md)).
+- **CSS** — mobile-first \`(width >= …)\`; nest under block classes per Stylelint ([css.md](docs/handbook/css.md)).
 - **Components** — use \`pnpm scaffold <Name>\` for new folders ([components.md](docs/handbook/components.md)).
 
 ## Before finishing
@@ -1017,7 +1017,7 @@ export const getClaudeHooksReadme = (a: ProjectAnswers): string => {
     ? `
 ## Permissions (hands-off pipeline)
 
-\`settings.json\` pre-allows the package scripts, local git, pushes to \`claude/*\` branches, and \`gh pr\` create/view/checks so headless sessions do not stall on prompts. It denies reading or editing \`.env*\`, editing \`.github/\`, force pushes, and pushes to \`main\`. These rules steer Claude; the real gate is the GitHub ruleset and CODEOWNERS (see \`docs/handbook/platform.md\`).
+\`settings.json\` pre-allows the package scripts, local git, pushes to \`claude/*\` branches, and \`gh pr\` create/view/checks so headless sessions do not stall on prompts. It denies reading or editing \`.env*\`, editing \`.github/\`, force pushes, and pushes to \`main\`. These rules steer Claude; the real gate is the GitHub ruleset and CODEOWNERS (see \`docs/handbook/releases.md\`).
 `
     : "";
 
@@ -1068,7 +1068,7 @@ export const getHandbookReviewCommand = (a: ProjectAnswers): string => {
     ? ", generated Contentful types (`src/contentful/types/`)"
     : "";
   const i18nCheck = a.includeI18n
-    ? "- Copy: user-facing text in `src/copy/` with no Spanish (`es`) entry, or a page with hard-coded strings instead of copy ([`docs/handbook/platform.md`](../../docs/handbook/platform.md#languages-english-and-spanish)).\n"
+    ? "- Copy: user-facing text in `src/copy/` with no Spanish (`es`) entry, or a page with hard-coded strings instead of copy ([`docs/handbook/languages.md`](../../docs/handbook/languages.md)).\n"
     : "";
 
   const frontmatter =
@@ -1105,7 +1105,7 @@ Skip deleted files, lockfiles, snapshots${skipGenerated}, and \`${dir}/\` edits 
 Route every changed file through [\`docs/handbook/llms.md\`](../../docs/handbook/llms.md) before reading any code, and read every chapter it points to in full. Also read:
 
 - [\`docs/handbook/non-negotiables.md\`](../../docs/handbook/non-negotiables.md), always. Most findings come from these rules
-- [\`docs/handbook/conventions.md\`](../../docs/handbook/conventions.md), always, for TypeScript, React, CSS, and test changes
+- The page that matches each kind of change: [\`conventions.md\`](../../docs/handbook/conventions.md) for TypeScript, [\`react.md\`](../../docs/handbook/react.md) for components, [\`css.md\`](../../docs/handbook/css.md) for styles, [\`testing.md\`](../../docs/handbook/testing.md) for specs and page objects
 - [\`docs/handbook/decisions.md#feature-playbooks-touch-order\`](../../docs/handbook/decisions.md#feature-playbooks-touch-order), when the branch adds a component, API route, hook, or factory
 - The hooks table in \`${dir}/hooks/README.md\`. Code written outside an agent session never went through those hooks, so check the same rules: added comments, \`margin-top\`, top-level \`@media\`, barrel files, factories outside \`src/tests/factories/\`, and component folders not made with \`pnpm scaffold\`.
 
@@ -1120,7 +1120,7 @@ Run \`pnpm exec biome check <changed files>\`. If the branch changes CSS, also r
 Check each added or changed line against the chapters you read. Look for:
 
 - Every row in non-negotiables.md, and any other rule a chapter states outright.
-- Tests: a behavior change or bug fix with no spec change, a new module with no spec, test data built by hand instead of with a factory, and specs that query or mock differently from [\`docs/handbook/conventions.md#testing\`](../../docs/handbook/conventions.md#testing).
+- Tests: a behavior change or bug fix with no spec change, a new module with no spec, test data built by hand instead of with a factory, and specs that query or mock differently from [\`docs/handbook/testing.md\`](../../docs/handbook/testing.md).
 - Patterns that work but don't match how the handbook builds the same thing, like a new helper where a chapter names an existing one, or a raw \`fetch\` where \`api.*\` fits.
 ${i18nCheck}- Docs: \`src/\` behavior or conventions changed but \`docs/handbook/\` did not. Report it as a process finding, not a line violation.
 
@@ -1131,7 +1131,7 @@ Report only problems on changed lines. If changed code copies an older pattern f
 Group findings by file. For each one, give:
 
 - \`path:line\` and the code
-- the rule, as a link to the chapter and section, like \`docs/handbook/conventions.md#test-ids\`
+- the rule, as a link to the chapter and section, like \`docs/handbook/testing.md#test-ids\`
 - the fix, as a short code snippet when it helps
 
 Put the most important findings first: wrong behavior and missing tests, then rule violations, then pattern mismatches, then handbook sync. End with:
