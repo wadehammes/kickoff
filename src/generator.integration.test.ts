@@ -661,6 +661,61 @@ describe("generateProject", () => {
     expect(mentions.stdout).toBe("");
   });
 
+  it("renders Prismic slices and serves the slice simulator to the Page Builder", async () => {
+    const root = await runInTemp(baseAnswers({ cms: "prismic" }));
+    const read = (file: string) => readFileSync(path.join(root, file), "utf-8");
+    const barrelHook = (file: string) =>
+      spawnSync(path.join(root, ".cursor/hooks/block-barrel-files.sh"), [], {
+        cwd: root,
+        encoding: "utf-8",
+        input: JSON.stringify({
+          tool_input: { content: "", file_path: path.join(root, file) },
+          tool_name: "Write",
+        }),
+      }).stdout;
+
+    expect(read("src/slices/index.ts")).toContain("export const components");
+    expect(read("src/app/slice-simulator/page.tsx")).toContain(
+      "<SliceSimulator>",
+    );
+    expect(read("src/app/[slug]/page.tsx")).toContain(
+      "<SliceZone components={components} slices={page.slices} />",
+    );
+    expect(read("src/prismic/getPages.ts")).toContain(
+      "slices: page.data.slices",
+    );
+    expect(read("next.config.ts")).toContain('source: "/slice-simulator"');
+    expect(read("next.config.ts")).toContain(
+      "frame-ancestors 'self' https://*.prismic.io;",
+    );
+    expect(barrelHook("src/slices/Hero/index.tsx")).toBe("");
+    expect(barrelHook("src/components/Hero/index.ts")).toContain("deny");
+  });
+
+  it("puts the slice simulator under [locale] with i18n", async () => {
+    const root = await runInTemp(
+      baseAnswers({ cms: "prismic", includeI18n: true }),
+    );
+
+    expect(
+      existsSync(path.join(root, "src/app/[locale]/slice-simulator/page.tsx")),
+    ).toBe(true);
+    expect(existsSync(path.join(root, "src/app/slice-simulator"))).toBe(false);
+    expect(readFileSync(path.join(root, "next.config.ts"), "utf-8")).toContain(
+      'source: "/:locale/slice-simulator"',
+    );
+  });
+
+  it("leaves slices out of Contentful projects", async () => {
+    const root = await runInTemp(baseAnswers({ cms: "contentful" }));
+
+    expect(existsSync(path.join(root, "src/slices"))).toBe(false);
+    expect(existsSync(path.join(root, "src/app/slice-simulator"))).toBe(false);
+    expect(
+      readFileSync(path.join(root, "next.config.ts"), "utf-8"),
+    ).not.toContain("frame-ancestors");
+  });
+
   it("keeps server-only secrets out of next.config env", async () => {
     const root = await runInTemp(
       baseAnswers({

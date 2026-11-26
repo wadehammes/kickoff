@@ -13,6 +13,7 @@ import process from "node:process";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { findBrokenLinks } from "../scaffold-assets/claude-hooks/handbook-drift-check.mjs";
 import { generateProject } from "./generator.js";
+import { importSortKey, importSource } from "./templates/imports.js";
 import { CMS_IDS, type Cms, type ProjectAnswers } from "./types.js";
 
 type Tooling = Pick<
@@ -210,6 +211,60 @@ const otherCmsNames = (cms: Cms): RegExp | null => {
     : null;
 };
 
+// The import statements at the top of a file, before any other code.
+const leadingImports = (source: string): string[] => {
+  const statements: string[] = [];
+  let current = "";
+
+  for (const line of source.split("\n")) {
+    if (current) {
+      current += `\n${line}`;
+    } else if (line.startsWith("import ")) {
+      current = line;
+    } else if (statements.length > 0 && line.trim() !== "") {
+      break;
+    } else {
+      continue;
+    }
+
+    if (
+      /(from "[^"]+"|^import "[^"]+");$/.test(current.split("\n").at(-1) ?? "")
+    ) {
+      statements.push(current);
+      current = "";
+    }
+  }
+
+  return statements;
+};
+
+// Biome sorts each run of imports; a side-effect import ends a run.
+const findUnsortedImports = (root: string): string[] =>
+  listFiles(root)
+    .filter(
+      (file) =>
+        /\.tsx?$/.test(file) &&
+        !file.endsWith(".d.ts") &&
+        !file.includes(`${path.sep}node_modules${path.sep}`),
+    )
+    .flatMap((file) => {
+      const keys = leadingImports(readFileSync(file, "utf-8")).map(
+        (statement) =>
+          /^import "/.test(statement)
+            ? null
+            : importSortKey(importSource(statement)),
+      );
+      const unsorted = keys.some(
+        (key, index) =>
+          index > 0 &&
+          key !== null &&
+          keys[index - 1] !== null &&
+          (keys[index - 1] ?? "") > key,
+      );
+
+      return unsorted ? [path.relative(root, file)] : [];
+    });
+
 const isDynamicSegment = (name: string): boolean => name.startsWith("[");
 
 const findAmbiguousRoutes = (root: string): string[] => {
@@ -257,10 +312,13 @@ const IMPORT_PATTERN =
 const resolvesToFile = (base: string): boolean => {
   const withoutJs = base.replace(/\.js$/, "");
   return [base, withoutJs].some((stem) =>
-    ["", ".ts", ".tsx", ".d.ts", ".js", ".mjs"].some((extension) => {
-      const candidate = `${stem}${extension}`;
-      return existsSync(candidate) && statSync(candidate).isFile();
-    }),
+    // A folder resolves to its index file, as TypeScript and Next.js resolve it.
+    ["", ".ts", ".tsx", ".d.ts", ".js", ".mjs", "/index.ts", "/index.tsx"].some(
+      (extension) => {
+        const candidate = `${stem}${extension}`;
+        return existsSync(candidate) && statSync(candidate).isFile();
+      },
+    ),
   );
 };
 
@@ -615,6 +673,10 @@ describe("generation matrix", () => {
       "pages need exactly one <html> layout",
     ).toBe("");
     expect(findBrokenImports(root).join("\n"), "unresolved imports").toBe("");
+    expect(
+      findUnsortedImports(root).join("\n"),
+      "imports out of Biome order",
+    ).toBe("");
     expect(
       findMissingScriptReferences(root).join("\n"),
       "pnpm scripts referenced but not defined",

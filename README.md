@@ -116,7 +116,7 @@ kickoff starts by asking what kind of project it is (marketing site, careers or 
 
 | Option | Adds |
 | --- | --- |
-| CMS | `none` (default) keeps pages and copy in code. `contentful` adds the Contentful client, getters and parsers, draft mode routes, and type generation (`pnpm types:contentful`). `prismic` adds the Prismic client and page getters, previews through Prismic's toolbar, a revalidation webhook, and model and type pulls (`pnpm types:prismic`). Content sites start with Contentful selected. |
+| CMS | `none` (default) keeps pages and copy in code. `contentful` adds the Contentful client, getters and parsers, draft mode routes, and type generation (`pnpm types:contentful`). `prismic` adds the Prismic client and page getters, pages built from slices with a slice simulator for the Page Builder, previews through Prismic's toolbar, a revalidation webhook, and model and type pulls (`pnpm types:prismic`). Content sites start with Contentful selected. |
 | i18n | English at `/` and Spanish at `/es` with next-intl. Copy in `src/copy/` is typed per language, so a missing translation fails the typecheck. Includes a language switcher. |
 | Google Analytics | GA through `@next/third-parties` |
 | Resend | The Resend email package and env vars |

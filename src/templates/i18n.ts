@@ -1,6 +1,7 @@
 import type { ProjectAnswers } from "../types.js";
 import { getCms, getLayoutPreview, usesCms } from "./cms/index.js";
 import { usesVercel } from "./config.js";
+import { sortImports } from "./imports.js";
 
 // ---------------------------------------------------------------------------
 // src/i18n/routing.ts  (only generated when includeI18n)
@@ -110,12 +111,12 @@ export const getLocaleLayout = (a: ProjectAnswers): string => {
 `
     : "";
 
-  const draftModeImport = usesCms(a)
-    ? `import { draftMode } from "next/headers";\n`
-    : "";
-  const exitDraftImport = usesCms(a)
-    ? `import { ExitDraftModeLink } from "src/components/ExitDraftModeLink/ExitDraftModeLink.component";\n`
-    : "";
+  const draftImports = usesCms(a)
+    ? [
+        'import { draftMode } from "next/headers";',
+        'import { ExitDraftModeLink } from "src/components/ExitDraftModeLink/ExitDraftModeLink.component";',
+      ]
+    : [];
 
   const preconnectCms = (getCms(a)?.preconnectOrigins ?? [])
     .map((origin) => `        <link rel="preconnect" href="${origin}" />\n`)
@@ -138,16 +139,24 @@ export const getLocaleLayout = (a: ProjectAnswers): string => {
 
   const preview = getLayoutPreview(a);
 
-  return `${gaImport}${preview.packageImports}import type { Metadata } from "next";
-${draftModeImport}import { notFound } from "next/navigation";
-import { hasLocale, NextIntlClientProvider } from "next-intl";
-import { setRequestLocale } from "next-intl/server";
-import type { ReactNode } from "react";
-import Providers from "src/app/providers";
-${exitDraftImport}import { Footer } from "src/components/Footer/Footer.component";
-import { Navigation } from "src/components/Navigation/Navigation.component";
-import { routing } from "src/i18n/routing";
-${preview.localImports}import "src/styles/globals.css";
+  // The global CSS import ends Biome's first sorted run of imports.
+  const componentImports = sortImports([
+    ...(gaImport ? [gaImport.trim()] : []),
+    ...preview.imports,
+    ...draftImports,
+    'import type { Metadata } from "next";',
+    'import { notFound } from "next/navigation";',
+    'import { hasLocale, NextIntlClientProvider } from "next-intl";',
+    'import { setRequestLocale } from "next-intl/server";',
+    'import type { ReactNode } from "react";',
+    'import Providers from "src/app/providers";',
+    'import { Footer } from "src/components/Footer/Footer.component";',
+    'import { Navigation } from "src/components/Navigation/Navigation.component";',
+    'import { routing } from "src/i18n/routing";',
+  ]).join("\n");
+
+  return `${componentImports}
+import "src/styles/globals.css";
 import { envUrl } from "src/utils/environment.helpers";
 
 interface LocaleLayoutProps {

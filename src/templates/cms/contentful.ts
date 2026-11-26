@@ -628,6 +628,7 @@ See \`docs/handbook/contentful.md\` for full guidance.
     secretEnv: "CONTENTFUL_PREVIEW_SECRET",
   },
   richTextDocumentFactory: getContentfulRichTextDocumentFactory,
+  indexComponentDirs: [],
   tsconfigPaths: {},
   typesScript: {
     command:

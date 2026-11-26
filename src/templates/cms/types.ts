@@ -35,6 +35,16 @@ export type CmsAdapter = {
     secretEnv?: string;
     /** Rendered inside `<html>` after `<body>` in the root layout. */
     layout?: { element: string; imports: readonly string[] };
+    /**
+     * A page the CMS editor loads in an iframe (Prismic's slice simulator).
+     * It lives at `src/app/<route>` (under `[locale]` with i18n), and only
+     * that route lets `frameAncestors` frame it.
+     */
+    simulator?: {
+      frameAncestors: readonly string[];
+      page: () => string;
+      route: string;
+    };
   };
   /** Package names; versions live in DEFAULT_VERSIONS. */
   dependencies: readonly string[];
@@ -57,6 +67,13 @@ export type CmsAdapter = {
   optimizePackageImports: readonly string[];
   /** Extra tsconfig `paths` entries, so imports stay absolute. */
   tsconfigPaths: Readonly<Record<string, string>>;
+  /** What the shared `[slug]` page renders under the title, and its imports. */
+  pageBody?: { imports: readonly string[]; jsx: string };
+  /**
+   * Folders whose `<Name>/index.tsx` files are components the CMS tooling
+   * imports by folder (Prismic slices). The barrel-file hook lets them through.
+   */
+  indexComponentDirs: readonly string[];
   /** Files the adapter owns: client, getters, parsers, helpers, config. */
   files: () => FileList;
   /** `src/tests/factories/RichTextDocument.factory.ts` for this CMS's rich text. */

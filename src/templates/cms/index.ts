@@ -10,26 +10,21 @@ export const getCms = (a: ProjectAnswers): CmsAdapter | undefined =>
   a.cms === "none" ? undefined : ADAPTERS[a.cms];
 
 /** The generated paths as inline code, e.g. "`src/contentful/types/`". */
-export const listGeneratedPaths = (cms: CmsAdapter): string =>
-  cms.generatedPaths.map((generated) => `\`${generated}\``).join(" and ");
+export const listGeneratedPaths = (cms: CmsAdapter): string => {
+  const paths = cms.generatedPaths.map((generated) => `\`${generated}\``);
 
-/**
- * What the root layout adds for previews, with imports split so each lands
- * where Biome sorts it: packages at the top, `src/` modules before the CSS.
- */
+  return paths.length < 3
+    ? paths.join(" and ")
+    : `${paths.slice(0, -1).join(", ")}, and ${paths.at(-1)}`;
+};
+
+/** What the root layout adds for previews: its imports and the element. */
 export const getLayoutPreview = (a: ProjectAnswers) => {
   const layout = getCms(a)?.preview.layout;
-  const imports = layout?.imports ?? [];
-  const lines = (local: boolean) =>
-    imports
-      .filter((line) => line.includes('from "src/') === local)
-      .map((line) => `${line}\n`)
-      .join("");
 
   return {
     element: layout ? `      ${layout.element}\n` : "",
-    localImports: lines(true),
-    packageImports: lines(false),
+    imports: layout?.imports ?? [],
   };
 };
 
