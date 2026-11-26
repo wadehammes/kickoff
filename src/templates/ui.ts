@@ -146,5 +146,7 @@ export const FieldErrorMessage = ({
     </Field.Error>
   );
 };
+
+export default FieldErrorMessage;
 `;
 };

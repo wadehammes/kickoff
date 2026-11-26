@@ -7,7 +7,7 @@ import type { ProjectAnswers } from "../types.js";
 export const getProxyTs = (): string => {
   return `import { type NextRequest, NextResponse } from "next/server";
 
-export function proxy(request: NextRequest) {
+export const proxy = (request: NextRequest) => {
   const requestHeaders = new Headers(request.headers);
 
   requestHeaders.set("x-pathname", request.nextUrl.pathname);
@@ -17,7 +17,7 @@ export function proxy(request: NextRequest) {
       headers: requestHeaders,
     },
   });
-}
+};
 `;
 };
 

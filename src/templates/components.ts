@@ -34,6 +34,7 @@ export const Navigation = () => {
     <nav
       id="top"
       className={classNames(styles.navigation, { [styles.scrolled]: scrolled })}
+      data-testid="rhNavigation"
     >
       <div className="container">
         <Link
@@ -110,7 +111,7 @@ export const getFooterComponent = (a: ProjectAnswers): string => {
   return `${switcherImport}import styles from "./Footer.module.css";
 
 export const Footer = () => (
-  <footer className={styles.footer}>
+  <footer className={styles.footer} data-testid="rhFooter">
     <div className="container">
       <span className={styles.copyright}>
         &copy; {new Date().getFullYear()} ${a.siteName}
@@ -166,7 +167,11 @@ export const ExitDraftModeLink = (props: HTMLProps<HTMLAnchorElement>) => {
   const pathname = usePathname();
 
   return (
-    <a href={\`/api/disable-draft?redirect=\${pathname}\`} {...props}>
+    <a
+      data-testid="rhExitDraftModeLink"
+      href={\`/api/disable-draft?redirect=\${pathname}\`}
+      {...props}
+    >
       Exit Draft Mode
     </a>
   );
@@ -185,7 +190,7 @@ export const getNotFoundPageComponent = (): string => {
 import styles from "./NotFoundPage.module.css";
 
 export const NotFoundPage = () => (
-  <div className={styles.container}>
+  <div className={styles.container} data-testid="rhNotFoundPage">
     <h1 className={styles.heading}>404</h1>
     <p className={styles.message}>
       Sorry, we couldn&apos;t find the page you were looking for.
@@ -280,6 +285,7 @@ export const Button = (props: ButtonProps) => {
         [styles.outline]: variant === "outline",
         [styles.secondary]: variant === "secondary",
       })}
+      data-testid="rhButton"
       disabled={disabled ?? isDisabled}
       type={type}
       {...rest}
@@ -440,7 +446,7 @@ export const ToastHost = ({ children }: PropsWithChildrenOnly) => (
   >
     {children}
     <Toast.Portal>
-      <Toast.Viewport className={styles.viewport}>
+      <Toast.Viewport className={styles.viewport} data-testid="rhToastHost">
         <ToastList />
       </Toast.Viewport>
     </Toast.Portal>

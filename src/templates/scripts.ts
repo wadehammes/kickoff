@@ -271,9 +271,9 @@ export type VercelMembershipEvaluation = { allowed: boolean; role: string };
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   v !== null && typeof v === "object" && !Array.isArray(v);
 
-export function evaluateMembership(
+export const evaluateMembership = (
   membership: Record<string, unknown>,
-): VercelMembershipEvaluation {
+): VercelMembershipEvaluation => {
   const membershipRole = membership.role;
   const role =
     membershipRole == null || membershipRole === ""
@@ -287,9 +287,9 @@ export function evaluateMembership(
   }
 
   return { allowed: false, role };
-}
+};
 
-async function main(): Promise<void> {
+const main = async (): Promise<void> => {
   const jsonRaw = process.env.VC_JSON;
   const token = process.env.VC_TOKEN;
   const teamSlug = process.env.VC_TEAM;
@@ -300,6 +300,7 @@ async function main(): Promise<void> {
   }
 
   let data: unknown;
+
   try {
     data = JSON.parse(jsonRaw) as unknown;
   } catch {
@@ -319,6 +320,7 @@ async function main(): Promise<void> {
   }
 
   let userBlob: unknown;
+
   try {
     const res = await fetch("https://api.vercel.com/v2/user", {
       headers: { Authorization: \`Bearer \${token}\` },
@@ -350,11 +352,14 @@ async function main(): Promise<void> {
   console.log(
     \`Vercel OK: \${name} — role \${role || "?"} on team \${teamSlug} (release allowed).\`,
   );
-}
+};
 
 const invokedAsMain = ((): boolean => {
   const entry = process.argv[1];
-  if (!entry) return false;
+
+  if (!entry) {
+    return false;
+  }
   try {
     return import.meta.url === pathToFileURL(path.resolve(entry)).href;
   } catch {
@@ -441,16 +446,26 @@ import process from "node:process";
 export type ScriptEnv = NodeJS.ProcessEnv;
 
 const loadEnvFile = (filePath: string): Record<string, string> => {
-  if (!fs.existsSync(filePath)) return {};
+  if (!fs.existsSync(filePath)) {
+    return {};
+  }
 
   const out: Record<string, string> = {};
+
   for (const line of fs.readFileSync(filePath, "utf8").split("\\n")) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
+
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
     const eq = trimmed.indexOf("=");
-    if (eq === -1) continue;
+
+    if (eq === -1) {
+      continue;
+    }
     const key = trimmed.slice(0, eq).trim();
     let value = trimmed.slice(eq + 1).trim();
+
     if (
       (value.startsWith('"') && value.endsWith('"')) ||
       (value.startsWith("'") && value.endsWith("'"))
@@ -475,12 +490,14 @@ export const resolveEnvForScripts = (root = process.cwd()): ScriptEnv => ({
 });
 
 export const getDraftPreviewUrl = (secret: string, base: string): string => {
-  const origin = base.replace(/$/, "");
+  const origin = base.replace(/\\/$/, "");
+
   return \`\${origin}/api/draft?previewSecret=\${encodeURIComponent(secret)}&redirect=/\`;
 };
 
 export const openBrowser = (targetUrl: string): void => {
   const platform = process.platform;
+
   if (platform === "darwin") {
     execFileSync("open", [targetUrl], { stdio: "ignore" });
   } else if (platform === "win32") {
@@ -600,6 +617,7 @@ const pingDevServer = (origin: string): Promise<void> => {
 
 const waitUntilReady = async (origin: string): Promise<void> => {
   const deadline = Date.now() + SERVER_READY_TIMEOUT_MS;
+
   while (Date.now() < deadline) {
     try {
       await pingDevServer(origin);

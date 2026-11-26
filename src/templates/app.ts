@@ -312,7 +312,7 @@ export default NotFound;
 export const getAppRobots = (a: ProjectAnswers): string => {
   return `import type { MetadataRoute } from "next";
 
-export default function robots(): MetadataRoute.Robots {
+const robots = (): MetadataRoute.Robots => {
   return {
     rules: {
       userAgent: "*",
@@ -320,7 +320,9 @@ export default function robots(): MetadataRoute.Robots {
     },
     sitemap: "${a.prodUrl}/sitemap-index.xml",
   };
-}
+};
+
+export default robots;
 `;
 };
 
@@ -331,7 +333,7 @@ export default function robots(): MetadataRoute.Robots {
 export const getAppManifest = (a: ProjectAnswers): string => {
   return `import type { MetadataRoute } from "next";
 
-export default function manifest(): MetadataRoute.Manifest {
+const manifest = (): MetadataRoute.Manifest => {
   return {
     name: "${a.siteName}",
     short_name: "${a.siteName}",
@@ -348,7 +350,9 @@ export default function manifest(): MetadataRoute.Manifest {
       },
     ],
   };
-}
+};
+
+export default manifest;
 `;
 };
 
@@ -360,7 +364,7 @@ export const getDraftRoute = (): string => {
   return `import { draftMode } from "next/headers";
 import { redirect } from "next/navigation";
 
-export async function GET(request: Request) {
+export const GET = async (request: Request) => {
   const draft = await draftMode();
   const { searchParams } = new URL(request.url);
 
@@ -373,7 +377,7 @@ export async function GET(request: Request) {
   draft.enable();
 
   redirect(searchParams.get("redirect") || "/");
-}
+};
 `;
 };
 
@@ -385,14 +389,14 @@ export const getDisableDraftRoute = (): string => {
   return `import { draftMode } from "next/headers";
 import { redirect } from "next/navigation";
 
-export async function GET(request: Request) {
+export const GET = async (request: Request) => {
   const draft = await draftMode();
   const { searchParams } = new URL(request.url);
 
   draft.disable();
 
   redirect(searchParams.get("redirect") || "/");
-}
+};
 `;
 };
 

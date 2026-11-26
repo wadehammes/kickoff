@@ -80,7 +80,7 @@ The generated code must follow the same conventions documented in the handbook. 
 ## Kickoff tool code vs scaffolded file contents
 
 - **This repo’s TypeScript** (`src/index.ts`, `src/generator.ts`, `src/templates/*.ts`, tests, etc.) should follow the same arrow-style preference as the handbook (`const fn = () => {}`, `export const getThing = (): string => {}`). Use `function` only where the language requires it (e.g. generators) or for small inline callbacks if that already matches surrounding code.
-- **Inside template literals** (`return \`...\`` in template modules) you are emitting **the user’s project**. That text must follow handbook rules for the generated app. Do not rewrite embedded snippets just to change kickoff’s outer style—lines like `export function generateMetadata()` inside a string are intentional output, not kickoff module declarations.
+- **Inside template literals** (`return \`...\`` in template modules) you are emitting **the user’s project**. That text must follow handbook rules for the generated app, including arrow functions for Next.js exports (`export const generateMetadata = async () => {}`, `export const GET = async (request: Request) => {}`, `const robots = () => {}; export default robots;`). The generation matrix fails on any `function` declaration under a generated `src/`.
 
 ## Cursor hooks (this repo)
 

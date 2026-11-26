@@ -7,6 +7,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
+import { stripTypeScriptTypes } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
@@ -267,6 +268,29 @@ describe("generateProject", () => {
     expect(workflow).toContain("github.ref }}:main");
     expect(workflow.indexOf("persist-credentials: false")).toBeLessThan(
       workflow.indexOf("name: Reset Main"),
+    );
+  });
+
+  it("builds draft preview URLs without a double slash", async () => {
+    const root = await runInTemp(baseAnswers({ projectName: "preview-site" }));
+    const helper = path.join(root, "scripts/lib/preview-local.mjs");
+
+    writeFileSync(
+      helper,
+      stripTypeScriptTypes(
+        readFileSync(path.join(root, "scripts/lib/preview-local.ts"), "utf-8"),
+      ),
+    );
+
+    const { getDraftPreviewUrl } = (await import(helper)) as {
+      getDraftPreviewUrl: (secret: string, base: string) => string;
+    };
+
+    expect(getDraftPreviewUrl("s3cret", "http://localhost:3000/")).toBe(
+      "http://localhost:3000/api/draft?previewSecret=s3cret&redirect=/",
+    );
+    expect(getDraftPreviewUrl("s3cret", "http://localhost:3000")).toBe(
+      "http://localhost:3000/api/draft?previewSecret=s3cret&redirect=/",
     );
   });
 

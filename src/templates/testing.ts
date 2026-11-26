@@ -232,7 +232,7 @@ export const getMockIntersectionObserver = (): string => {
  * components that rely on it, otherwise the tests will crash.
  * Recommended to execute inside \`beforeAll\`.
  */
-export function setupIntersectionObserverMock({
+export const setupIntersectionObserverMock = ({
   root = null,
   rootMargin = "",
   scrollMargin = "",
@@ -241,7 +241,7 @@ export function setupIntersectionObserverMock({
   observe = () => null,
   takeRecords = () => [],
   unobserve = () => null,
-} = {}): void {
+} = {}): void => {
   class MockIntersectionObserver implements IntersectionObserver {
     readonly root: Element | null = root;
     readonly rootMargin: string = rootMargin;
@@ -264,7 +264,7 @@ export function setupIntersectionObserverMock({
     configurable: true,
     value: MockIntersectionObserver,
   });
-}
+};
 `;
 };
 
@@ -273,7 +273,7 @@ export function setupIntersectionObserverMock({
 // ---------------------------------------------------------------------------
 
 export const getMockMatchMedia = (): string => {
-  return `export function setupMockMatchMedia() {
+  return `export const setupMockMatchMedia = () => {
   Object.defineProperty(window, "matchMedia", {
     writable: true,
     value: jest.fn().mockImplementation((query) => ({
@@ -287,7 +287,7 @@ export const getMockMatchMedia = (): string => {
       dispatchEvent: jest.fn(),
     })),
   });
-}
+};
 `;
 };
 
@@ -309,7 +309,7 @@ export const mockUsePathname = jest.fn(() => "/");
 export const mockUseParams = jest.fn(() => ({}));
 export const mockUseSearchParams = jest.fn(() => new URLSearchParams());
 
-export function mockUseRouter(
+export const mockUseRouter = (
   overrides?: Partial<{
     push: jest.Mock;
     replace: jest.Mock;
@@ -317,7 +317,7 @@ export function mockUseRouter(
     back: jest.Mock;
     forward: jest.Mock;
   }>,
-) {
+) => {
   const { useRouter } =
     jest.requireMock<typeof import("next/navigation")>("next/navigation");
   (useRouter as jest.Mock).mockReturnValue({
@@ -328,7 +328,7 @@ export function mockUseRouter(
     forward: mockForward,
     ...overrides,
   });
-}
+};
 `;
 };
 
@@ -539,6 +539,7 @@ export const collectHandbookTestViolations = (
 ): HandbookTestViolation[] =>
   listFeatureTestFiles(rootDir).flatMap((filePath) => {
     const source = readFileSync(join(rootDir, filePath), "utf8");
+
     return validateFeatureTestSource(filePath, source);
   });
 

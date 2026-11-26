@@ -170,9 +170,9 @@ export const getContentfulCacheConfig = (): string => {
 
 export const CONTENTFUL_CACHE_REVALIDATE_SECONDS = 60 * 60 * 24 * 30;
 
-export function sanitizeForCache<T>(value: T): T {
+export const sanitizeForCache = <T>(value: T): T => {
   return safeJsonStringify.ensureProperties(value) as T;
-}
+};
 `;
 };
 
@@ -189,9 +189,9 @@ export const CONTENTFUL_TAGS = {
   pages: "contentful-pages",
 } as const;
 
-function contentfulKey(parts: string[]): string[] {
+const contentfulKey = (parts: string[]): string[] => {
   return ["contentful", ...parts];
-}
+};
 
 export const cacheKeys = {
   navigation: (slug: string, preview: boolean) => ({
