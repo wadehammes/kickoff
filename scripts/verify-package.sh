@@ -12,6 +12,13 @@ fail() {
 }
 
 cd "${repo_root}"
+
+publish_report="$(npm publish --dry-run --tag verify-package 2>&1 || true)"
+if grep -q "auto-corrected" <<<"${publish_report}"; then
+	fail "npm publish would rewrite package.json; run npm pkg fix and commit the result:
+$(grep "npm warn publish" <<<"${publish_report}")"
+fi
+
 tarball="$(npm pack --silent --pack-destination "${work}")"
 contents="$(tar -tzf "${work}/${tarball}")"
 
