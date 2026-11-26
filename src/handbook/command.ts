@@ -1,7 +1,8 @@
 import { spawnSync } from "node:child_process";
-import { accessSync, constants } from "node:fs";
+import { accessSync, constants, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import chalk from "chalk";
 import prompts from "prompts";
@@ -42,6 +43,7 @@ Options:
   --agent <name>     ${Object.keys(HARNESSES).join(", ")}, any CLI that takes a prompt as its
                      first argument, or "${NO_AGENT}" to print the prompt instead
   --answers <path>   Write kickoff's handbook from ProjectAnswers JSON
+  --force            Overwrite an existing handbook (--answers only)
   --dry-run          Show what kickoff found and the prompt (or the files it would write)
   --verbose          Log each file as it is written (--answers only)
   -h, --help         Show this help
@@ -66,7 +68,7 @@ const chooseAgent = async (requested: string | undefined): Promise<string> => {
     return requested;
   }
 
-  if (!process.stdin.isTTY) {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
     return NO_AGENT;
   }
 
@@ -94,11 +96,33 @@ const chooseAgent = async (requested: string | undefined): Promise<string> => {
   return agent as string;
 };
 
+type KickoffHandbookOptions = {
+  dryRun: boolean;
+  force: boolean;
+  verbose: boolean;
+};
+
+const driftCheckHook = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../scaffold-assets/claude-hooks/handbook-drift-check.mjs",
+);
+
+const findLinksOutsideHandbook = async (dir: string): Promise<string[]> => {
+  const { findBrokenLinks } = (await import(
+    pathToFileURL(driftCheckHook).href
+  )) as { findBrokenLinks: (docs: string[]) => string[] };
+
+  return findBrokenLinks(
+    readdirSync(dir)
+      .filter((name) => name.endsWith(".md"))
+      .map((name) => path.join(dir, name)),
+  ).map((problem) => problem.replace(`${dir}/`, ""));
+};
+
 const writeKickoffHandbook = async (
   answersPath: string,
   root: string,
-  dryRun: boolean,
-  verbose: boolean,
+  { dryRun, force, verbose }: KickoffHandbookOptions,
 ) => {
   const answers = readAnswersFile(answersPath);
 
@@ -107,13 +131,47 @@ const writeKickoffHandbook = async (
     process.exit(1);
   }
 
+  const handbookPath = path.join(root, KICKOFF_HANDBOOK_DIR);
+
+  if (
+    !force &&
+    existsSync(handbookPath) &&
+    readdirSync(handbookPath).length > 0
+  ) {
+    log(
+      chalk.red(`✖ ${handbookPath} already has files.`),
+      "\n  Pass --force to overwrite them, or run without --answers to have an agent update that handbook.",
+    );
+    process.exit(1);
+  }
+
   await generateHandbook(answers, root, { dryRun, verbose });
 
+  if (dryRun) {
+    log(chalk.gray("\nDry-run complete — no files were written."));
+    return;
+  }
+
   log(
-    dryRun
-      ? chalk.gray("\nDry-run complete — no files were written.")
-      : `\n${chalk.green("✔")} Wrote ${chalk.bold(`${KICKOFF_HANDBOOK_DIR}/`)} for ${chalk.bold(answers.siteName)}.`,
+    `\n${chalk.green("✔")} Wrote ${chalk.bold(`${KICKOFF_HANDBOOK_DIR}/`)} for ${chalk.bold(answers.siteName)}.`,
   );
+
+  const missing = await findLinksOutsideHandbook(handbookPath);
+
+  if (missing.length > 0) {
+    log(
+      chalk.yellow("⚠"),
+      `These pages link to ${missing.length} files that a full kickoff project has and this repo doesn't. Add them or edit the links:`,
+    );
+    log(
+      chalk.gray(
+        missing
+          .slice(0, 10)
+          .map((line) => `  ${line}`)
+          .join("\n"),
+      ),
+    );
+  }
 };
 
 const parseHandbookArgs = (args: string[]) => {
@@ -126,6 +184,7 @@ const parseHandbookArgs = (args: string[]) => {
         answers: { type: "string" },
         dir: { type: "string" },
         "dry-run": { default: false, type: "boolean" },
+        force: { default: false, type: "boolean" },
         help: { default: false, short: "h", type: "boolean" },
         out: { type: "string" },
         verbose: { default: false, type: "boolean" },
@@ -166,8 +225,11 @@ export const runHandbookCommand = async (args: string[]): Promise<void> => {
     await writeKickoffHandbook(
       path.resolve(process.cwd(), values.answers),
       root,
-      dryRun,
-      values.verbose ?? false,
+      {
+        dryRun,
+        force: values.force ?? false,
+        verbose: values.verbose ?? false,
+      },
     );
     return;
   }
@@ -180,7 +242,15 @@ export const runHandbookCommand = async (args: string[]): Promise<void> => {
     process.exit(1);
   }
 
-  const handbookDir = (values.out ?? KICKOFF_HANDBOOK_DIR).replace(/\/$/, "");
+  const handbookDir = path
+    .relative(root, path.resolve(root, values.out ?? KICKOFF_HANDBOOK_DIR))
+    .split(path.sep)
+    .join("/");
+
+  if (!handbookDir || handbookDir.startsWith("..")) {
+    log(chalk.red(`✖ --out must be a folder inside ${root}.`));
+    process.exit(1);
+  }
   const facts = detectCodebase(root, handbookDir);
   const prompt = getHandbookBuildPrompt(facts, handbookDir);
 
@@ -232,5 +302,10 @@ export const runHandbookCommand = async (args: string[]): Promise<void> => {
     process.exit(1);
   }
 
-  process.exit(result.status ?? 0);
+  if (result.signal) {
+    log(chalk.red(`✖ ${harness.bin} stopped (${result.signal}).`));
+    process.exit(1);
+  }
+
+  process.exit(result.status ?? 1);
 };

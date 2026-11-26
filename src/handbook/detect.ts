@@ -19,15 +19,25 @@ export type CodebaseFacts = {
 };
 
 const IGNORED_DIRS = new Set([
+  ".cache",
   ".git",
+  ".gradle",
+  ".mypy_cache",
   ".next",
+  ".pytest_cache",
+  ".tox",
   ".turbo",
+  ".venv",
+  "__pycache__",
   "build",
   "coverage",
   "dist",
   "node_modules",
   "out",
+  "Pods",
+  "target",
   "vendor",
+  "venv",
 ]);
 
 const LIBRARIES: [string, string][] = [
@@ -121,10 +131,16 @@ const git = (root: string, args: string[]): string | null => {
   }
 };
 
+const readEntries = (dir: string) => {
+  try {
+    return readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+};
+
 const walk = (root: string, dir = "", found: string[] = []): string[] => {
-  for (const entry of readdirSync(path.join(root, dir), {
-    withFileTypes: true,
-  })) {
+  for (const entry of readEntries(path.join(root, dir))) {
     if (IGNORED_DIRS.has(entry.name)) {
       continue;
     }

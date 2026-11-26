@@ -152,6 +152,7 @@ kickoff handbook --answers ./answers.json
 | `--dir <path>` | Repo to document (default: the current directory) |
 | `--out <path>` | Handbook folder, relative to `--dir` (default: `docs/handbook`) |
 | `--answers <path>` | Write kickoff's handbook for a new project instead |
+| `--force` | With `--answers`, overwrite a handbook folder that already has files |
 | `--dry-run` | Show the prompt, or with `--answers` the files, without running anything |
 
 ## Setting up a new site
