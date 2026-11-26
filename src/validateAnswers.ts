@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import type { ProjectAnswers } from "./types.js";
 
 const REQUIRED_KEYS: (keyof ProjectAnswers)[] = [
@@ -113,4 +114,22 @@ export const validateProjectAnswers = (
   }
 
   return o as unknown as ProjectAnswers;
+};
+
+export const readAnswersFile = (
+  answersPath: string,
+): ProjectAnswers | string => {
+  let raw: unknown;
+
+  try {
+    raw = JSON.parse(readFileSync(answersPath, "utf-8")) as unknown;
+  } catch {
+    return `Could not read or parse JSON from: ${answersPath}`;
+  }
+
+  const validated = validateProjectAnswers(raw);
+
+  return typeof validated === "string"
+    ? `Invalid answers: ${validated}`
+    : validated;
 };

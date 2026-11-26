@@ -1,13 +1,14 @@
 #!/usr/bin/env node
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { parseArgs } from "node:util";
 import chalk from "chalk";
 import prompts from "prompts";
 import { generateProject, getScaffoldRoot } from "./generator.js";
+import { runHandbookCommand } from "./handbook/command.js";
 import type { ProjectAnswers } from "./types.js";
-import { validateProjectAnswers } from "./validateAnswers.js";
+import { readAnswersFile, validateProjectAnswers } from "./validateAnswers.js";
 
 const banner = `
 ${chalk.cyan("🚀 kickoff")} ${chalk.white("—")} ${chalk.gray("Next.js + TypeScript project scaffolder")}
@@ -22,6 +23,11 @@ Interactive mode (default):
 Non-interactive:
   kickoff --answers ./answers.json [--force] [--dry-run] [--verbose]
 
+Handbook only:
+  kickoff handbook [--agent <name>] [--dir <path>] [--out <path>]   study an existing codebase
+  kickoff handbook --answers ./answers.json                         kickoff's handbook for a new project
+  kickoff handbook --help
+
 Options:
   --answers <path>   Load ${chalk.bold("ProjectAnswers")} JSON (strict keys; booleans and numbers as JSON types)
   --force            Allow scaffolding into a non-empty directory
@@ -35,6 +41,11 @@ const scaffoldTargetIsNonEmpty = (root: string): boolean =>
   existsSync(root) && readdirSync(root).length > 0;
 
 const main = async () => {
+  if (process.argv[2] === "handbook") {
+    await runHandbookCommand(process.argv.slice(3));
+    return;
+  }
+
   const { values } = parseArgs({
     allowPositionals: false,
     args: process.argv.slice(2),
@@ -63,23 +74,14 @@ const main = async () => {
   let projectAnswers: ProjectAnswers;
 
   if (fromAnswersFile) {
-    const answersPath = path.resolve(process.cwd(), values.answers as string);
-    let raw: unknown;
-    try {
-      raw = JSON.parse(readFileSync(answersPath, "utf-8")) as unknown;
-    } catch {
-      console.error(
-        chalk.red("✖ Could not read or parse JSON from:"),
-        answersPath,
-      );
+    const loaded = readAnswersFile(
+      path.resolve(process.cwd(), values.answers as string),
+    );
+    if (typeof loaded === "string") {
+      console.error(chalk.red(`✖ ${loaded}`));
       process.exit(1);
     }
-    const validated = validateProjectAnswers(raw);
-    if (typeof validated === "string") {
-      console.error(chalk.red("✖ Invalid answers:"), validated);
-      process.exit(1);
-    }
-    projectAnswers = validated;
+    projectAnswers = loaded;
   } else {
     const answers = await prompts(
       [

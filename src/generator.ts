@@ -207,22 +207,17 @@ export type GenerateProjectOptions = {
   verbose?: boolean;
 };
 
-export const getScaffoldRoot = (a: ProjectAnswers): string =>
-  a.useCurrentDir ? process.cwd() : path.resolve(process.cwd(), a.projectName);
+type Write = (
+  relativePath: string,
+  content: string,
+  options?: { executable?: boolean },
+) => Promise<void>;
 
-export const generateProject = async (
-  a: ProjectAnswers,
-  options?: GenerateProjectOptions,
-): Promise<void> => {
-  const root = getScaffoldRoot(a);
-  const dryRun = options?.dryRun ?? false;
-  const verbose = options?.verbose ?? false;
-
-  const write = async (
-    relativePath: string,
-    content: string,
-    options?: { executable?: boolean },
-  ): Promise<void> => {
+const createWriter = (
+  root: string,
+  { dryRun = false, verbose = false }: GenerateProjectOptions = {},
+): Write => {
+  return async (relativePath, content, options) => {
     if (dryRun) {
       console.log(relativePath);
       return;
@@ -238,6 +233,47 @@ export const generateProject = async (
       console.log(`wrote ${relativePath}`);
     }
   };
+};
+
+const writeHandbook = async (a: ProjectAnswers, write: Write) => {
+  await write("docs/handbook/README.md", getHandbookReadme(a));
+  await write("docs/handbook/llms.md", getHandbookLlms(a));
+  await write("docs/handbook/non-negotiables.md", getHandbookNonNegotiables(a));
+  await write("docs/handbook/glossary.md", getHandbookGlossary(a));
+  await write("docs/handbook/decisions.md", getHandbookDecisions(a));
+  await write("docs/handbook/agent-workflow.md", getHandbookAgentWorkflow(a));
+  await write("docs/handbook/api-routes.md", getHandbookApiRoutes(a));
+  await write("docs/handbook/factories.md", getHandbookFactories(a));
+  await write("docs/handbook/data-storage.md", getHandbookDataStorage(a));
+  await write("docs/handbook/architecture.md", getHandbookArchitecture(a));
+  await write("docs/handbook/conventions.md", getHandbookConventions(a));
+  await write("docs/handbook/contentful.md", getHandbookContentful(a));
+  await write("docs/handbook/components.md", getHandbookComponents(a));
+  await write("docs/handbook/patterns.md", getHandbookPatterns(a));
+  await write("docs/handbook/platform.md", getHandbookPlatform(a));
+  await write("docs/handbook/integrations.md", getHandbookIntegrations(a));
+  await write("docs/handbook/distribution.md", getHandbookDistribution(a));
+  await write("docs/handbook/source-layout.md", getHandbookSourceLayout(a));
+};
+
+export const generateHandbook = async (
+  a: ProjectAnswers,
+  root: string,
+  options?: GenerateProjectOptions,
+): Promise<void> => {
+  await writeHandbook(a, createWriter(root, options));
+};
+
+export const getScaffoldRoot = (a: ProjectAnswers): string =>
+  a.useCurrentDir ? process.cwd() : path.resolve(process.cwd(), a.projectName);
+
+export const generateProject = async (
+  a: ProjectAnswers,
+  options?: GenerateProjectOptions,
+): Promise<void> => {
+  const root = getScaffoldRoot(a);
+  const dryRun = options?.dryRun ?? false;
+  const write = createWriter(root, options);
 
   if (!dryRun) {
     await ensureDir(root);
@@ -272,24 +308,7 @@ export const generateProject = async (
   await write("CLAUDE.md", getClaude(a));
 
   // ── docs/handbook/ ─────────────────────────────────────────────────────────
-  await write("docs/handbook/README.md", getHandbookReadme(a));
-  await write("docs/handbook/llms.md", getHandbookLlms(a));
-  await write("docs/handbook/non-negotiables.md", getHandbookNonNegotiables(a));
-  await write("docs/handbook/glossary.md", getHandbookGlossary(a));
-  await write("docs/handbook/decisions.md", getHandbookDecisions(a));
-  await write("docs/handbook/agent-workflow.md", getHandbookAgentWorkflow(a));
-  await write("docs/handbook/api-routes.md", getHandbookApiRoutes(a));
-  await write("docs/handbook/factories.md", getHandbookFactories(a));
-  await write("docs/handbook/data-storage.md", getHandbookDataStorage(a));
-  await write("docs/handbook/architecture.md", getHandbookArchitecture(a));
-  await write("docs/handbook/conventions.md", getHandbookConventions(a));
-  await write("docs/handbook/contentful.md", getHandbookContentful(a));
-  await write("docs/handbook/components.md", getHandbookComponents(a));
-  await write("docs/handbook/patterns.md", getHandbookPatterns(a));
-  await write("docs/handbook/platform.md", getHandbookPlatform(a));
-  await write("docs/handbook/integrations.md", getHandbookIntegrations(a));
-  await write("docs/handbook/distribution.md", getHandbookDistribution(a));
-  await write("docs/handbook/source-layout.md", getHandbookSourceLayout(a));
+  await writeHandbook(a, write);
 
   // ── Agent hooks (Cursor or Claude Code) ────────────────────────────────────
   if (a.agentTooling === "cursor") {
