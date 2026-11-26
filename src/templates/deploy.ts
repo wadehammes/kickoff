@@ -1,20 +1,8 @@
 import type { ProjectAnswers } from "../types.js";
 
-const stagingHost = (a: ProjectAnswers): string => {
-  try {
-    return new URL(a.stagingUrl).host;
-  } catch {
-    return a.stagingUrl;
-  }
-};
+const stagingHost = (a: ProjectAnswers): string => new URL(a.stagingUrl).host;
 
-const prodHost = (a: ProjectAnswers): string => {
-  try {
-    return new URL(a.prodUrl).host;
-  } catch {
-    return a.prodUrl;
-  }
-};
+const prodHost = (a: ProjectAnswers): string => new URL(a.prodUrl).host;
 
 export const getDeployTypes = (): string => {
   return `import type { DeployTarget } from "src/lib/refreshContentAccess";

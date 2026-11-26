@@ -43,8 +43,8 @@ jobs:
       - name: Lint (Biome)
         run: pnpm lint:ci
 
-      - name: Test (Vitest)
-        run: pnpm test
+      - name: Test (Vitest, with coverage thresholds)
+        run: pnpm test:coverage
 
   scaffold-e2e:
     name: Scaffold E2E

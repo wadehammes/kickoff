@@ -90,6 +90,8 @@ Kickoff ships **`.cursor/hooks.json`** and scripts under **`.cursor/hooks/`** th
 
 - `src/generationMatrix.test.ts` generates every tooling × option combination (96 projects) in seconds and checks structural invariants. Add an invariant there when you fix a class of generator bug.
 - `fixtures/scaffold-e2e/*.json` covers each option at least once for the slow end-to-end run. Add a fixture when a new option or combination needs a real install, build, or browser test.
+- Write the test first and watch it fail for the reason you expect before you change the code. When you add tests for code that already exists, break the code on purpose to prove the test catches it.
+- `pnpm test:coverage` must stay above the thresholds in `vitest.config.ts`. Code that only runs as a separate process (the CLI and hook entry points) is covered by subprocess tests and the scaffold E2E instead.
 
 ## Scripts
 
@@ -99,8 +101,10 @@ pnpm dev                # tsc --watch
 pnpm lint               # biome check
 pnpm lint:fix           # biome check --fix
 pnpm test               # vitest (generator integration tests)
+pnpm test:coverage      # vitest with coverage; CI fails below the thresholds in vitest.config.ts
 pnpm test:scaffold-e2e  # generate fixture projects, run their CI scripts, build/serve/smoke non-CMS fixtures
 SCAFFOLD_E2E_PLAYWRIGHT=1 pnpm test:scaffold-e2e  # also run generated Playwright suites
+SCAFFOLD_E2E_ONLY=claude-static pnpm test:scaffold-e2e  # run only the named fixtures
 node dist/index.js      # run the CLI (interactive; or --answers / --dry-run / --help)
 node dist/index.js handbook --dry-run   # scan the current repo and print the handbook build prompt
 ```

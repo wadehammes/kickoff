@@ -178,7 +178,7 @@ const findMissingScripts = () => {
   return [...missing].sort().slice(0, MAX_REPORTED);
 };
 
-const collectFindings = () => {
+export const collectFindings = () => {
   const changed = [
     ...new Set([
       ...lines(git(["diff", "--name-only", "HEAD"])),

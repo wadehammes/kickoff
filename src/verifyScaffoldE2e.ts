@@ -1,5 +1,11 @@
-import { type ChildProcess, execSync, spawn } from "node:child_process";
 import {
+  type ChildProcess,
+  execSync,
+  spawn,
+  spawnSync,
+} from "node:child_process";
+import {
+  chmodSync,
   existsSync,
   mkdtempSync,
   readdirSync,
@@ -27,6 +33,10 @@ const SERVER_PORT = 3999;
 const SERVER_BASE_URL = `http://localhost:${SERVER_PORT}`;
 const SERVER_START_TIMEOUT_MS = 60_000;
 const RUN_PLAYWRIGHT = process.env.SCAFFOLD_E2E_PLAYWRIGHT === "1";
+const ONLY_FIXTURES = (process.env.SCAFFOLD_E2E_ONLY ?? "")
+  .split(",")
+  .map((name) => name.trim())
+  .filter(Boolean);
 const NEXT_DOCS_INDEX_MARKER = "<!-- NEXT-AGENTS-MD-START -->";
 
 const repoRoot = path.resolve(
@@ -179,6 +189,136 @@ const smokeTestBuild = async (
   }
 };
 
+const kickoffBin = path.join(repoRoot, "dist", "index.js");
+
+const runKickoff = (args: string[], cwd: string, input?: string) =>
+  spawnSync("node", [kickoffBin, ...args], {
+    cwd,
+    encoding: "utf-8",
+    env: process.env,
+    input,
+  });
+
+const driftHook = (root: string, answers: ProjectAnswers): string =>
+  answers.agentTooling === "claude"
+    ? path.join(root, ".claude/hooks/handbook-drift-check.mjs")
+    : path.join(
+        repoRoot,
+        "scaffold-assets/claude-hooks/handbook-drift-check.mjs",
+      );
+
+const verifyHandbookTooling = (root: string, answers: ProjectAnswers): void => {
+  console.log("  handbook drift check on a clean commit");
+  execSync(
+    "git init -q && git add -A && git -c user.email=e2e@example.com -c user.name=E2E commit -qm scaffold",
+    { cwd: root, stdio: "inherit" },
+  );
+  const drift = spawnSync("node", [driftHook(root, answers)], {
+    cwd: root,
+    encoding: "utf-8",
+    env: { ...process.env, CLAUDE_PROJECT_DIR: root },
+    input: "{}",
+  });
+  if (drift.status !== 0 || drift.stdout.trim() !== "") {
+    throw new Error(
+      `handbook drift check reported problems:\n${drift.stdout}${drift.stderr}`,
+    );
+  }
+
+  console.log("  kickoff handbook --dry-run");
+  const pages = readdirSync(path.join(root, "docs/handbook")).filter((name) =>
+    name.endsWith(".md"),
+  ).length;
+  const dryRun = runKickoff(["handbook", "--dry-run"], root);
+  if (
+    dryRun.status !== 0 ||
+    !dryRun.stdout.includes(
+      `# Build the handbook for ${answers.projectName}`,
+    ) ||
+    !dryRun.stdout.includes(`\`docs/handbook/\` already has ${pages} pages`)
+  ) {
+    throw new Error(
+      `kickoff handbook --dry-run did not describe the project:\n${dryRun.stdout}${dryRun.stderr}`,
+    );
+  }
+};
+
+const expectExit = (
+  label: string,
+  result: ReturnType<typeof runKickoff>,
+  status: number,
+  text?: string,
+): void => {
+  const combined = `${result.stdout}${result.stderr}`;
+  if (result.status !== status || (text && !combined.includes(text))) {
+    throw new Error(
+      `${label}: expected exit ${status}${text ? ` and "${text}"` : ""}, got ${result.status}:\n${combined}`,
+    );
+  }
+  console.log(`  ${label} -> ${status}`);
+};
+
+const verifyHandbookCommand = (): void => {
+  const root = mkdtempSync(path.join(tmpdir(), "kickoff-handbook-e2e-"));
+  const answersFile = path.join(fixturesDir, "claude-static.json");
+
+  console.log("\n→ kickoff handbook");
+
+  try {
+    expectExit(
+      "kickoff handbook --answers",
+      runKickoff(["handbook", "--answers", answersFile], root),
+      0,
+      "Wrote docs/handbook/",
+    );
+    if (readdirSync(root).join(",") !== "docs") {
+      throw new Error("kickoff handbook --answers wrote outside docs/handbook");
+    }
+    expectExit(
+      "kickoff handbook --answers again",
+      runKickoff(["handbook", "--answers", answersFile], root),
+      1,
+      "already has files",
+    );
+    expectExit(
+      "kickoff handbook --answers --force",
+      runKickoff(["handbook", "--answers", answersFile, "--force"], root),
+      0,
+    );
+
+    writeFileSync(path.join(root, "package.json"), '{"name":"e2e-repo"}');
+    const record = path.join(root, "agent-args.txt");
+    const agent = path.join(root, "fake-agent.sh");
+    writeFileSync(
+      agent,
+      `#!/usr/bin/env bash\nprintf '%s' "$1" > "${record}"\n`,
+    );
+    chmodSync(agent, 0o755);
+
+    expectExit(
+      "kickoff handbook --agent <cli>",
+      runKickoff(["handbook", "--agent", agent], root),
+      0,
+    );
+    if (
+      !readFileSync(record, "utf-8").startsWith(
+        "# Build the handbook for e2e-repo",
+      )
+    ) {
+      throw new Error("the agent did not receive the handbook prompt");
+    }
+    expectExit(
+      "kickoff handbook (no terminal)",
+      runKickoff(["handbook"], root, ""),
+      0,
+      "# Build the handbook for e2e-repo",
+    );
+    console.log("✔ kickoff handbook");
+  } finally {
+    rmSync(root, { force: true, maxRetries: 3, recursive: true });
+  }
+};
+
 const loadFixture = (fixturePath: string): ProjectAnswers => {
   const raw = JSON.parse(readFileSync(fixturePath, "utf-8")) as unknown;
   const validated = validateProjectAnswers(raw);
@@ -233,6 +373,8 @@ const verifyFixture = async (
       runInProject(tmpRoot, check);
     }
 
+    verifyHandbookTooling(tmpRoot, answers);
+
     if (answers.includeContentful) {
       console.log("  skip build: next build needs a real Contentful space");
     } else {
@@ -254,6 +396,11 @@ const main = async () => {
 
   const fixtures = readdirSync(fixturesDir)
     .filter((name) => name.endsWith(".json"))
+    .filter(
+      (name) =>
+        ONLY_FIXTURES.length === 0 ||
+        ONLY_FIXTURES.includes(name.replace(/\.json$/, "")),
+    )
     .sort()
     .map((name) => path.join(fixturesDir, name));
 
@@ -265,6 +412,8 @@ const main = async () => {
   const prevCwd = process.cwd();
 
   try {
+    verifyHandbookCommand();
+
     for (const fixturePath of fixtures) {
       await verifyFixture(fixturePath, prevCwd);
     }

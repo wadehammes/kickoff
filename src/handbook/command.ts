@@ -210,7 +210,7 @@ export const runHandbookCommand = async (args: string[]): Promise<void> => {
   }
 
   const root = path.resolve(process.cwd(), values.dir ?? ".");
-  const dryRun = values["dry-run"] ?? false;
+  const dryRun = values["dry-run"];
 
   if (values.answers !== undefined) {
     if (values.out !== undefined || values.agent !== undefined) {
@@ -227,8 +227,8 @@ export const runHandbookCommand = async (args: string[]): Promise<void> => {
       root,
       {
         dryRun,
-        force: values.force ?? false,
-        verbose: values.verbose ?? false,
+        force: values.force,
+        verbose: values.verbose,
       },
     );
     return;

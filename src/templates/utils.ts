@@ -398,14 +398,6 @@ export type LinkTarget = "_blank" | "_self";
 };
 
 // ---------------------------------------------------------------------------
-// src/interfaces/common.interfaces.ts (enhanced — same content, kept for compat)
-// ---------------------------------------------------------------------------
-
-export const getCommonInterfacesEnhanced = (): string => {
-  return getCommonInterfaces();
-};
-
-// ---------------------------------------------------------------------------
 // src/hooks/useIsBrowser.ts
 // ---------------------------------------------------------------------------
 
