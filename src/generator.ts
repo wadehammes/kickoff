@@ -4,7 +4,11 @@ import fsExtra from "fs-extra";
 
 const { ensureDir, writeFile } = fsExtra;
 
-import { DEFAULT_VERSIONS, type Versions } from "./templates/config.js";
+import {
+  DEFAULT_VERSIONS,
+  usesVercel,
+  type Versions,
+} from "./templates/config.js";
 import {
   type AgentHookScriptName,
   getAgentHookScriptContent,
@@ -258,6 +262,77 @@ const writeHandbook = async (a: ProjectAnswers, write: Write) => {
   await write("docs/handbook/source-layout.md", getHandbookSourceLayout(a));
 };
 
+const writeVercelDeploy = async (
+  a: ProjectAnswers,
+  write: Write,
+  pagesDir: string,
+) => {
+  await write(`${pagesDir}/refresh-content/page.tsx`, getRefreshContentPage(a));
+  await write("src/app/api/refresh-content/deploy/route.ts", getDeployRoute());
+  await write(
+    "src/app/api/refresh-content/deploy/status/route.ts",
+    getDeployStatusRoute(),
+  );
+  await write(
+    "src/app/api/refresh-content/deploy/active/route.ts",
+    getDeployActiveRoute(),
+  );
+  await write(
+    "src/app/api/refresh-content/deploy/build-stats/route.ts",
+    getDeployBuildStatsRoute(),
+  );
+  await write(
+    "src/components/DeployPage/DeployPage.component.tsx",
+    getDeployPageComponent(a),
+  );
+  await write(
+    "src/components/DeployPage/DeployPage.module.css",
+    getDeployPageCSS(),
+  );
+  await write(
+    "src/components/DeployPage/DeployBuildStats.component.tsx",
+    getDeployBuildStatsComponent(),
+  );
+  await write(
+    "src/components/DeployButton/DeployButton.component.tsx",
+    getDeployButtonComponent(),
+  );
+  await write(
+    "src/components/DeployButton/DeployButton.po.tsx",
+    getDeployButtonPO(),
+  );
+  await write(
+    "src/components/DeployButton/DeployButton.test.tsx",
+    getDeployButtonTest(),
+  );
+  await write("src/api/deploy.types.ts", getDeployTypes());
+  await write("src/hooks/useDeployMonitor.ts", getUseDeployMonitor());
+  await write(
+    "src/hooks/queries/useDeployBuildStats.query.ts",
+    getUseDeployBuildStatsQuery(),
+  );
+  await write(
+    "src/hooks/mutations/useTriggerDeploy.mutation.ts",
+    getUseTriggerDeployMutation(),
+  );
+  await write("src/hooks/queries/deployQueryKeys.ts", getDeployQueryKeys());
+  await write("src/lib/refreshContentAccess.ts", getRefreshContentAccess());
+  await write(
+    "src/lib/refreshContentAccess.spec.ts",
+    getRefreshContentAccessSpec(),
+  );
+  await write("src/lib/deployProgressStorage.ts", getDeployProgressStorage());
+  await write(
+    "src/lib/deployProgressStorage.spec.ts",
+    getDeployProgressStorageSpec(),
+  );
+  await write("src/lib/vercelDeploymentStatus.ts", getVercelDeploymentStatus());
+  await write(
+    "src/lib/vercelDeploymentStatus.spec.ts",
+    getVercelDeploymentStatusSpec(),
+  );
+};
+
 export const generateHandbook = async (
   a: ProjectAnswers,
   root: string,
@@ -297,7 +372,7 @@ export const generateProject = async (
   await write(".editorconfig", getEditorConfig());
   await write(".npmrc", getNpmrc());
   await write(".browserslistrc", getBrowserslistrc());
-  await write(".gitignore", getGitignore());
+  await write(".gitignore", getGitignore(a));
   await write("pnpm-workspace.yaml", getPnpmWorkspace(a));
   await write("Makefile", getMakefile(a));
   await write("jest.config.ts", getJestConfig());
@@ -423,7 +498,7 @@ export const generateProject = async (
   }
   await write("scripts/make_sitemap.js", getMakeSitemapJs(a));
   await write("scripts/tsconfig.json", getScriptsTsConfig());
-  if (!a.includeClaudePipeline) {
+  if (!a.includeClaudePipeline && usesVercel(a)) {
     await write("scripts/verify-vercel-release.ts", getVerifyVercelRelease());
     await write(
       "scripts/verify-vercel-for-release.sh",
@@ -472,7 +547,6 @@ export const generateProject = async (
   await write("src/app/manifest.ts", getAppManifest(a));
   await write("src/app/fonts/.gitkeep", "");
   await write("src/app/global-error.tsx", getGlobalError());
-  await write(`${pagesDir}/refresh-content/page.tsx`, getRefreshContentPage(a));
 
   if (!a.includeI18n) {
     await write("src/app/page.tsx", getAppPage());
@@ -487,20 +561,6 @@ export const generateProject = async (
     await write("src/app/api/draft/route.ts", getDraftRoute());
     await write("src/app/api/disable-draft/route.ts", getDisableDraftRoute());
   }
-
-  await write("src/app/api/refresh-content/deploy/route.ts", getDeployRoute());
-  await write(
-    "src/app/api/refresh-content/deploy/status/route.ts",
-    getDeployStatusRoute(),
-  );
-  await write(
-    "src/app/api/refresh-content/deploy/active/route.ts",
-    getDeployActiveRoute(),
-  );
-  await write(
-    "src/app/api/refresh-content/deploy/build-stats/route.ts",
-    getDeployBuildStatsRoute(),
-  );
 
   // ── src/components/ ────────────────────────────────────────────────────────
   await write(
@@ -534,34 +594,10 @@ export const generateProject = async (
   );
   await write("src/components/Button/Button.module.css", getButtonCSS());
   await write(
-    "src/components/DeployPage/DeployPage.component.tsx",
-    getDeployPageComponent(a),
-  );
-  await write(
-    "src/components/DeployPage/DeployPage.module.css",
-    getDeployPageCSS(),
-  );
-  await write(
-    "src/components/DeployPage/DeployBuildStats.component.tsx",
-    getDeployBuildStatsComponent(),
-  );
-  await write(
     "src/components/Toast/ToastHost.component.tsx",
     getToastHostComponent(),
   );
   await write("src/components/Toast/ToastHost.module.css", getToastHostCSS());
-  await write(
-    "src/components/DeployButton/DeployButton.component.tsx",
-    getDeployButtonComponent(),
-  );
-  await write(
-    "src/components/DeployButton/DeployButton.po.tsx",
-    getDeployButtonPO(),
-  );
-  await write(
-    "src/components/DeployButton/DeployButton.test.tsx",
-    getDeployButtonTest(),
-  );
 
   // ── src/contentful/ ────────────────────────────────────────────────────────
   if (a.includeContentful) {
@@ -587,8 +623,7 @@ export const generateProject = async (
 
   // ── src/api/ ───────────────────────────────────────────────────────────────
   await write("src/api/helpers.ts", getApiHelpers());
-  await write("src/api/deploy.types.ts", getDeployTypes());
-  await write("src/api/urls.ts", getApiUrls());
+  await write("src/api/urls.ts", getApiUrls(a));
 
   // ── src/copy/ ───────────────────────────────────────────────────────────────
   await write(
@@ -598,17 +633,7 @@ export const generateProject = async (
 
   // ── src/hooks/ ───────────────────────────────────────────────────────────────
   await write("src/hooks/useIsBrowser.ts", getUseIsBrowser());
-  await write("src/hooks/useDeployMonitor.ts", getUseDeployMonitor());
-  await write(
-    "src/hooks/queries/useDeployBuildStats.query.ts",
-    getUseDeployBuildStatsQuery(),
-  );
   await write("src/lib/toast/appToast.ts", getAppToast());
-  await write(
-    "src/hooks/mutations/useTriggerDeploy.mutation.ts",
-    getUseTriggerDeployMutation(),
-  );
-  await write("src/hooks/queries/deployQueryKeys.ts", getDeployQueryKeys());
 
   // ── src/interfaces/ ────────────────────────────────────────────────────────
   await write("src/interfaces/common.interfaces.ts", getCommonInterfaces());
@@ -616,21 +641,10 @@ export const generateProject = async (
   // ── src/lib/ ───────────────────────────────────────────────────────────────
   await write("src/lib/generateSitemap.ts", getGenerateSitemap(a));
   await write("src/lib/schema.ts", getSchema(a));
-  await write("src/lib/refreshContentAccess.ts", getRefreshContentAccess());
-  await write(
-    "src/lib/refreshContentAccess.spec.ts",
-    getRefreshContentAccessSpec(),
-  );
-  await write("src/lib/deployProgressStorage.ts", getDeployProgressStorage());
-  await write(
-    "src/lib/deployProgressStorage.spec.ts",
-    getDeployProgressStorageSpec(),
-  );
-  await write("src/lib/vercelDeploymentStatus.ts", getVercelDeploymentStatus());
-  await write(
-    "src/lib/vercelDeploymentStatus.spec.ts",
-    getVercelDeploymentStatusSpec(),
-  );
+
+  if (usesVercel(a)) {
+    await writeVercelDeploy(a, write, pagesDir);
+  }
 
   // ── src/styles/ ────────────────────────────────────────────────────────────
   await write("src/styles/globals.css", getGlobalsCSS(a));
@@ -697,7 +711,7 @@ export const generateProject = async (
   await write("src/utils/factory.helpers.ts", getFactoryHelpers());
 
   // ── src/proxy.ts ───────────────────────────────────────────────────────────────
-  await write("src/proxy.ts", a.includeI18n ? getI18nProxyTs() : getProxyTs());
+  await write("src/proxy.ts", a.includeI18n ? getI18nProxyTs(a) : getProxyTs());
 
   // ── i18n (conditional) ───────────────────────────────────────────────────────
   if (a.includeI18n) {

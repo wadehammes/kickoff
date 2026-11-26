@@ -1,5 +1,5 @@
 import type { ProjectAnswers } from "../types.js";
-import { getBaseBranch } from "./config.js";
+import { getBaseBranch, usesVercel } from "./config.js";
 
 export const getHandbookChangePolicy = (a: ProjectAnswers): string =>
   a.includeClaudePipeline
@@ -121,12 +121,16 @@ Most content and design changes go live without anyone else. An engineer is pull
 export const getReadme = (a: ProjectAnswers): string => {
   const base = getBaseBranch(a);
   const previewTarget = a.includeClaudePipeline ? "PRs" : "PRs /`staging`";
+  const hostingSteps = (first: number) =>
+    usesVercel(a)
+      ? `${first}. **Vercel project and env** — Create a Vercel project linked to this repository. Map **preview** deployments to ${previewTarget} and **production** to **\`main\`** (see [Deployment](#deployment)). In the Vercel dashboard, add **every** variable listed in **\`.env.local.example\`** under **Environment Variables**, for each scope you rely on (Preview / Development / Production), matching the example file names.
+${first + 1}. **Pull env into this repo** — In your local clone, run **\`npx vercel link\`** once so the CLI targets the right project, then **\`npx vercel env pull .env.local\`** to sync secrets into **\`.env.local\`**. Re-run **pull** when values change in Vercel; keep **\`.env.local\`** out of version control.`
+      : `${first}. **Hosting and env** — Point your host at this repository: it builds with **\`pnpm build\`** and serves with **\`pnpm start\`** (Node 24), deploying **\`main\`** to production and **\`${base}\`** to staging. Add **every** variable listed in **\`.env.local.example\`** to its environment settings.
+${first + 1}. **Local env** — Copy **\`.env.local.example\`** to **\`.env.local\`** and fill in the values; keep **\`.env.local\`** out of version control.`;
   const prereqBlock = a.includeContentful
     ? `6. **Contentful space** — Provision the space/environment, create or import content types (\`Page\`, etc.), and collect the tokens you need for the **Contentful** variables in **\`.env.local.example\`** (then see **[Contentful setup](#contentful-setup)**).
-7. **Vercel project and env** — Create a Vercel project linked to this repository. Map **preview** deployments to ${previewTarget} and **production** to **\`main\`** (see [Deployment](#deployment)). In the Vercel dashboard, add **every** variable listed in **\`.env.local.example\`** under **Environment Variables**, for each scope you rely on (Preview / Development / Production), matching the example file names.
-8. **Pull env into this repo** — In your local clone, run **\`npx vercel link\`** once so the CLI targets the right project, then **\`npx vercel env pull .env.local\`** to sync secrets into **\`.env.local\`**. Re-run **pull** when values change in Vercel; keep **\`.env.local\`** out of version control.`
-    : `6. **Vercel project and env** — Create a Vercel project linked to this repository. Map **preview** deployments to ${previewTarget} and **production** to **\`main\`** (see [Deployment](#deployment)). In the Vercel dashboard, add **every** variable listed in **\`.env.local.example\`** under **Environment Variables**, for each scope you rely on (Preview / Development / Production), matching the example file names.
-7. **Pull env into this repo** — In your local clone, run **\`npx vercel link\`** once so the CLI targets the right project, then **\`npx vercel env pull .env.local\`** to sync secrets into **\`.env.local\`**. Re-run **pull** when values change in Vercel; keep **\`.env.local\`** out of version control.`;
+${hostingSteps(7)}`
+    : hostingSteps(6);
 
   const gettingStartedExtra = a.includeContentful
     ? `
@@ -184,7 +188,7 @@ This project includes **Claude Code** hooks under **\`.claude/\`** (\`settings.j
 
 ## Prerequisites (greenfield bootstrap)
 
-These steps happen **outside application code**: GitHub repository settings, the **kickoff** scaffolding CLI on your machine,${a.includeContentful ? " Vercel, and Contentful." : " and Vercel."} Work through them once when standing up this repo—not for every contributor clone.
+These steps happen **outside application code**: GitHub repository settings, the **kickoff** scaffolding CLI on your machine${a.includeContentful ? ", " : " and "}${usesVercel(a) ? "Vercel" : "your host"}${a.includeContentful ? ", and Contentful." : "."} Work through them once when standing up this repo—not for every contributor clone.
 
 If you joined an existing project, skip ahead to **[Getting started](#getting-started)**.
 
@@ -195,13 +199,7 @@ ${prereqBlock}${a.includeClaudePipeline ? `\n${a.includeContentful ? 9 : 8}. **V
 ## Getting started
 
 \`\`\`sh
-# Environment variables: start from the example, then edit by hand and/or sync from Vercel
-cp .env.local.example .env.local
-
-# After Vercel stores the same keys (see Prerequisites), you can pull instead of pasting:
-# npx vercel link
-# npx vercel env pull .env.local
-
+${usesVercel(a) ? "# Environment variables: start from the example, then edit by hand and/or sync from Vercel\ncp .env.local.example .env.local\n\n# After Vercel stores the same keys (see Prerequisites), you can pull instead of pasting:\n# npx vercel link\n# npx vercel env pull .env.local\n" : "# Environment variables: start from the example, then fill in the values\ncp .env.local.example .env.local\n"}
 # Install dependencies
 pnpm install
 
@@ -253,10 +251,7 @@ See \`docs/handbook/README.md\` for the index or \`docs/handbook/llms.md\` for a
 
 ## Deployment
 
-- Connect your repository to [Vercel](https://vercel.com)
-- Add **all** env vars from \`.env.local.example\` to Vercel (**Settings** → **Environment Variables**) for the Preview / Development / Production scopes you use
-- Locally, use **\`npx vercel link\`** and **\`npx vercel env pull .env.local\`** to mirror those values into \`.env.local\` (see **[Prerequisites (greenfield bootstrap)](#prerequisites-greenfield-bootstrap)**)
-${a.includeClaudePipeline ? getPipelineDeploymentReadme(a) : getStagingDeploymentReadme(a)}
+${usesVercel(a) ? "- Connect your repository to [Vercel](https://vercel.com)\n- Add **all** env vars from `.env.local.example` to Vercel (**Settings** → **Environment Variables**) for the Preview / Development / Production scopes you use\n- Locally, use **`npx vercel link`** and **`npx vercel env pull .env.local`** to mirror those values into `.env.local` (see **[Prerequisites (greenfield bootstrap)](#prerequisites-greenfield-bootstrap)**)\n" : "- Deploy with any host that runs Next.js: build with `pnpm build`, serve with `pnpm start`\n- Add **all** env vars from `.env.local.example` to your host's environment settings\n"}${a.includeClaudePipeline ? getPipelineDeploymentReadme(a) : getStagingDeploymentReadme(a)}
 ## CI
 
 PRs to \`${base}\`${a.includeClaudePipeline ? " and pushes to `main`" : ""} run: TypeScript strict check, Biome lint, Stylelint, Jest tests, and Knip.
@@ -287,7 +282,7 @@ const getStagingDeploymentReadme = (a: ProjectAnswers): string => {
 make release tag=v1.0.0
 \`\`\`
 
-Runs the Vercel membership check and pushes the tag. The release workflow then pushes the tag to \`main\` and creates a GitHub Release; Vercel deploys production because \`main\` changed.
+${usesVercel(a) ? "Runs the Vercel membership check and pushes the tag. The release workflow then pushes the tag to `main` and creates a GitHub Release; Vercel deploys production because `main` changed." : "Pushes the tag. The release workflow then pushes the tag to `main` and creates a GitHub Release; your host deploys production because `main` changed."}
 `;
 };
 
@@ -513,7 +508,7 @@ If you are new here, this page is your map. It explains how the site is structur
 ## Tech stack
 
 - **Framework**: Next.js 16 with the **App Router**. Routes live under \`src/app/\`.
-- **UI**: React 19, TypeScript. Headless primitives: **[Base UI](https://base-ui.com/react/overview/quick-start)** (\`@base-ui/react\`) in \`src/ui/\`; styled controls in \`src/components/\` (e.g. \`Button\`, \`DeployButton\`).
+- **UI**: React 19, TypeScript. Headless primitives: **[Base UI](https://base-ui.com/react/overview/quick-start)** (\`@base-ui/react\`) in \`src/ui/\`; styled controls in \`src/components/\` (e.g. \`Button\`${usesVercel(a) ? ", `DeployButton`" : ""}).
 - **Data**: Server Components for request/build-time data; **React Query** for client mutations. This scaffold was generated **without** Contentful.
 - **Styling**: **CSS Modules** with tokens in \`src/styles/globals.css\`.
 - **Tooling**: pnpm, Biome, Stylelint, Jest.
@@ -523,7 +518,7 @@ If you are new here, this page is your map. It explains how the site is structur
 - **\`next.config.ts\`** — env exposure, images, Turbopack/SVG rules, security headers, redirects.
 - **\`biome.json\`** — lint and format. Run \`pnpm lint\`, \`pnpm lint:fix\`.
 - **Branching**: ${a.includeClaudePipeline ? "Trunk-based. PRs target `main`; each merge deploys to production through the hands-off Claude pipeline ([platform.md](platform.md))." : "Default branch is `staging`. Releases use `make release tag=vX.X.X`."}
-- **Provisioning**: Greenfield steps (GitHub, Vercel) live in the repo root **README** under **Prerequisites (greenfield bootstrap)**.
+- **Provisioning**: Greenfield steps (GitHub, ${usesVercel(a) ? "Vercel" : "your host"}) live in the repo root **README** under **Prerequisites (greenfield bootstrap)**.
 `;
   }
 
@@ -536,7 +531,7 @@ If you are new here, this page is your map. It explains how the site is structur
 ## Tech stack
 
 - **Framework**: Next.js 16 with the **App Router**. Routes live under \`src/app/\` (\`page.tsx\`, \`layout.tsx\`, Route Handlers under \`src/app/api/\`).
-- **UI**: React 19, TypeScript. Headless primitives: **[Base UI](https://base-ui.com/react/overview/quick-start)** (\`@base-ui/react\`) in \`src/ui/\`; styled controls in \`src/components/\` (e.g. \`Button\`, \`DeployButton\`).
+- **UI**: React 19, TypeScript. Headless primitives: **[Base UI](https://base-ui.com/react/overview/quick-start)** (\`@base-ui/react\`) in \`src/ui/\`; styled controls in \`src/components/\` (e.g. \`Button\`${usesVercel(a) ? ", `DeployButton`" : ""}).
 - **CMS**: Contentful. Content types are generated into \`src/contentful/types/\`; getters and parsers live in \`src/contentful/\`.
 - **Data fetching**: Server Components and Contentful getters at request/build time; **React Query** (TanStack) for client-side mutations and any future client queries. Mutation hooks live in \`src/hooks/mutations/\` and call the API surface in \`src/api/urls.ts\`.
 - **Styling**: **CSS Modules** (\`.module.css\`) with modern CSS (nesting, custom properties). Global tokens and reset live in \`src/styles/globals.css\`.
@@ -550,9 +545,13 @@ Next.js App Router entrypoints.
 
 - **\`layout.tsx\`** — Root layout: fonts, global CSS, \`Providers\`, navigation, footer, draft-mode UI, analytics when configured.
 - **\`page.tsx\`** — Home route; nested folders define segments (e.g. \`[slug]/page.tsx\` for CMS pages).
-- **\`api/**/route.ts\`** — Route Handlers (email, draft mode, Vercel hooks, etc.).
-- **\`refresh-content/page.tsx\`** — Token-gated page with \`DeployPage\` to trigger staging/production redeploys via Vercel deploy hooks.
-
+- **\`api/**/route.ts\`** — Route Handlers (email, draft mode${usesVercel(a) ? ", deploy hooks" : ""}, etc.).
+${
+  usesVercel(a)
+    ? `- **\`refresh-content/page.tsx\`** — Token-gated page with \`DeployPage\` to trigger staging/production redeploys via Vercel deploy hooks.
+`
+    : ""
+}
 ### \`src/components/\`
 
 One folder per feature component under \`src/components/<ComponentName>/\`. See [components.md](components.md).
@@ -562,7 +561,7 @@ One folder per feature component under \`src/components/<ComponentName>/\`. See 
 - **Client**: \`src/contentful/client.ts\` — delivery vs preview clients from env.
 - **Getters**: \`get*.ts\` files — async functions that call Contentful with \`preview\` flag.
 - **Parsers**: \`parse*.ts\` — normalize raw entries into typed app shapes.
-- **Cache**: \`cacheConfig.ts\` + \`cacheKeys.ts\` — \`unstable_cache\` wrappers and typed cache keys with Vercel tags.
+- **Cache**: \`cacheConfig.ts\` + \`cacheKeys.ts\` — \`unstable_cache\` wrappers and typed cache keys and cache tags.
 - **Types**: \`src/contentful/types/\` — generated; run \`pnpm types:contentful\`.
 
 ### \`src/hooks/\`
@@ -573,11 +572,15 @@ Custom hooks; mutations under \`src/hooks/mutations/\` use React Query and \`src
 
 - **\`urls.ts\`** — \`api\` object for client-side calls to same-origin Route Handlers.
 - **\`helpers.ts\`** — \`fetchOptions\`, \`FetchMethods\`, \`fetchJsonResponse\`, \`ApiError\` (and internal \`fetchResponse\` helper used by \`fetchJsonResponse\`).
-- **\`deploy.types.ts\`** — Types for refresh-content deploy API calls.
-
+${
+  usesVercel(a)
+    ? `- **\`deploy.types.ts\`** — Types for refresh-content deploy API calls.
+`
+    : ""
+}
 ### \`src/lib/\`
 
-Server-oriented helpers: \`generateSitemap.ts\`, \`schema.ts\` (JSON-LD), \`refreshContentAccess.ts\`, \`deployProgressStorage.ts\`, \`vercelDeploymentStatus.ts\`. See [distribution.md](distribution.md).
+Server-oriented helpers: \`generateSitemap.ts\`, \`schema.ts\` (JSON-LD)${usesVercel(a) ? ", `refreshContentAccess.ts`, `deployProgressStorage.ts`, `vercelDeploymentStatus.ts`" : ""}. See [distribution.md](distribution.md).
 
 ### \`src/ui/\`
 
@@ -628,7 +631,7 @@ flowchart LR
 - **\`next.config.ts\`** — env exposure, images, Turbopack/SVG rules, security headers, redirects.
 - **\`biome.json\`** — lint and format (includes CSS). Run \`pnpm lint\`, \`pnpm lint:fix\`.
 - **Branching**: ${a.includeClaudePipeline ? "Trunk-based. PRs target `main`; each merge deploys to production through the hands-off Claude pipeline ([platform.md](platform.md))." : "Default branch is `staging`. Releases use `make release tag=vX.X.X`."}
-- **Provisioning**: Hosting bootstrap (GitHub, Vercel, Contentful) is documented under **Prerequisites (greenfield bootstrap)** in the repo root README.
+- **Provisioning**: Hosting bootstrap (GitHub, ${usesVercel(a) ? "Vercel" : "your host"}, Contentful) is documented under **Prerequisites (greenfield bootstrap)** in the repo root README.
 `;
 };
 
@@ -916,7 +919,7 @@ The \`RichText\` component in \`src/contentful/richText.tsx\` is the standard wr
 ## Cache
 
 - **\`src/contentful/cacheConfig.ts\`**: \`sanitizeForCache\` and the revalidation seconds constant. Wrap getter calls with \`unstable_cache\` here to enable on-demand revalidation.
-- **\`src/contentful/cacheKeys.ts\`**: Typed cache key constants and Vercel cache tags so keys are consistent across getters and revalidation routes.
+- **\`src/contentful/cacheKeys.ts\`**: Typed cache key constants and cache tags so keys are consistent across getters and revalidation routes.
 
 ## Pagination
 
@@ -928,7 +931,7 @@ Use \`CONTENTFUL_BATCH_LIMIT\` (defined in \`src/contentful/contentfulPagination
 // docs/handbook/components.md
 // ---------------------------------------------------------------------------
 
-export const getHandbookComponents = (_a: ProjectAnswers): string => {
+export const getHandbookComponents = (a: ProjectAnswers): string => {
   return `# Components
 
 New UI lives under \`src/components/<Name>/\`. This page describes the files we expect in that folder, how the **scaffold** works, and how tests and dynamic imports fit in.
@@ -981,7 +984,7 @@ Use **\`next/link\`**'s **\`Link\`** for all navigational links — internal pat
 
 ## Base UI
 
-New headless behavior should use **[Base UI](https://base-ui.com/react/overview/quick-start)** (\`@base-ui/react\`): import from the package subpath (e.g. \`@base-ui/react/dialog\`, \`@base-ui/react/field\`) — **no barrel re-exports**. Style with CSS Modules + design tokens. Add **\`src/ui/<Name>/\`** only when behavior or shared CSS is needed (e.g. **\`Collapsible\`**, **\`FieldErrorMessage\`**). See **[src/ui/README.md](../../src/ui/README.md)** for portal setup (**\`.appRoot\`** on the layout \`main\` in [\`layout.tsx\`](../../src/app/layout.tsx)). **\`Button\`**, **\`DeployButton\`**, and **\`DeployPage\`** demonstrate styled Base UI usage.
+New headless behavior should use **[Base UI](https://base-ui.com/react/overview/quick-start)** (\`@base-ui/react\`): import from the package subpath (e.g. \`@base-ui/react/dialog\`, \`@base-ui/react/field\`) — **no barrel re-exports**. Style with CSS Modules + design tokens. Add **\`src/ui/<Name>/\`** only when behavior or shared CSS is needed (e.g. **\`Collapsible\`**, **\`FieldErrorMessage\`**). See **[src/ui/README.md](../../src/ui/README.md)** for portal setup (**\`.appRoot\`** on the layout \`main\` in [\`layout.tsx\`](../../src/app/layout.tsx)). ${usesVercel(a) ? "**`Button`**, **`DeployButton`**, and **`DeployPage`** demonstrate" : "**`Button`** demonstrates"} styled Base UI usage.
 `;
 };
 
@@ -1020,11 +1023,15 @@ Mutation hooks live in **\`src/hooks/mutations/\`**.
 
 When you add client-side queries, place them under **\`src/hooks/queries/\`**, use a stable **\`queryKey\`**, and call through \`src/api/urls.ts\` inside \`queryFn\`. Follow the hook rules in [conventions.md](conventions.md) (single params object, no side effects in the hook file).
 
-## Refresh content
+${
+  usesVercel(a)
+    ? `## Refresh content
 
 **\`src/app/refresh-content/page.tsx\`** is **\`force-dynamic\`** and **\`noindex\`**. Access is gated by **\`REFRESH_CONTENT_ACCESS_TOKEN\`** when set — see [platform.md](platform.md). **\`DeployPage\`** triggers redeploys through **\`POST /api/refresh-content/deploy\`**. **\`DeployButton\`** uses **\`useDeployMonitor\`** (React Query mutation + polled status/active queries). **\`startedAt\`** (click time) drives elapsed labels and status **\`since\`**; **\`furthestDeployStatus\`** keeps phase labels monotonic (**Starting** → **Building**). Completion toasts fire from status polls and the elapsed timer without a page refresh.
 
-## API layer and Route Handlers
+`
+    : ""
+}## API layer and Route Handlers
 
 - **Client**: \`src/api/urls.ts\` is the front door for browser-initiated calls to same-origin APIs.
 - **Server**: Implement behavior in **\`src/app/api/<name>/route.ts\`** (POST/GET as needed), validate input, and return \`Response\` JSON with appropriate status codes.
@@ -1066,8 +1073,8 @@ export const getHandbookPlatform = (a: ProjectAnswers): string => {
     : "default branch (`staging`), branch protections, seeding **`v0.0.0`**,";
 
   const greenfield = a.includeContentful
-    ? `GitHub, Vercel, and Contentful setup that happens **outside** this repo—including ${greenfieldBranching} importing the scaffold from kickoff, adding **all** env vars from **\`.env.local.example\`** in Vercel, and **\`npx vercel env pull .env.local\`** in the clone—is captured in root **[README.md](../../README.md)** — **Prerequisites (greenfield bootstrap)**.`
-    : `GitHub and Vercel setup that happens **outside** this repo—including ${greenfieldBranching} importing the scaffold from kickoff, adding env vars from **\`.env.local.example\`** in Vercel, and **\`npx vercel env pull .env.local\`** in the clone—is captured in root **[README.md](../../README.md)** — **Prerequisites (greenfield bootstrap)**.`;
+    ? `GitHub, ${usesVercel(a) ? "Vercel" : "hosting"}, and Contentful setup that happens **outside** this repo—including ${greenfieldBranching} importing the scaffold from kickoff, adding **all** env vars from **\`.env.local.example\`**${usesVercel(a) ? " in Vercel, and **`npx vercel env pull .env.local`** in the clone" : " in your host's settings"}—is captured in root **[README.md](../../README.md)** — **Prerequisites (greenfield bootstrap)**.`
+    : `GitHub and ${usesVercel(a) ? "Vercel" : "hosting"} setup that happens **outside** this repo—including ${greenfieldBranching} importing the scaffold from kickoff, adding env vars from **\`.env.local.example\`**${usesVercel(a) ? " in Vercel, and **`npx vercel env pull .env.local`** in the clone" : " in your host's settings"}—is captured in root **[README.md](../../README.md)** — **Prerequisites (greenfield bootstrap)**.`;
 
   const scriptRowsExtra = a.includeContentful
     ? `| \`pnpm types:contentful\` | Regenerate \`src/contentful/types\` (needs CMA env vars). |
@@ -1156,18 +1163,28 @@ The full list lives in **\`package.json\`**.
 
 ## Environment variables and \`next.config\`
 
-**\`next.config.ts\`** \`env: { ... }\` inlines values into the build—including client bundles wherever they are referenced—so list **only values that are safe to expose** (\`ENVIRONMENT\`, public site keys). Server-only secrets (\`VERCEL_API_TOKEN\`, Contentful preview keys, \`RESEND_API_KEY\`, \`RECAPTCHA_SECRET_KEY\`) are read from \`process.env\` in Route Handlers and server code; never add them to \`env:\` or give them a \`NEXT_PUBLIC_*\` name.
+**\`next.config.ts\`** \`env: { ... }\` inlines values into the build—including client bundles wherever they are referenced—so list **only values that are safe to expose** (\`ENVIRONMENT\`, public site keys). Server-only secrets (${usesVercel(a) ? "`VERCEL_API_TOKEN`, " : ""}Contentful preview keys, \`RESEND_API_KEY\`, \`RECAPTCHA_SECRET_KEY\`) are read from \`process.env\` in Route Handlers and server code; never add them to \`env:\` or give them a \`NEXT_PUBLIC_*\` name.
 
-Configure values in **Vercel** (or your host) and mirror locally via \`npx vercel env pull\` as described in the root README.
+${usesVercel(a) ? "Configure values in **Vercel** and mirror locally via `npx vercel env pull` as described in the root README." : "Configure values in your host's environment settings and copy them into `.env.local` locally, as described in the root README."}
 
 Notable groups:
 
-- **Build (Vercel)** — **\`ENABLE_EXPERIMENTAL_COREPACK\`** — set to **\`1\`** in the Vercel project (and in **\`.env.local.example\`**) so production installs respect **\`packageManager\`** in \`package.json\`; not wired through \`next.config.ts\` (build-time only).
-${notableContentful}- **ENVIRONMENT** — drives URLs in helpers such as \`envUrl()\`.
-- **Refresh content** — **\`REFRESH_CONTENT_ACCESS_TOKEN\`**, **\`VERCEL_DEPLOY_HOOK_STAGING\`**, **\`VERCEL_DEPLOY_HOOK_PRODUCTION\`**, **\`VERCEL_API_TOKEN\`** (server-only; used by refresh-content page and deploy API routes). **\`VERCEL_TEAM_SLUG\`** or **\`VERCEL_TEAM_ID\`** scopes List Deployments API calls when the project lives under a team.
-- **Optional** — HubSpot, Resend, reCAPTCHA — used by Route Handlers and forms when configured.
+${
+  usesVercel(a)
+    ? `- **Build (Vercel)** — **\`ENABLE_EXPERIMENTAL_COREPACK\`** — set to **\`1\`** in the Vercel project (and in **\`.env.local.example\`**) so production installs respect **\`packageManager\`** in \`package.json\`; not wired through \`next.config.ts\` (build-time only).
+`
+    : ""
+}${notableContentful}- **ENVIRONMENT** — drives URLs in helpers such as \`envUrl()\`.
+${
+  usesVercel(a)
+    ? `- **Refresh content** — **\`REFRESH_CONTENT_ACCESS_TOKEN\`**, **\`VERCEL_DEPLOY_HOOK_STAGING\`**, **\`VERCEL_DEPLOY_HOOK_PRODUCTION\`**, **\`VERCEL_API_TOKEN\`** (server-only; used by refresh-content page and deploy API routes). **\`VERCEL_TEAM_SLUG\`** or **\`VERCEL_TEAM_ID\`** scopes List Deployments API calls when the project lives under a team.
+`
+    : ""
+}- **Optional** — HubSpot, Resend, reCAPTCHA — used by Route Handlers and forms when configured.
 
-## Refresh content and deploy hooks
+${
+  usesVercel(a)
+    ? `## Refresh content and deploy hooks
 
 - **Page**: **\`src/app/refresh-content/page.tsx\`** is **\`force-dynamic\`**, **\`noindex\`**, and gated by **\`isRefreshContentAuthorized\`** in **\`refreshContentAccess.ts\`**.
 - **Access**: When **\`REFRESH_CONTENT_ACCESS_TOKEN\`** is set, the page and deploy API require a matching **\`?token=\`** on every environment. When unset, only **\`ENVIRONMENT=local\`** may access without a token.
@@ -1184,13 +1201,17 @@ ${notableContentful}- **ENVIRONMENT** — drives URLs in helpers such as \`envUr
 
 - **Deploy monitoring**: After a hook trigger, **\`POST /api/refresh-content/deploy\`** returns **\`createdAt\`**, **\`deployHookId\`**, and **\`projectId\`**. Route handlers share **\`parseDeployTarget\`**, **\`parseDeployHookUrl\`**, and **\`resolveDeployHookMetadata\`** from **\`refreshContentAccess.ts\`**; **\`vercelDeploymentStatus.ts\`** handles Vercel List Deployments polling. **\`useDeployMonitor\`** (used by **\`DeployButton\`**) calls **\`api.deploy.*\`** via React Query: a **mutation** for trigger, **polled queries** for **\`GET /api/refresh-content/deploy/status\`**, and an **active** query for **\`GET /api/refresh-content/deploy/active\`** on load. **\`GET /api/refresh-content/deploy/build-stats\`** returns Vercel build timing when **\`VERCEL_API_TOKEN\`** is set (**\`useDeployBuildStats\`** / **\`DeployBuildStats\`**). **\`startedAt\`** (button click time) is persisted in **\`localStorage\`** and used for the elapsed label and as the status **\`since\`** value. Status and active routes are **\`force-dynamic\`** with **\`Cache-Control: no-store\`**; Vercel fetches use **\`cache: 'no-store'\`**. Client **\`api.deploy.status\`** / **\`api.deploy.active\`** also pass **\`cache: 'no-store'\`**. Polling stops on terminal status (**\`ready\`**, **\`error\`**, **\`canceled\`**) or when **\`monitoring: false\`** (no API token). Without **\`VERCEL_API_TOKEN\`**, the button counts up for **\`DEPLOY_ESTIMATED_MS\`** (2 minutes) then shows **Refresh may be complete**. Labels use monotonic **\`displayStatus\`** via **\`furthestDeployStatus\`** (**Starting (m:ss)**, **Building (m:ss)**, etc.). Completion toasts use **\`appToast\`** via **\`ToastHost\`** in **\`providers.tsx\`** (tokens in **\`variables.css\`**).
 
-${draftSection}
-${agentHooksSection}${a.includeClaudePipeline ? getHandbookPipelineSection(a) : getHandbookReleaseSection()}
+`
+    : ""
+}${draftSection}
+${agentHooksSection}${a.includeClaudePipeline ? getHandbookPipelineSection(a) : getHandbookReleaseSection(a)}
 ${a.includeI18n ? getHandbookLanguagesSection() : ""}${getHandbookUpgradingSection(a)}## \`src/proxy.ts\`
 
 ${
   a.includeI18n
-    ? "`src/proxy.ts` runs **next-intl** locale routing (`createMiddleware(routing)`): it detects the visitor's language and rewrites `/` to the default locale. Its `matcher` skips `api`, `_next`, `_vercel`, and files with an extension. If you add more request handling, wrap the next-intl handler rather than replacing it."
+    ? "`src/proxy.ts` runs **next-intl** locale routing (`createMiddleware(routing)`): it detects the visitor's language and rewrites `/` to the default locale. Its `matcher` skips `api`, `_next`, " +
+      (usesVercel(a) ? "`_vercel`, " : "") +
+      "and files with an extension. If you add more request handling, wrap the next-intl handler rather than replacing it."
     : "`src/proxy.ts` attaches **`x-pathname`** to request headers for downstream use. If you add **Next.js middleware**, import and call `proxy` from there so the behavior is applied on each request."
 }
 `;
@@ -1227,15 +1248,14 @@ The site is served in English at \`/\` and Spanish at \`/es\` using **next-intl*
 `;
 };
 
-const getHandbookReleaseSection = (): string => {
+const getHandbookReleaseSection = (a: ProjectAnswers): string => {
   return `## Release process
 
 Releases follow a \`make release tag=vX.X.X\` workflow:
 
-1. The Makefile target runs \`scripts/verify-vercel-for-release.sh\` to confirm you are a Vercel project member.
-2. It then creates and pushes a git tag.
+${usesVercel(a) ? "1. The Makefile target runs `scripts/verify-vercel-for-release.sh` to confirm you are a Vercel project member.\n2. It then creates and pushes a git tag." : "1. The Makefile target creates a git tag.\n2. It pushes the tag."}
 3. **\`scripts/watch-release.sh\`** follows the GitHub **release** workflow for the pushed tag (requires \`gh\` when available).
-4. The release workflow (\`.github/workflows/release.yml\`) fast-forwards \`main\` to the tag and creates a GitHub Release with a generated changelog. Vercel deploys production because \`main\` changed.
+4. The release workflow (\`.github/workflows/release.yml\`) fast-forwards \`main\` to the tag and creates a GitHub Release with a generated changelog. ${usesVercel(a) ? "Vercel" : "Your host"} deploys production because \`main\` changed.
 
 Step 4 pushes with the **\`RELEASE_PUSH_TOKEN\`** secret, a personal access token (Contents read/write) whose owner can bypass the \`main\` ruleset; the default \`GITHUB_TOKEN\` can't. Without the secret the workflow stops with an error that says so. If \`main\` has a commit that isn't on \`staging\` (a hotfix merged straight to \`main\`), the fast-forward is rejected: merge \`main\` back into \`staging\` and release again.
 `;
@@ -1384,10 +1404,22 @@ Server- and shared-oriented modules:
 
 - \`generateSitemap.ts\` — sitemap XML generation (see [distribution.md](distribution.md))
 - \`schema.ts\` — JSON-LD / schema.org helpers
-- \`refreshContentAccess.ts\` — token gate, **\`parseDeployTarget\`**, hook URL parsing, and **\`resolveDeployHookMetadata\`**
-- \`deployProgressStorage.ts\` — client **\`localStorage\`**, label formatting, and **\`furthestDeployStatus\`**
-- \`vercelDeploymentStatus.ts\` — poll Vercel List Deployments after a deploy-hook trigger
-
+${
+  usesVercel(a)
+    ? `- \`refreshContentAccess.ts\` — token gate, **\`parseDeployTarget\`**, hook URL parsing, and **\`resolveDeployHookMetadata\`**
+`
+    : ""
+}${
+  usesVercel(a)
+    ? `- \`deployProgressStorage.ts\` — client **\`localStorage\`**, label formatting, and **\`furthestDeployStatus\`**
+`
+    : ""
+}${
+  usesVercel(a)
+    ? `- \`vercelDeploymentStatus.ts\` — poll Vercel List Deployments after a deploy-hook trigger
+`
+    : ""
+}
 ## \`src/ui/\`
 
 Base UI wrappers and shared headless CSS. See [src/ui/README.md](../../src/ui/README.md).

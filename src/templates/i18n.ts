@@ -1,4 +1,5 @@
 import type { ProjectAnswers } from "../types.js";
+import { usesVercel } from "./config.js";
 
 // ---------------------------------------------------------------------------
 // src/i18n/routing.ts  (only generated when includeI18n)
@@ -47,14 +48,14 @@ export default getRequestConfig(async ({ requestLocale }) => {
 // src/proxy.ts  (i18n variant: next-intl locale routing)
 // ---------------------------------------------------------------------------
 
-export const getI18nProxyTs = (): string => {
+export const getI18nProxyTs = (a: ProjectAnswers): string => {
   return `import createMiddleware from "next-intl/middleware";
 import { routing } from "src/i18n/routing";
 
 export const proxy = createMiddleware(routing);
 
 export const config = {
-  matcher: "/((?!api|_next|_vercel|.*\\\\..*).*)",
+  matcher: "/((?!api|_next|${usesVercel(a) ? "_vercel|" : ""}.*\\\\..*).*)",
 };
 `;
 };

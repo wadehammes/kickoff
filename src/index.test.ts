@@ -286,10 +286,35 @@ describe("kickoff CLI", () => {
 
     const pipeline = question("includeClaudePipeline").type as (
       previous: string,
+      values: Record<string, string>,
     ) => string | null;
 
-    expect(pipeline("claude")).toBe("confirm");
-    expect(pipeline("cursor")).toBeNull();
+    expect(pipeline("claude", { hosting: "vercel" })).toBe("confirm");
+    expect(pipeline("claude", { hosting: "other" })).toBeNull();
+    expect(pipeline("cursor", { hosting: "vercel" })).toBeNull();
+
+    const hostingIndex = questions.findIndex((q) => q.name === "hosting");
+
+    expect(question("hosting").type).toBe("select");
+    expect(hostingIndex).toBeLessThan(
+      questions.findIndex((q) => q.name === "includeClaudePipeline"),
+    );
+  });
+
+  it("generates a project for another host without Vercel files", async () => {
+    vi.mocked(prompts).mockResolvedValueOnce({ ...answers, hosting: "other" });
+
+    expect(await run("--no-refresh")).toBeNull();
+    expect(
+      existsSync(
+        path.join(root, "prompted-site", "scripts/verify-vercel-release.ts"),
+      ),
+    ).toBe(false);
+    expect(
+      existsSync(
+        path.join(root, "prompted-site", "src/components/DeployButton"),
+      ),
+    ).toBe(false);
   });
 
   it("stops when the prompts are cancelled with Ctrl+C", async () => {

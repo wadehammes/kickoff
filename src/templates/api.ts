@@ -1,3 +1,5 @@
+import type { ProjectAnswers } from "../types.js";
+import { usesVercel } from "./config.js";
 // ---------------------------------------------------------------------------
 // src/api/helpers.ts
 // ---------------------------------------------------------------------------
@@ -85,7 +87,11 @@ export const fetchJsonResponse = async <T>(
 // src/api/urls.ts
 // ---------------------------------------------------------------------------
 
-export const getApiUrls = (): string => {
+export const getApiUrls = (a: ProjectAnswers): string => {
+  if (!usesVercel(a)) {
+    return "export const api = {};\n";
+  }
+
   return `import type {
   DeployActiveInput,
   DeployActiveResponse,

@@ -1,5 +1,7 @@
 export type AgentTooling = "cursor" | "claude";
 
+export type Hosting = "vercel" | "other";
+
 export interface ProjectAnswers {
   projectName: string;
   useCurrentDir: boolean;
@@ -11,6 +13,12 @@ export interface ProjectAnswers {
    * Playwright preview/production checks with automatic rollback.
    */
   includeClaudePipeline: boolean;
+  /**
+   * Where the site is deployed. "vercel" adds the Vercel deploy page, release
+   * checks, and env vars; "other" leaves them out. Defaults to "vercel" when an
+   * answers file omits it.
+   */
+  hosting: Hosting;
   siteName: string;
   prodUrl: string;
   stagingUrl: string;

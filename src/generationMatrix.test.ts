@@ -15,7 +15,10 @@ import { findBrokenLinks } from "../scaffold-assets/claude-hooks/handbook-drift-
 import { generateProject } from "./generator.js";
 import type { ProjectAnswers } from "./types.js";
 
-type Tooling = Pick<ProjectAnswers, "agentTooling" | "includeClaudePipeline">;
+type Tooling = Pick<
+  ProjectAnswers,
+  "agentTooling" | "hosting" | "includeClaudePipeline"
+>;
 type Options = Pick<
   ProjectAnswers,
   | "includeContentful"
@@ -26,9 +29,11 @@ type Options = Pick<
 >;
 
 const TOOLINGS: Tooling[] = [
-  { agentTooling: "cursor", includeClaudePipeline: false },
-  { agentTooling: "claude", includeClaudePipeline: false },
-  { agentTooling: "claude", includeClaudePipeline: true },
+  { agentTooling: "cursor", hosting: "vercel", includeClaudePipeline: false },
+  { agentTooling: "claude", hosting: "vercel", includeClaudePipeline: false },
+  { agentTooling: "claude", hosting: "vercel", includeClaudePipeline: true },
+  { agentTooling: "cursor", hosting: "other", includeClaudePipeline: false },
+  { agentTooling: "claude", hosting: "other", includeClaudePipeline: false },
 ];
 
 const OPTION_KEYS: (keyof Options)[] = [
@@ -78,7 +83,8 @@ const scenarioName = (tooling: Tooling, options: Options): string => {
   const toolingName = tooling.includeClaudePipeline
     ? "claude-pipeline"
     : tooling.agentTooling;
-  return [toolingName, ...enabled].join("-");
+  const hostName = tooling.hosting === "other" ? "selfhost" : null;
+  return [toolingName, hostName, ...enabled].filter(Boolean).join("-");
 };
 
 const SCENARIOS = TOOLINGS.flatMap((tooling) =>
@@ -385,6 +391,19 @@ const findComponentsMissingTestIds = (root: string): string[] =>
         `${path.relative(root, file)}: no data-testid="rh${componentName(file)}"`,
     );
 
+const findVercelMentions = (root: string): string[] =>
+  listFiles(root).flatMap((file) =>
+    readFileSync(file, "utf-8")
+      .split("\n")
+      .flatMap((line, index) =>
+        /vercel|refresh-content|refreshContent|DeployButton|DeployPage|useDeployMonitor|deployProgress|deploy hook/i.test(
+          line,
+        )
+          ? [`${path.relative(root, file)}:${index + 1}: ${line.trim()}`]
+          : [],
+      ),
+  );
+
 const findBrokenDocLinks = (root: string): string[] =>
   findBrokenLinks(listFiles(root).filter((file) => file.endsWith(".md"))).map(
     (problem: string) => problem.replaceAll(`${root}/`, ""),
@@ -431,6 +450,12 @@ describe("generation matrix", () => {
       "package.json script files",
     ).toBe("");
     expect(findInvalidJson(root).join("\n"), "invalid JSON").toBe("");
+    if (answers.hosting === "other") {
+      expect(
+        findVercelMentions(root).slice(0, 40).join("\n"),
+        "projects not hosted on Vercel should not mention it",
+      ).toBe("");
+    }
     expect(
       findFunctionDeclarations(root).join("\n"),
       "function declarations (the handbook requires arrow functions)",
